@@ -3,13 +3,13 @@ name: XML/JSON validation
 on:
   push:
     paths:
-    - '.github/workflows/**'
+    - '.github/workflows/hash.yml'
     - 'ctrlr/*'
     - 'hash/*'
     - 'plugins/**'
   pull_request:
     paths:
-    - '.github/workflows/**'
+    - '.github/workflows/hash.yml'
     - 'ctrlr/*'
     - 'hash/*'
     - 'plugins/**'
