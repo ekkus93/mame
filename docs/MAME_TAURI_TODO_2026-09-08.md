@@ -4,7 +4,7 @@
 **Repository:** `ekkus93/mame`  
 **Architecture spec:** `docs/MAME_TAURI_ARCHITECTURE_SPEC_2026-09-08.md`  
 **Original planning baseline:** `7cc3033a50b00801240f020b7098e22ffffdcd44`  
-**Status:** Initial implementation backlog
+**Status:** Active implementation backlog — MT-000 and MT-100 closed
 
 ---
 
@@ -43,50 +43,50 @@ A checkbox is not complete merely because code exists. Its acceptance criteria m
 
 ## MT-001 — Freeze project architecture baseline
 
-- [ ] Review `MAME_TAURI_ARCHITECTURE_SPEC_2026-09-08.md` against current MAME master.
-- [ ] Record any architectural drift since planning baseline `7cc3033a50b00801240f020b7098e22ffffdcd44`.
-- [ ] Confirm sidecar-first approach.
-- [ ] Confirm native video/audio/input hot-path invariant.
-- [ ] Confirm embedded rendering and in-process hosting remain optional gated phases.
+- [x] Review `MAME_TAURI_ARCHITECTURE_SPEC_2026-09-08.md` against current MAME master.
+- [x] Record any architectural drift since planning baseline `7cc3033a50b00801240f020b7098e22ffffdcd44`.
+- [x] Confirm sidecar-first approach.
+- [x] Confirm native video/audio/input hot-path invariant.
+- [x] Confirm embedded rendering and in-process hosting remain optional gated phases.
 
 **Acceptance:** architecture document matches implementation intent and current repository reality.
 
 ## MT-002 — Define branch and merge policy
 
-- [ ] Document feature-branch naming convention.
-- [ ] Define exact-head CI requirement for executable changes.
-- [ ] Define upstream synchronization procedure.
-- [ ] Define when documentation-only direct commits are permissible, if at all.
-- [ ] Define branch cleanup policy.
+- [x] Document feature-branch naming convention.
+- [x] Define exact-head CI requirement for executable changes.
+- [x] Define upstream synchronization procedure.
+- [x] Define when documentation-only direct commits are permissible, if at all.
+- [x] Define branch cleanup policy.
 
 **Acceptance:** one documented workflow exists for normal development and upstream sync.
 
 ## MT-003 — Protect project-owned namespaces
 
-- [ ] Select final Tauri frontend directory name.
-- [ ] Select final Rust/Tauri backend directory name.
-- [ ] Reserve any project-specific scripts/test fixtures namespaces.
-- [ ] Avoid naming collisions with upstream MAME directories.
+- [x] Select final Tauri frontend directory name.
+- [x] Select final Rust/Tauri backend directory name.
+- [x] Reserve any project-specific scripts/test fixtures namespaces.
+- [x] Avoid naming collisions with upstream MAME directories.
 
 **Decision gate DG-1:** final repository layout.
 
 ## MT-004 — Establish project coding standards
 
-- [ ] Rust formatting/lint policy.
-- [ ] TypeScript formatting/lint policy.
-- [ ] React conventions.
-- [ ] Error-type conventions.
-- [ ] Serialization conventions.
-- [ ] Test naming/placement conventions.
-- [ ] C/C++ rules for any future MAME-side additions: follow surrounding MAME style and minimize whitespace churn.
+- [x] Rust formatting/lint policy.
+- [x] TypeScript formatting/lint policy.
+- [x] React conventions.
+- [x] Error-type conventions.
+- [x] Serialization conventions.
+- [x] Test naming/placement conventions.
+- [x] C/C++ rules for any future MAME-side additions: follow surrounding MAME style and minimize whitespace churn.
 
 ## MT-005 — Establish licensing/trademark constraints
 
-- [ ] Inventory MAME license requirements relevant to redistribution.
-- [ ] Document requirements for redistributed MAME binaries/resources.
-- [ ] Document Tauri/Rust/JS dependency license inventory requirements.
-- [ ] Document MAME trademark/name/logo constraints.
-- [ ] Confirm no ROM/software content will be bundled.
+- [x] Inventory MAME license requirements relevant to redistribution.
+- [x] Document requirements for redistributed MAME binaries/resources.
+- [x] Document Tauri/Rust/JS dependency license inventory requirements.
+- [x] Document MAME trademark/name/logo constraints.
+- [x] Confirm no ROM/software content will be bundled.
 
 ---
 
@@ -94,20 +94,20 @@ A checkbox is not complete merely because code exists. Its acceptance criteria m
 
 ## MT-101 — Create Tauri 2 scaffold
 
-- [ ] Add Tauri 2 application project.
-- [ ] Verify development launch.
-- [ ] Verify production build on primary development platform.
-- [ ] Keep scaffold changes isolated from upstream MAME source.
+- [x] Add Tauri 2 application project.
+- [x] Verify development launch.
+- [x] Verify production build on primary development platform.
+- [x] Keep scaffold changes isolated from upstream MAME source.
 
 **Acceptance:** a minimal desktop window launches successfully.
 
 ## MT-102 — Add React + TypeScript frontend
 
-- [ ] Configure React.
-- [ ] Configure TypeScript strict mode.
-- [ ] Add routing/layout foundation if needed.
-- [ ] Add baseline application shell.
-- [ ] Add error boundary.
+- [x] Configure React.
+- [x] Configure TypeScript strict mode.
+- [x] Add routing/layout foundation if needed.
+- [x] Add baseline application shell.
+- [x] Add error boundary.
 
 ## MT-103 — Establish Rust backend module layout
 
@@ -125,52 +125,52 @@ sessions
 platform
 ```
 
-- [ ] Define responsibilities.
-- [ ] Prevent circular/implicit cross-layer dependencies.
+- [x] Define responsibilities.
+- [x] Prevent circular/implicit cross-layer dependencies.
 
 ## MT-104 — Establish typed Tauri command layer
 
-- [ ] Add one typed request/response command.
-- [ ] Define shared serialization conventions.
-- [ ] Define stable error envelope.
-- [ ] Add command tests.
+- [x] Add one typed request/response command.
+- [x] Define shared serialization conventions.
+- [x] Define stable error envelope.
+- [x] Add command tests.
 
 **Acceptance:** frontend invokes Rust and receives a typed structured response.
 
 ## MT-105 — Establish backend-to-frontend event layer
 
-- [ ] Define event naming convention.
-- [ ] Define event payload version policy.
-- [ ] Add test/demo lifecycle event.
-- [ ] Ensure event payloads are bounded.
+- [x] Define event naming convention.
+- [x] Define event payload version policy.
+- [x] Add test/demo lifecycle event.
+- [x] Ensure event payloads are bounded.
 
 ## MT-106 — Add application configuration root
 
-- [ ] Resolve platform-appropriate config path.
-- [ ] Add versioned settings schema.
-- [ ] Add safe defaults.
-- [ ] Add migration framework.
-- [ ] Add corrupt-config handling.
+- [x] Resolve platform-appropriate config path.
+- [x] Add versioned settings schema.
+- [x] Add safe defaults.
+- [x] Add migration framework.
+- [x] Add corrupt-config handling.
 
 ## MT-107 — Add frontend state architecture
 
-- [ ] Separate backend source-of-truth state from transient UI state.
-- [ ] Avoid duplicating authoritative session state in multiple stores.
-- [ ] Define loading/error states.
+- [x] Separate backend source-of-truth state from transient UI state.
+- [x] Avoid duplicating authoritative session state in multiple stores.
+- [x] Define loading/error states.
 
 ## MT-108 — Add baseline frontend quality gates
 
-- [ ] Typecheck.
-- [ ] Lint.
-- [ ] Unit/component test command.
-- [ ] Production frontend build.
+- [x] Typecheck.
+- [x] Lint.
+- [x] Unit/component test command.
+- [x] Production frontend build.
 
 ## MT-109 — Add baseline Rust quality gates
 
-- [ ] `cargo fmt --check`.
-- [ ] `cargo clippy` with agreed warning policy.
-- [ ] `cargo test`.
-- [ ] Release build/smoke compile.
+- [x] `cargo fmt --check`.
+- [x] `cargo clippy` with agreed warning policy.
+- [x] `cargo test`.
+- [x] Release build/smoke compile.
 
 ---
 
