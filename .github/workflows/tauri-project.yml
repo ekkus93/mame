@@ -91,7 +91,7 @@ jobs:
         run: npm run tauri -- build --no-bundle
 
       - name: Tauri development window smoke check
-        run: xvfb-run -a ../scripts/tauri/smoke-dev.sh
+        run: xvfb-run -a ./scripts/smoke-dev.sh
 
       - name: Verify lockfiles remain unchanged
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
