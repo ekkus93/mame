@@ -5,7 +5,8 @@
 **Implementation branch:** `ralph/mt-100-scaffold`  
 **Closure branch:** `ralph/mt-100-closure`  
 **Implementation PR:** #2  
-**Status:** Qualified for closure PR
+**Closure PR:** #3  
+**Status:** Closed
 
 ## Scope
 
@@ -81,8 +82,21 @@ The inherited MAME workflows originally matched `.github/workflows/**`, which ca
 
 During closure, the smoke helper was moved from `scripts/tauri/` to `tauri/scripts/` because upstream MAME correctly treats all `scripts/**` changes as MAME-relevant. This preserves upstream validation semantics and prevents future Tauri-only helper changes from reintroducing that fan-out.
 
+## Closure PR and merge evidence
+
+Formal backlog reconciliation and closure hardening were merged through PR #3.
+
+- Closure PR head: `04ec433559c743657f19a02a259a8aaa62adbf3f`
+- PR-context Tauri project run: `34290392374` — success
+- PR-context Build documentation run: `34290392471` — success
+- Squash-merge commit on `master`: `474a17580087b06bc3b7bf5be2f5463d1649db80`
+- Merged `master` tree: `098b67a39024f4b827dfd27efd61fccebf1c5780`
+- Qualified closure PR tree: `098b67a39024f4b827dfd27efd61fccebf1c5780`
+
+The matching tree SHA confirms the squash merge preserved the exact qualified PR content.
+
 ## Result
 
-MT-000 and MT-100 acceptance criteria are satisfied and their TODO checkboxes are reconciled on the closure branch. The only remaining administrative gate is exact-head validation and merge of the closure PR into `master`.
+MT-000 and MT-100 acceptance criteria are satisfied, their TODO checkboxes are reconciled on `master`, the qualified dependency lockfiles are committed, deterministic Tauri CI is in place, and the formal closure PR is merged.
 
-The next implementation phase after closure merge is **MT-200 — MAME executable and sidecar integration**.
+The next implementation phase is **MT-200 — MAME executable and sidecar integration**.
