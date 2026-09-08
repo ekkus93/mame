@@ -1,0 +1,50 @@
+name: MT-100 lockfile freeze
+
+on:
+  push:
+    branches:
+      - ralph/mt-100-closure
+    paths:
+      - ".github/workflows/mt100-lockfile-freeze.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  freeze-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ralph/mt-100-closure
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate lockfiles exactly as qualified
+        working-directory: tauri
+        run: |
+          npm install
+          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify qualified lockfile digests
+        run: |
+          printf '%s  %s\n' \
+            'cc9d1593a0c44116579147b4bf432032fe7c2fb196253ebc4e051558c8bac04f' \
+            'tauri/package-lock.json' | sha256sum -c -
+          printf '%s  %s\n' \
+            'ed473c5b2d2b9a90ff0634cdf78fa9ade635a22a14838c079ba39f958df1ea93' \
+            'tauri/src-tauri/Cargo.lock' | sha256sum -c -
+
+      - name: Commit exact lockfiles and remove bootstrap workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tauri/package-lock.json tauri/src-tauri/Cargo.lock
+          git rm .github/workflows/mt100-lockfile-freeze.yml
+          git commit -m 'build: freeze MT-100 dependency lockfiles'
+          git push origin HEAD:ralph/mt-100-closure
