@@ -1,0 +1,98 @@
+name: Tauri project
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tauri-project.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+      - "tests/tauri/**"
+      - "docs/MAME_TAURI_*"
+  pull_request:
+    paths:
+      - ".github/workflows/tauri-project.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+      - "tests/tauri/**"
+      - "docs/MAME_TAURI_*"
+
+permissions:
+  contents: read
+
+jobs:
+  linux-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tauri
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install frontend dependencies and generate lockfile
+        run: npm install
+
+      - name: Frontend format
+        run: npm run format:check
+
+      - name: Frontend lint
+        run: npm run lint
+
+      - name: Frontend typecheck
+        run: npm run typecheck
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Frontend production build
+        run: npm run build
+
+      - name: Rust format
+        working-directory: tauri/src-tauri
+        run: cargo fmt --check
+
+      - name: Rust clippy
+        working-directory: tauri/src-tauri
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        working-directory: tauri/src-tauri
+        run: cargo test
+
+      - name: Rust release build
+        working-directory: tauri/src-tauri
+        run: cargo build --release
+
+      - name: Tauri production build smoke check
+        run: npm run tauri -- build --no-bundle
+
+      - name: Upload generated lockfiles
+        uses: actions/upload-artifact@v7
+        with:
+          name: tauri-lockfiles-${{ github.sha }}
+          path: |
+            tauri/package-lock.json
+            tauri/src-tauri/Cargo.lock
+          if-no-files-found: error
