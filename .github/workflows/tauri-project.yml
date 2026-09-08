@@ -40,7 +40,9 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            xvfb \
+            xdotool
 
       - uses: actions/setup-node@v7
         with:
@@ -51,22 +53,11 @@ jobs:
         with:
           components: clippy, rustfmt
 
-      - name: Install frontend dependencies and generate lockfile
-        run: npm install
+      - name: Install frontend dependencies from lockfile
+        run: npm ci
 
-      - name: Canonicalize frontend formatting
-        run: npm exec prettier -- --write .
-
-      - name: Capture canonical formatter patch
-        run: git diff -- . > /tmp/tauri-prettier.patch
-
-      - name: Upload canonical formatter patch
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: tauri-prettier-patch-${{ github.sha }}
-          path: /tmp/tauri-prettier.patch
-          if-no-files-found: error
+      - name: Frontend format check
+        run: npm run format:check
 
       - name: Frontend lint
         run: npm run lint
@@ -86,25 +77,21 @@ jobs:
 
       - name: Rust clippy
         working-directory: tauri/src-tauri
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
       - name: Rust tests
         working-directory: tauri/src-tauri
-        run: cargo test
+        run: cargo test --locked
 
       - name: Rust release build
         working-directory: tauri/src-tauri
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Tauri production build smoke check
         run: npm run tauri -- build --no-bundle
 
-      - name: Upload generated lockfiles
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: tauri-lockfiles-${{ github.sha }}
-          path: |
-            tauri/package-lock.json
-            tauri/src-tauri/Cargo.lock
-          if-no-files-found: warn
+      - name: Tauri development window smoke check
+        run: xvfb-run -a ./scripts/smoke-dev.sh
+
+      - name: Verify lockfiles remain unchanged
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
