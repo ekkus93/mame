@@ -7,9 +7,7 @@ export type AppState =
   | { status: "error"; message: string };
 
 export type AppAction =
-  | { type: "load" }
-  | { type: "ready"; info: AppInfoResponse }
-  | { type: "error"; message: string };
+  { type: "load" } | { type: "ready"; info: AppInfoResponse } | { type: "error"; message: string };
 
 export const initialAppState: AppState = { status: "idle" };
 
