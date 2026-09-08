@@ -8,6 +8,7 @@ on:
       - ".github/workflows/mt100-lockfile-freeze.yml"
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -18,18 +19,20 @@ jobs:
         with:
           ref: ralph/mt-100-closure
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          package-manager-cache: false
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Generate lockfiles exactly as qualified
-        working-directory: tauri
+      - name: Restore exact lockfiles from qualified CI artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          npm install
-          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+          curl --fail --location \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/10069493506/zip" \
+            --output /tmp/mt100-lockfiles.zip
+          rm -rf /tmp/mt100-lockfiles
+          mkdir -p /tmp/mt100-lockfiles
+          unzip -q /tmp/mt100-lockfiles.zip -d /tmp/mt100-lockfiles
+          cp /tmp/mt100-lockfiles/package-lock.json tauri/package-lock.json
+          cp /tmp/mt100-lockfiles/src-tauri/Cargo.lock tauri/src-tauri/Cargo.lock
 
       - name: Verify qualified lockfile digests
         run: |
