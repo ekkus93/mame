@@ -35,8 +35,8 @@ export default function App() {
         <p className="eyebrow">MAME Tauri modernization</p>
         <h1>Preserve the emulator. Modernize the desktop experience.</h1>
         <p className="summary">
-          This shell will manage catalog, configuration, and supervised MAME
-          sessions while video, audio, timing, and gameplay input stay native.
+          This shell will manage catalog, configuration, and supervised MAME sessions while video,
+          audio, timing, and gameplay input stay native.
         </p>
       </header>
 
@@ -60,9 +60,7 @@ export default function App() {
             </div>
           </dl>
         )}
-        {state.status === "error" && (
-          <p className="error-message">{state.message}</p>
-        )}
+        {state.status === "error" && <p className="error-message">{state.message}</p>}
       </section>
 
       <section className="next-card">
