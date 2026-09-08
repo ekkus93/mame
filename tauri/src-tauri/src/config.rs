@@ -1,4 +1,8 @@
-use std::{fs, io::ErrorKind, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -104,15 +108,17 @@ mod tests {
     #[test]
     fn missing_settings_use_safe_defaults() {
         let path = PathBuf::from("this-file-must-not-exist-mame-tauri-settings.json");
-        assert_eq!(load_settings(&path).expect("missing config uses defaults"), SettingsV1::default());
+        assert_eq!(
+            load_settings(&path).expect("missing config uses defaults"),
+            SettingsV1::default()
+        );
     }
 
     #[test]
     fn parses_current_schema() {
-        let settings = parse_settings_json(
-            r#"{"schemaVersion":1,"mameExecutable":"/opt/mame/mame"}"#,
-        )
-        .expect("schema v1 must parse");
+        let settings =
+            parse_settings_json(r#"{"schemaVersion":1,"mameExecutable":"/opt/mame/mame"}"#)
+                .expect("schema v1 must parse");
 
         assert_eq!(settings.schema_version, SETTINGS_SCHEMA_VERSION);
         assert_eq!(settings.mame_executable.as_deref(), Some("/opt/mame/mame"));
