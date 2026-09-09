@@ -431,9 +431,9 @@ Display at minimum:
 
 ## MT-408 — Add controller-friendly frontend navigation research
 
-- [ ] determine desired UI gamepad behavior.
-- [ ] prototype without stealing gameplay input from MAME.
-- [ ] document focus transitions.
+- [x] determine desired UI gamepad behavior.
+- [x] prototype without stealing gameplay input from MAME.
+- [x] document focus transitions.
 
 ## MT-409 — Add software-list browser foundation
 
