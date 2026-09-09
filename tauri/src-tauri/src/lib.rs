@@ -12,6 +12,7 @@ pub mod storage;
 
 pub fn run() -> Result<(), tauri::Error> {
     tauri::Builder::default()
+        .manage(sessions::SessionSupervisor::default())
         .setup(|app| {
             let settings_path = config::settings_path(app.handle())?;
             if let Some(parent) = settings_path.parent() {
@@ -20,6 +21,12 @@ pub fn run() -> Result<(), tauri::Error> {
             app::emit_ready(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![app::get_app_info])
+        .invoke_handler(tauri::generate_handler![
+            app::get_app_info,
+            sessions::inspect_mame_executable,
+            sessions::launch_mame,
+            sessions::get_mame_session,
+            sessions::stop_mame
+        ])
         .run(tauri::generate_context!())
 }
