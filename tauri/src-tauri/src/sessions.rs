@@ -15,11 +15,11 @@ use crate::{
     },
 };
 
+use supervisor::EventSink;
 pub use supervisor::{
     EffectiveLaunchConfig, EffectiveProjectPath, SessionLifecycleEventV1, SessionSnapshot,
     SessionState, SessionSupervisor, StopSessionResult,
 };
-use supervisor::EventSink;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -133,9 +133,7 @@ fn executable_source(request: &MameExecutableRequest) -> MameExecutableSource {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        executable_source, MameExecutableRequest, MameExecutableSelectionKind,
-    };
+    use super::{executable_source, MameExecutableRequest, MameExecutableSelectionKind};
     use crate::mame::{MameExecutableSourceKind, MameExecutableTrust};
 
     #[test]
