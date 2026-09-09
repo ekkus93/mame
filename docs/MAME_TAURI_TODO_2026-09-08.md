@@ -409,11 +409,11 @@ Display at minimum:
 
 ## MT-405 — Add collections
 
-- [ ] create collection.
-- [ ] rename collection.
-- [ ] add/remove machine.
-- [ ] delete collection.
-- [ ] safe behavior when machine disappears from newer metadata.
+- [x] create collection.
+- [x] rename collection.
+- [x] add/remove machine.
+- [x] delete collection.
+- [x] safe behavior when machine disappears from newer metadata.
 
 ## MT-406 — Add recents/play history
 
