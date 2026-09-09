@@ -1,22 +1,10 @@
 name: CI (Windows)
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-    - '.github/workflows/ci-windows.yml'
-    - '3rdparty/**'
-    - 'scripts/**'
-    - 'src/**'
-    - 'COPYING'
-    - 'makefile'
-  pull_request:
-    paths:
-    - '.github/workflows/ci-windows.yml'
-    - '3rdparty/**'
-    - 'scripts/**'
-    - 'src/**'
-    - 'COPYING'
-    - 'makefile'
+    tags:
+      - '*'
 
 permissions:
   contents: read
