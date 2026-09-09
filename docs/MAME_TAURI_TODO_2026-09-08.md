@@ -443,10 +443,10 @@ Display at minimum:
 
 ## MT-410 — Library UX performance qualification
 
-- [ ] measure startup catalog load.
-- [ ] measure search latency.
-- [ ] test full catalog.
-- [ ] confirm bounded DOM/render workload.
+- [x] measure startup catalog load.
+- [x] measure search latency.
+- [x] test full catalog.
+- [x] confirm bounded DOM/render workload.
 
 **Milestone:** application is a useful machine browser independent of embedded rendering.
 
