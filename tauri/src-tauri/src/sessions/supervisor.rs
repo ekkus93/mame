@@ -283,15 +283,14 @@ impl SessionSupervisor {
                     "MAME_LAUNCH_FAILED",
                     format!("MAME could not be launched: {error}"),
                 );
-                return Err(AppError::new(
-                    "MAME_LAUNCH_FAILED",
-                    "MAME could not be launched.",
-                )
-                .with_details(serde_json::json!({
-                    "sessionId": session_id,
-                    "path": executable_path,
-                    "cause": error.to_string()
-                })));
+                return Err(
+                    AppError::new("MAME_LAUNCH_FAILED", "MAME could not be launched.")
+                        .with_details(serde_json::json!({
+                            "sessionId": session_id,
+                            "path": executable_path,
+                            "cause": error.to_string()
+                        })),
+                );
             }
         };
 
@@ -370,12 +369,7 @@ impl SessionSupervisor {
             DiagnosticStream::Stderr,
             capture_done.clone(),
         );
-        spawn_exit_watcher(
-            self.inner.clone(),
-            session_id,
-            child,
-            capture_done,
-        );
+        spawn_exit_watcher(self.inner.clone(), session_id, child, capture_done);
 
         Ok(started_snapshot)
     }
@@ -522,11 +516,8 @@ fn current_session<'a>(
     session_id: &str,
 ) -> AppResult<&'a ManagedSession> {
     let current = inner.current.as_ref().ok_or_else(|| {
-        AppError::new(
-            "MAME_SESSION_NOT_FOUND",
-            "No MAME session is available.",
-        )
-        .with_details(serde_json::json!({ "sessionId": session_id }))
+        AppError::new("MAME_SESSION_NOT_FOUND", "No MAME session is available.")
+            .with_details(serde_json::json!({ "sessionId": session_id }))
     })?;
 
     if current.snapshot.session_id != session_id {
@@ -548,11 +539,8 @@ fn current_session_mut<'a>(
     session_id: &str,
 ) -> AppResult<&'a mut ManagedSession> {
     let current = inner.current.as_mut().ok_or_else(|| {
-        AppError::new(
-            "MAME_SESSION_NOT_FOUND",
-            "No MAME session is available.",
-        )
-        .with_details(serde_json::json!({ "sessionId": session_id }))
+        AppError::new("MAME_SESSION_NOT_FOUND", "No MAME session is available.")
+            .with_details(serde_json::json!({ "sessionId": session_id }))
     })?;
 
     if current.snapshot.session_id != session_id {
@@ -710,7 +698,10 @@ fn finalize_session(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str, statu
             Ok(timestamp) => current.snapshot.ended_at_epoch_ms = Some(timestamp),
             Err(error) => record_diagnostic_error(
                 &current.diagnostics,
-                format!("Could not record MAME session end timestamp: {}", error.message),
+                format!(
+                    "Could not record MAME session end timestamp: {}",
+                    error.message
+                ),
             ),
         }
 
@@ -768,20 +759,13 @@ fn mark_launch_failed(
         Err(_) => return,
     };
     current.snapshot.state = SessionState::Failed;
-    record_diagnostic_error(
-        &current.diagnostics,
-        format!("{code}: {message}"),
-    );
+    record_diagnostic_error(&current.diagnostics, format!("{code}: {message}"));
     if let Ok(timestamp) = epoch_millis() {
         current.snapshot.ended_at_epoch_ms = Some(timestamp);
     }
 }
 
-fn mark_supervision_failed(
-    inner: &Arc<Mutex<SupervisorInner>>,
-    session_id: &str,
-    message: String,
-) {
+fn mark_supervision_failed(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str, message: String) {
     let (event_sink, event) = {
         let mut inner = recover_lock(inner);
         let current = match current_session_mut(&mut inner, session_id) {
@@ -822,10 +806,7 @@ fn record_diagnostic_error(diagnostics: &SharedDiagnostics, message: String) {
     diagnostics.diagnostic_error = Some(message.chars().take(DIAGNOSTIC_ERROR_LIMIT).collect());
 }
 
-fn wait_for_child(
-    child: &Arc<Mutex<Child>>,
-    timeout: Duration,
-) -> io::Result<Option<ExitStatus>> {
+fn wait_for_child(child: &Arc<Mutex<Child>>, timeout: Duration) -> io::Result<Option<ExitStatus>> {
     let started = Instant::now();
     loop {
         let status = {
@@ -892,13 +873,15 @@ fn terminate_unusable_child(child: &mut Child) {
 }
 
 fn epoch_millis() -> AppResult<u64> {
-    let duration = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|error| {
-        AppError::new(
-            "SYSTEM_CLOCK_INVALID",
-            "The system clock cannot represent the current session timestamp.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| {
+            AppError::new(
+                "SYSTEM_CLOCK_INVALID",
+                "The system clock cannot represent the current session timestamp.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        })?;
 
     u64::try_from(duration.as_millis()).map_err(|error| {
         AppError::new(
@@ -1015,10 +998,8 @@ mod tests {
     #[test]
     fn nonzero_exit_is_reported_as_crash() {
         let root = unique_temp_dir("crash-exit");
-        let executable = write_fake_mame(
-            &root,
-            "printf '%s\\n' 'fatal fake failure' >&2\nexit 7\n",
-        );
+        let executable =
+            write_fake_mame(&root, "printf '%s\\n' 'fatal fake failure' >&2\nexit 7\n");
         let supervisor = SessionSupervisor::default();
 
         supervisor
