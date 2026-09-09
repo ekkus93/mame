@@ -417,11 +417,11 @@ Display at minimum:
 
 ## MT-406 — Add recents/play history
 
-- [ ] launch timestamp.
-- [ ] machine/software reference.
-- [ ] success/failure distinction where useful.
-- [ ] recents view.
-- [ ] bounded history retention policy.
+- [x] launch timestamp.
+- [x] machine/software reference.
+- [x] success/failure distinction where useful.
+- [x] recents view.
+- [x] bounded history retention policy.
 
 ## MT-407 — Add keyboard navigation
 
