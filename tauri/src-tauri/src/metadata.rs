@@ -5,6 +5,7 @@
 //! after the complete process and import succeed.
 
 mod catalog;
+mod collections;
 mod detail;
 mod favorites;
 mod generator;
@@ -21,6 +22,10 @@ use crate::{
     storage,
 };
 
+pub use collections::{
+    CollectionListPage, CollectionMemberEntry, CollectionMemberPage, CollectionMembershipState,
+    CollectionSummary,
+};
 pub use favorites::{FavoriteEntry, FavoritePage, FavoriteState};
 pub use model::{
     MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MetadataFreshness,

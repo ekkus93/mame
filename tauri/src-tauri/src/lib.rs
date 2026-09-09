@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 
 pub mod app;
+pub mod collections;
 pub mod config;
 pub mod errors;
 pub mod library;
@@ -34,7 +35,13 @@ pub fn run() -> Result<(), tauri::Error> {
             library::launch_library_machine,
             library::get_library_favorite,
             library::set_library_favorite,
-            library::query_library_favorites
+            library::query_library_favorites,
+            collections::create_library_collection,
+            collections::rename_library_collection,
+            collections::delete_library_collection,
+            collections::query_library_collections,
+            collections::query_library_collection_members,
+            collections::set_library_collection_machine
         ])
         .run(tauri::generate_context!())
 }

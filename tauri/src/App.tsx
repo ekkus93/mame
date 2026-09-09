@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
+import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
@@ -57,7 +58,10 @@ export default function App() {
       </header>
 
       {state.status === "ready" ? (
-        <LibraryBrowser />
+        <>
+          <LibraryBrowser />
+          <CollectionManager />
+        </>
       ) : state.status === "error" ? (
         <section className="fatal-error" role="alert">
           <h2>Backend unavailable</h2>

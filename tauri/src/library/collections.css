@@ -1,0 +1,124 @@
+.collections-workspace {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-color, #d6d6d6);
+  border-radius: 0.9rem;
+  background: var(--panel-background, rgba(255, 255, 255, 0.02));
+}
+
+.collections-heading-row,
+.collection-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.collection-create,
+.collection-rename,
+.collection-add-machine {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.collection-create label,
+.collection-rename label,
+.collection-add-machine label {
+  display: grid;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.collection-create input,
+.collection-rename input,
+.collection-add-machine input {
+  width: 100%;
+}
+
+.collections-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 2fr);
+  gap: 1rem;
+}
+
+.collection-list-panel,
+.collection-detail-panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #d6d6d6);
+  border-radius: 0.75rem;
+}
+
+.collection-list,
+.collection-members {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.collection-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  margin-bottom: 0.45rem;
+}
+
+.collection-list button.collection-selected {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.collection-members li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border-color, #d6d6d6);
+}
+
+.collection-members li > span {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.collection-members code,
+.collection-members em {
+  overflow-wrap: anywhere;
+}
+
+.collection-members em,
+.collection-note {
+  opacity: 0.72;
+}
+
+.collection-error {
+  color: var(--error-color, #d14343);
+}
+
+.danger-button {
+  background: transparent;
+  border-color: #b33;
+  color: #b33;
+}
+
+@media (max-width: 850px) {
+  .collections-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .collection-create,
+  .collection-rename,
+  .collection-add-machine,
+  .collections-heading-row,
+  .collection-detail-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
