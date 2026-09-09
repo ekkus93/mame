@@ -1,0 +1,43 @@
+name: MT-300 generator test fix
+
+on:
+  push:
+    branches:
+      - ralph/mt-300-metadata
+    paths:
+      - .github/workflows/mt300-testfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ralph/mt-300-metadata
+      - name: Correct generator integration query
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tauri/src-tauri/src/metadata/generator.rs')
+          text = path.read_text()
+          old = 'text: Some("Apple IIe".to_owned()),'
+          new = 'text: Some("apple2e".to_owned()),'
+          if old not in text:
+              raise SystemExit('generator test target not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          cd tauri/src-tauri
+          cargo fmt --all
+          cd ../..
+          rm .github/workflows/mt300-testfix.yml
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tauri/src-tauri/src/metadata/generator.rs
+          git add -u .github/workflows/mt300-testfix.yml
+          git commit -m "test: query canonical MAME name in MT-300 generator"
+          git push origin HEAD:ralph/mt-300-metadata
