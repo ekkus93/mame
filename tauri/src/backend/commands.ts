@@ -54,6 +54,10 @@ export async function launchLibraryMachine(
   return invoke<SessionSnapshot>("launch_library_machine", { request });
 }
 
+export async function getMameSession(): Promise<SessionSnapshot | null> {
+  return invoke<SessionSnapshot | null>("get_mame_session");
+}
+
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {
   return invoke<FavoriteState>("get_library_favorite", { request });
 }

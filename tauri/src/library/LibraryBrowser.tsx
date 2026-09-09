@@ -1,6 +1,19 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { getMameMachineDetail, launchLibraryMachine, queryMameLibrary } from "../backend/commands";
+import {
+  getMameMachineDetail,
+  getMameSession,
+  launchLibraryMachine,
+  queryMameLibrary,
+} from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type {
   MachineDetail,
@@ -17,6 +30,13 @@ import {
 } from "./libraryQuery";
 import { FavoriteShelf } from "./FavoriteShelf";
 import { FavoriteToggleButton } from "./FavoriteToggleButton";
+import {
+  isEditableElement,
+  isGameplaySessionState,
+  nextMachineIndex,
+  resolveLibraryShortcut,
+} from "./keyboardNavigation";
+import "./keyboardNavigation.css";
 
 type LoadState =
   | { status: "loading" }
@@ -36,6 +56,8 @@ type LaunchState =
   | { status: "error"; message: string };
 
 export function LibraryBrowser() {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const machineRowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
   const [request, setRequest] = useState<MachineSearchRequest>(() =>
     buildMachineSearchRequest(DEFAULT_LIBRARY_FILTERS),
@@ -45,6 +67,20 @@ export function LibraryBrowser() {
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
   const [favoritesRevision, setFavoritesRevision] = useState(0);
+  // Fail closed until Rust confirms that the Tauri window owns application shortcuts.
+  const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
+
+  const refreshGameplayOwnership = useCallback(() => {
+    void getMameSession()
+      .then((session) => setGameplayInputOwned(isGameplaySessionState(session?.state)))
+      .catch(() => setGameplayInputOwned(true));
+  }, []);
+
+  useEffect(() => {
+    refreshGameplayOwnership();
+    window.addEventListener("focus", refreshGameplayOwnership);
+    return () => window.removeEventListener("focus", refreshGameplayOwnership);
+  }, [refreshGameplayOwnership]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,12 +161,84 @@ export function LibraryBrowser() {
     setRequest(buildMachineSearchRequest(filters, offset));
   }
 
-  function launchSelected(detail: MachineDetail) {
-    setLaunchState({ status: "launching" });
-    void launchLibraryMachine({ shortName: detail.shortName })
-      .then((session) => setLaunchState({ status: "launched", session }))
-      .catch((error: unknown) => setLaunchState({ status: "error", message: errorMessage(error) }));
+  const launchSelected = useCallback(
+    (detail: MachineDetail) => {
+      setLaunchState({ status: "launching" });
+      void launchLibraryMachine({ shortName: detail.shortName })
+        .then((session) => {
+          setLaunchState({ status: "launched", session });
+          setGameplayInputOwned(isGameplaySessionState(session.state));
+        })
+        .catch((error: unknown) => {
+          setLaunchState({ status: "error", message: errorMessage(error) });
+          refreshGameplayOwnership();
+        });
+    },
+    [refreshGameplayOwnership],
+  );
+
+  const selectedRowIndex = useMemo(() => {
+    if (!page || page.items.length === 0) {
+      return -1;
+    }
+    const selectedIndex = page.items.findIndex(
+      (machine) => machine.shortName === selected?.shortName,
+    );
+    return selectedIndex >= 0 ? selectedIndex : 0;
+  }, [page, selected]);
+
+  function handleMachineRowKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+    machines: MachineListItem[],
+  ) {
+    const nextIndex = nextMachineIndex(event.key, index, machines.length);
+    if (nextIndex === null) {
+      return;
+    }
+    event.preventDefault();
+    const nextMachine = machines[nextIndex];
+    if (!nextMachine) {
+      return;
+    }
+    setSelected(nextMachine);
+    machineRowRefs.current[nextIndex]?.focus();
   }
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const action = resolveLibraryShortcut({
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        shiftKey: event.shiftKey,
+        repeat: event.repeat,
+        defaultPrevented: event.defaultPrevented,
+        editing: isEditableElement(event.target),
+        gameplayActive: gameplayInputOwned || !document.hasFocus(),
+      });
+
+      if (action === "focusSearch") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      if (
+        action === "launchSelected" &&
+        detailState.status === "ready" &&
+        detailState.detail.runnable &&
+        launchState.status !== "launching"
+      ) {
+        event.preventDefault();
+        launchSelected(detailState.detail);
+      }
+    }
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [detailState, gameplayInputOwned, launchSelected, launchState.status]);
 
   return (
     <section className="library-workspace" aria-labelledby="library-heading">
@@ -141,12 +249,18 @@ export function LibraryBrowser() {
         </div>
         {range && <p className="library-range">{range}</p>}
       </div>
+      <p className="library-keyboard-help">
+        Keyboard: <kbd>/</kbd> search · <kbd>↑</kbd>/<kbd>↓</kbd>/<kbd>Home</kbd>/<kbd>End</kbd>{" "}
+        browse · <kbd>Ctrl/⌘+Enter</kbd> launch. Shortcuts pause while MAME owns gameplay input.
+      </p>
 
       <form className="library-filters" onSubmit={submitFilters}>
         <label className="search-field">
           <span>Search</span>
           <input
+            ref={searchInputRef}
             type="search"
+            aria-keyshortcuts="/"
             value={filters.text}
             onChange={(event) => setFilters({ ...filters, text: event.target.value })}
             placeholder="Description or short name"
@@ -267,16 +381,23 @@ export function LibraryBrowser() {
 
           {page && page.items.length > 0 && (
             <ul className="machine-list" aria-label="MAME machines">
-              {page.items.map((machine) => (
+              {page.items.map((machine, index) => (
                 <li key={machine.shortName}>
                   <button
+                    ref={(element) => {
+                      machineRowRefs.current[index] = element;
+                    }}
                     type="button"
+                    tabIndex={index === selectedRowIndex ? 0 : -1}
+                    aria-current={selected?.shortName === machine.shortName ? "true" : undefined}
                     className={
                       selected?.shortName === machine.shortName
                         ? "machine-row machine-row-selected"
                         : "machine-row"
                     }
+                    onFocus={() => setSelected(machine)}
                     onClick={() => setSelected(machine)}
+                    onKeyDown={(event) => handleMachineRowKeyDown(event, index, page.items)}
                   >
                     <span className="machine-primary">
                       <strong>{machine.description}</strong>
@@ -373,6 +494,7 @@ function MachineDetailPanel({
       <div className="detail-launch-row">
         <button
           type="button"
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={!detail.runnable || launchState.status === "launching"}
           onClick={onLaunch}
         >

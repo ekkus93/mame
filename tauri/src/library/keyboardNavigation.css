@@ -1,0 +1,21 @@
+.library-keyboard-help {
+  margin: -0.25rem 0 1rem;
+  color: var(--muted-text, #6b7280);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.library-keyboard-help kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+  font-family: inherit;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.machine-row:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
