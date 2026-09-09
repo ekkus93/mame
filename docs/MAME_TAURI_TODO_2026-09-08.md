@@ -437,9 +437,9 @@ Display at minimum:
 
 ## MT-409 — Add software-list browser foundation
 
-- [ ] expose machine-associated software lists.
-- [ ] browse known software metadata.
-- [ ] support selecting machine + software launch target.
+- [x] expose machine-associated software lists.
+- [x] browse known software metadata.
+- [x] support selecting machine + software launch target.
 
 ## MT-410 — Library UX performance qualification
 
