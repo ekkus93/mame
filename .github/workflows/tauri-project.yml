@@ -87,6 +87,12 @@ jobs:
         working-directory: tauri/src-tauri
         run: cargo test --locked
 
+      - name: Library UX performance qualification
+        working-directory: tauri/src-tauri
+        run: >-
+          cargo test --locked full_catalog_library_queries_meet_interactive_budgets
+          -- --ignored --nocapture
+
       - name: Rust clippy
         working-directory: tauri/src-tauri
         run: cargo clippy --locked --all-targets --all-features -- -D warnings

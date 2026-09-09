@@ -12,6 +12,8 @@ mod generator;
 mod history;
 mod model;
 mod parser;
+#[cfg(test)]
+mod performance;
 mod software;
 
 use serde::{Deserialize, Serialize};
