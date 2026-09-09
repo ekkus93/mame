@@ -1,4 +1,16 @@
 //! MAME executable identity, validation, argument construction, and invocation.
 //!
-//! MT-200 fills this module. Keeping the boundary present now prevents process
-//! supervision logic from leaking into Tauri command handlers.
+//! The Rust backend owns this boundary so frontend input never becomes a shell
+//! command string. Process supervision itself is implemented in `sessions`.
+
+mod argv;
+mod executable;
+
+pub use argv::{
+    build_launch_argv, validate_project_controlled_path, validate_short_identifier,
+    validate_software_identifier, MameArgv, MameLaunchTarget, ProjectPathArgument,
+};
+pub use executable::{
+    configured_external_source, inspect_executable, validate_executable_path,
+    MameExecutableIdentity, MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust,
+};
