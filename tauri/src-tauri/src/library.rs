@@ -148,7 +148,9 @@ pub async fn set_library_favorite(
 ) -> AppResult<FavoriteState> {
     let short_name = validate_machine_short_name(request.short_name)?;
     let favorite = request.favorite;
-    let created_at_epoch_ms = now_epoch_ms()?;
+    // Removing a favorite does not persist a timestamp, so an unfavorite operation must not
+    // depend on the wall clock being representable.
+    let created_at_epoch_ms = if favorite { now_epoch_ms()? } else { 0 };
     let catalog_path = storage::catalog_path(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {

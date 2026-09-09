@@ -403,9 +403,9 @@ Display at minimum:
 
 ## MT-404 — Add favorites
 
-- [ ] favorite/unfavorite.
-- [ ] favorites view.
-- [ ] persistence across metadata refresh.
+- [x] favorite/unfavorite.
+- [x] favorites view.
+- [x] persistence across metadata refresh.
 
 ## MT-405 — Add collections
 
