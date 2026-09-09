@@ -1,8 +1,6 @@
 use std::{
     collections::VecDeque,
-    ffi::OsString,
     io::{self, Read},
-    path::PathBuf,
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
         atomic::{AtomicU64, AtomicU8, Ordering},
@@ -913,13 +911,6 @@ fn termination_signal(status: &ExitStatus) -> Option<i32> {
 #[cfg(not(unix))]
 fn termination_signal(_status: &ExitStatus) -> Option<i32> {
     None
-}
-
-pub(crate) fn argv_strings(arguments: &[OsString]) -> Vec<String> {
-    arguments
-        .iter()
-        .map(|argument| argument.to_string_lossy().into_owned())
-        .collect()
 }
 
 #[cfg(test)]
