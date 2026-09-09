@@ -1,0 +1,93 @@
+name: MT-300 bootstrap
+
+on:
+  push:
+    branches:
+      - ralph/mt-300-metadata
+    paths:
+      - ".github/workflows/mt300-bootstrap.yml"
+      - ".mt300-bootstrap/**"
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install build and fixture prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            mame
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Materialize MT-300 source payload
+        run: |
+          cat .mt300-bootstrap/chunk* > /tmp/mt300-payload.b64
+          base64 --decode /tmp/mt300-payload.b64 > /tmp/mt300-payload.tar.gz
+          tar -xzf /tmp/mt300-payload.tar.gz -C .
+          chmod +x scripts/tauri/capture-listxml-fixture.sh
+
+      - name: Capture representative listxml fixture from real MAME
+        run: |
+          MAME_BIN="$(command -v mame || true)"
+          if [ -z "$MAME_BIN" ] && [ -x /usr/games/mame ]; then
+            MAME_BIN=/usr/games/mame
+          fi
+          if [ -z "$MAME_BIN" ]; then
+            echo "MAME executable was not installed" >&2
+            exit 1
+          fi
+          APT_MAME_VERSION="$(dpkg-query -W -f='${Version}' mame)"
+          scripts/tauri/capture-listxml-fixture.sh \
+            "$MAME_BIN" \
+            tauri/src-tauri/tests/fixtures/listxml-representative.xml
+          IDENTITY="$(cat tauri/src-tauri/tests/fixtures/listxml-representative.xml.identity.txt)"
+          cat > tauri/src-tauri/tests/fixtures/README.md <<EOF
+          # MT-300 listxml fixtures
+
+          `listxml-representative.xml` is a reduced capture generated from a real MAME executable by `scripts/tauri/capture-listxml-fixture.sh`.
+
+          Producing package: Ubuntu `mame` `${APT_MAME_VERSION}`  
+          Producing MAME identity: `${IDENTITY}`  
+          Capture command: `mame -noreadconfig -listxml`, reduced to representative `galaxian`, `galaxiana`, `apple2e`, and `z80` machine records.
+
+          The companion `listxml-representative.xml.identity.txt` records the exact `-noreadconfig -version` output used for provenance.
+          EOF
+
+      - name: Normalize generated source and lockfiles
+        run: |
+          (cd tauri/src-tauri && cargo fmt --all && cargo generate-lockfile)
+          (cd tauri && npm ci && npx prettier --write src/commands.ts src/commands.test.ts src/types.ts)
+
+      - name: Commit normalized MT-300 implementation
+        run: |
+          rm -rf .mt300-bootstrap .github/workflows/mt300-bootstrap.yml
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: implement MT-300 metadata subsystem"
+          git push origin HEAD:ralph/mt-300-metadata
