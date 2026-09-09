@@ -1,0 +1,69 @@
+name: MT-300 fix
+
+on:
+  push:
+    branches:
+      - ralph/mt-300-metadata
+    paths:
+      - .github/workflows/mt300-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ralph/mt-300-metadata
+      - name: Apply MT-300 compile fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          metadata = Path("tauri/src-tauri/src/metadata")
+          for name in ("catalog.rs", "generator.rs", "parser.rs"):
+              path = metadata / name
+              text = path.read_text()
+              text = text.replace(
+                  '../../tests/fixtures/listxml-representative.xml',
+                  '../../../tests/fixtures/listxml-representative.xml',
+              )
+              path.write_text(text)
+
+          parser = metadata / "parser.rs"
+          text = parser.read_text()
+          text = text.replace("    encoding::Decoder,\n", "")
+          text = text.replace("    Reader,\n", "    Reader, XmlVersion,\n")
+          text = text.replace("attributes(&start, reader.decoder())?", "attributes(&start)?")
+          text = text.replace("attributes(&empty, reader.decoder())?", "attributes(&empty)?")
+          text = text.replace(
+              "fn attributes(start: &BytesStart<'_>, decoder: Decoder) -> AppResult<HashMap<String, String>> {",
+              "fn attributes(start: &BytesStart<'_>) -> AppResult<HashMap<String, String>> {",
+          )
+          text = text.replace(
+              ".decode_and_unescape_value(decoder)",
+              ".normalized_value(XmlVersion::Implicit1_0)",
+          )
+          parser.write_text(text)
+
+          catalog = metadata / "catalog.rs"
+          text = catalog.read_text()
+          old = '''        let identity = identity("/opt/mame/mame", "0.288", "test-fixture");\n        import_fixture(&mut repository, &identity, FIXTURE, 100, 200).expect("fixture import");\n\n        let fresh = repository\n            .metadata_status(identity.clone())\n'''
+          new = '''        let current_identity = identity("/opt/mame/mame", "0.288", "test-fixture");\n        import_fixture(&mut repository, &current_identity, FIXTURE, 100, 200)\n            .expect("fixture import");\n\n        let fresh = repository\n            .metadata_status(current_identity.clone())\n'''
+          if old not in text:
+              raise SystemExit("catalog identity test target not found")
+          catalog.write_text(text.replace(old, new, 1))
+          PY
+          cd tauri/src-tauri
+          cargo fmt --all
+          cd ../..
+          rm .github/workflows/mt300-fix.yml
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tauri/src-tauri/src/metadata .github/workflows/mt300-fix.yml
+          git commit -m "fix: satisfy MT-300 Rust quality gates"
+          git push origin HEAD:ralph/mt-300-metadata
