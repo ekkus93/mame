@@ -9,9 +9,10 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::{
     errors::AppResult,
+    history,
     mame::{
-        inspect_executable, MameExecutableIdentity, MameExecutableSource, MameLaunchTarget,
-        ProjectPathArgument,
+        build_launch_argv, inspect_executable, MameExecutableIdentity, MameExecutableSource,
+        MameLaunchTarget, ProjectPathArgument,
     },
 };
 
@@ -116,6 +117,12 @@ pub(crate) fn launch_mame_with_source(
             .collect(),
     };
 
+    // Validate identifiers and project-controlled paths before persisting an
+    // attempt, so invalid frontend input never becomes durable user history.
+    build_launch_argv(&target)?;
+    let history_id =
+        history::begin_launch_history(&app, &target.machine, target.software.as_deref())?;
+
     let app_for_events = app.clone();
     let event_sink: EventSink = Arc::new(move |name, event| {
         app_for_events
@@ -123,7 +130,31 @@ pub(crate) fn launch_mame_with_source(
             .map_err(|error| error.to_string())
     });
 
-    supervisor.launch(source, target, effective_config, event_sink)
+    match supervisor.launch(source, target, effective_config, event_sink) {
+        Ok(mut session) => {
+            if let Err(history_error) = history::finish_launch_history(&app, history_id, true) {
+                let warning = format!("PLAY_HISTORY_FINALIZE_FAILED: {}", history_error.message);
+                session.diagnostic_error = Some(match session.diagnostic_error.take() {
+                    Some(existing) => format!("{existing}; {warning}"),
+                    None => warning,
+                });
+            }
+            Ok(session)
+        }
+        Err(mut launch_error) => {
+            if let Err(history_error) = history::finish_launch_history(&app, history_id, false) {
+                launch_error.details = serde_json::json!({
+                    "launch": launch_error.details,
+                    "historyFinalization": {
+                        "code": history_error.code,
+                        "message": history_error.message,
+                        "details": history_error.details
+                    }
+                });
+            }
+            Err(launch_error)
+        }
+    }
 }
 
 #[tauri::command]

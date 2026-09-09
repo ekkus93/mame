@@ -4,6 +4,7 @@ pub mod app;
 pub mod collections;
 pub mod config;
 pub mod errors;
+pub mod history;
 pub mod library;
 pub mod mame;
 pub mod metadata;
@@ -41,7 +42,8 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::delete_library_collection,
             collections::query_library_collections,
             collections::query_library_collection_members,
-            collections::set_library_collection_machine
+            collections::set_library_collection_machine,
+            history::query_library_history
         ])
         .run(tauri::generate_context!())
 }

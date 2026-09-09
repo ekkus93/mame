@@ -9,6 +9,7 @@ mod collections;
 mod detail;
 mod favorites;
 mod generator;
+mod history;
 mod model;
 mod parser;
 
@@ -27,6 +28,7 @@ pub use collections::{
     CollectionSummary,
 };
 pub use favorites::{FavoriteEntry, FavoritePage, FavoriteState};
+pub use history::{RecentHistoryEntry, RecentHistoryPage, HISTORY_RETENTION_LIMIT};
 pub use model::{
     MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MetadataFreshness,
     MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,

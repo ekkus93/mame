@@ -4,6 +4,7 @@ import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
+import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
 
@@ -60,6 +61,7 @@ export default function App() {
       {state.status === "ready" ? (
         <>
           <LibraryBrowser />
+          <RecentHistoryPanel />
           <CollectionManager />
         </>
       ) : state.status === "error" ? (
