@@ -1,18 +1,23 @@
 import { invoke } from "@tauri-apps/api/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAppInfo } from "./commands";
+import {
+  getAppInfo,
+  getMameMetadataStatus,
+  queryMameLibrary,
+  refreshMameMetadata,
+} from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
-describe("getAppInfo", () => {
+describe("typed backend commands", () => {
   beforeEach(() => {
     vi.mocked(invoke).mockReset();
   });
 
-  it("uses the versioned typed command envelope", async () => {
+  it("uses the versioned app-info command envelope", async () => {
     vi.mocked(invoke).mockResolvedValue({
       protocolVersion: 1,
       appVersion: "0.1.0",
@@ -26,5 +31,31 @@ describe("getAppInfo", () => {
     expect(invoke).toHaveBeenCalledWith("get_app_info", {
       request: { protocolVersion: 1 },
     });
+  });
+
+  it("passes executable identity requests through typed metadata commands", async () => {
+    const request = {
+      executable: { source: "external" as const, path: "/opt/mame/mame" },
+    };
+    vi.mocked(invoke).mockResolvedValue({ schemaVersion: 1 });
+
+    await refreshMameMetadata(request);
+    expect(invoke).toHaveBeenLastCalledWith("refresh_mame_metadata", { request });
+
+    await getMameMetadataStatus(request);
+    expect(invoke).toHaveBeenLastCalledWith("get_mame_metadata_status", { request });
+  });
+
+  it("sends bounded library query parameters without constructing SQL in the frontend", async () => {
+    const request = {
+      text: "galax",
+      cloneFilter: "parentsOnly" as const,
+      limit: 50,
+      offset: 0,
+    };
+    vi.mocked(invoke).mockResolvedValue({ schemaVersion: 1, items: [] });
+
+    await queryMameLibrary(request);
+    expect(invoke).toHaveBeenCalledWith("query_mame_library", { request });
   });
 });

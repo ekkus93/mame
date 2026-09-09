@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<mame build="0.288 test-fixture" debug="no" mameconfig="10">
+  <machine name="galaxian" sourcefile="galaxian/galaxian.cpp">
+    <description>Galaxian (Namco set 1)</description>
+    <year>1979</year>
+    <manufacturer>Namco &amp; Co.</manufacturer>
+    <chip type="cpu" tag=":maincpu" name="Zilog Z80" clock="3072000"/>
+    <chip type="audio" tag=":cust" name="Galaxian Custom Sound"/>
+    <display tag=":screen" type="raster" rotate="90" width="768" height="224" refresh="60.606061" pixclock="18432000"/>
+    <driver status="good" emulation="good" cocktail="good" savestate="supported"/>
+  </machine>
+  <machine name="galaxiana" sourcefile="galaxian/galaxian.cpp" cloneof="galaxian" romof="galaxian">
+    <description>Galaxian (Namco set 2)</description>
+    <year>1979</year>
+    <manufacturer>Namco</manufacturer>
+    <display tag=":screen" type="raster" rotate="90" width="768" height="224" refresh="60.606061"/>
+    <driver status="good" emulation="good" cocktail="good" savestate="supported"/>
+  </machine>
+  <machine name="apple2e" sourcefile="apple/apple2e.cpp">
+    <description>Apple //e</description>
+    <year>1983</year>
+    <manufacturer>Apple Computer</manufacturer>
+    <chip type="cpu" tag=":maincpu" name="MOS Technology 6502" clock="1021800"/>
+    <display tag=":screen" type="raster" rotate="0" width="560" height="192" refresh="60.000000"/>
+    <driver status="good" emulation="good" savestate="supported"/>
+    <device type="floppy" tag=":sl6:diskii:0" fixed_image="no" mandatory="no" interface="floppy_5_25">
+      <instance name="floppydisk1" briefname="flop1"/>
+      <extension name="dsk"/>
+      <extension name="do"/>
+      <extension name="po"/>
+    </device>
+    <softwarelist tag=":sl6:diskii:0" name="apple2_flop_clcracked" status="compatible"/>
+    <softwarelist tag=":sl6:diskii:0" name="apple2_flop_orig" status="original" filter="A2"/>
+  </machine>
+  <machine name="z80" sourcefile="devices/cpu/z80/z80.cpp" isdevice="yes" runnable="no">
+    <description>Zilog Z80</description>
+  </machine>
+</mame>
