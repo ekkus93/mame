@@ -425,9 +425,9 @@ Display at minimum:
 
 ## MT-407 — Add keyboard navigation
 
-- [ ] predictable focus order.
-- [ ] launch/search shortcuts.
-- [ ] no conflict with gameplay window ownership.
+- [x] predictable focus order.
+- [x] launch/search shortcuts.
+- [x] no conflict with gameplay window ownership.
 
 ## MT-408 — Add controller-friendly frontend navigation research
 
