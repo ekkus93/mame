@@ -21,10 +21,14 @@ pub use supervisor::{
     SessionState, SessionSupervisor, StopSessionResult,
 };
 
+/// MAME executable sources that an untrusted frontend may select by path.
+///
+/// A release-qualified bundled executable is intentionally not representable
+/// here. Bundled sidecar resolution is owned by the Rust/package layer so the
+/// frontend cannot self-assert `qualifiedBundled` trust for an arbitrary path.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum MameExecutableSelectionKind {
-    Bundled,
     External,
     DevelopmentTree,
 }
@@ -123,7 +127,6 @@ pub fn stop_mame(
 
 fn executable_source(request: &MameExecutableRequest) -> MameExecutableSource {
     match request.source {
-        MameExecutableSelectionKind::Bundled => MameExecutableSource::bundled(&request.path),
         MameExecutableSelectionKind::External => MameExecutableSource::external(&request.path),
         MameExecutableSelectionKind::DevelopmentTree => {
             MameExecutableSource::development_tree(&request.path)
@@ -137,19 +140,19 @@ mod tests {
     use crate::mame::{MameExecutableSourceKind, MameExecutableTrust};
 
     #[test]
-    fn executable_selection_preserves_source_and_trust_boundary() {
-        let bundled = executable_source(&MameExecutableRequest {
-            source: MameExecutableSelectionKind::Bundled,
-            path: "/tmp/mame".to_owned(),
-        });
-        assert_eq!(bundled.kind(), MameExecutableSourceKind::Bundled);
-        assert_eq!(bundled.trust(), MameExecutableTrust::QualifiedBundled);
-
+    fn frontend_selectable_sources_cannot_self_assert_bundled_trust() {
         let external = executable_source(&MameExecutableRequest {
             source: MameExecutableSelectionKind::External,
             path: "/tmp/mame".to_owned(),
         });
         assert_eq!(external.kind(), MameExecutableSourceKind::External);
         assert_eq!(external.trust(), MameExecutableTrust::UserConfigured);
+
+        let development = executable_source(&MameExecutableRequest {
+            source: MameExecutableSelectionKind::DevelopmentTree,
+            path: "/tmp/mame".to_owned(),
+        });
+        assert_eq!(development.kind(), MameExecutableSourceKind::DevelopmentTree);
+        assert_eq!(development.trust(), MameExecutableTrust::Development);
     }
 }
