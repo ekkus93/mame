@@ -26,7 +26,10 @@ pub fn run() -> Result<(), tauri::Error> {
             sessions::inspect_mame_executable,
             sessions::launch_mame,
             sessions::get_mame_session,
-            sessions::stop_mame
+            sessions::stop_mame,
+            metadata::refresh_mame_metadata,
+            metadata::get_mame_metadata_status,
+            library::query_mame_library
         ])
         .run(tauri::generate_context!())
 }
