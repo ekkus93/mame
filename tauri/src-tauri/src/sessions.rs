@@ -152,7 +152,10 @@ mod tests {
             source: MameExecutableSelectionKind::DevelopmentTree,
             path: "/tmp/mame".to_owned(),
         });
-        assert_eq!(development.kind(), MameExecutableSourceKind::DevelopmentTree);
+        assert_eq!(
+            development.kind(),
+            MameExecutableSourceKind::DevelopmentTree
+        );
         assert_eq!(development.trust(), MameExecutableTrust::Development);
     }
 }
