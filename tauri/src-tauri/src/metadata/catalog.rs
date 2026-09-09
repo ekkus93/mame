@@ -19,7 +19,7 @@ use super::{
 const MAX_QUERY_PAGE_SIZE: u32 = 200;
 
 pub(crate) struct CatalogRepository {
-    connection: Connection,
+    pub(super) connection: Connection,
 }
 
 impl CatalogRepository {
@@ -30,7 +30,7 @@ impl CatalogRepository {
     }
 
     #[cfg(test)]
-    fn memory() -> AppResult<Self> {
+    pub(super) fn memory() -> AppResult<Self> {
         Ok(Self {
             connection: storage::open_catalog_memory()?,
         })
@@ -188,9 +188,10 @@ impl CatalogRepository {
                       AND sl.machine_short_name = m.short_name) AS software_list_count
             FROM machines m
             WHERE {}
-            ORDER BY m.description COLLATE NOCASE, m.short_name COLLATE NOCASE
+            ORDER BY {}
             LIMIT ?8 OFFSET ?9"#,
-            QUERY_WHERE
+            QUERY_WHERE,
+            query.sort.order_by()
         );
         let mut statement = self
             .connection
@@ -493,6 +494,31 @@ impl CatalogImport<'_> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MachineSort {
+    DescriptionAsc,
+    DescriptionDesc,
+    ShortNameAsc,
+    YearAsc,
+    YearDesc,
+    ManufacturerAsc,
+    ManufacturerDesc,
+}
+
+impl MachineSort {
+    fn order_by(self) -> &'static str {
+        match self {
+            Self::DescriptionAsc => "m.description COLLATE NOCASE ASC, m.short_name COLLATE NOCASE ASC",
+            Self::DescriptionDesc => "m.description COLLATE NOCASE DESC, m.short_name COLLATE NOCASE ASC",
+            Self::ShortNameAsc => "m.short_name COLLATE NOCASE ASC",
+            Self::YearAsc => "m.year IS NULL, m.year ASC, m.description COLLATE NOCASE ASC",
+            Self::YearDesc => "m.year IS NULL, m.year DESC, m.description COLLATE NOCASE ASC",
+            Self::ManufacturerAsc => "m.manufacturer IS NULL, m.manufacturer COLLATE NOCASE ASC, m.description COLLATE NOCASE ASC",
+            Self::ManufacturerDesc => "m.manufacturer IS NULL, m.manufacturer COLLATE NOCASE DESC, m.description COLLATE NOCASE ASC",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CloneFilter {
     All,
     ParentsOnly,
@@ -516,6 +542,7 @@ pub(crate) struct MachineQuery {
     pub year: Option<String>,
     pub driver_status: Option<String>,
     pub clone_filter: CloneFilter,
+    pub sort: MachineSort,
     pub include_devices: bool,
     pub limit: u32,
     pub offset: u32,
@@ -747,7 +774,7 @@ mod tests {
 
     use crate::mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust};
 
-    use super::{CatalogRepository, CloneFilter, MachineQuery};
+    use super::{CatalogRepository, CloneFilter, MachineQuery, MachineSort};
     use crate::metadata::model::MetadataFreshness;
 
     const FIXTURE: &str = include_str!("../../../tests/fixtures/listxml-representative.xml");
@@ -776,6 +803,7 @@ mod tests {
                 year: None,
                 driver_status: None,
                 clone_filter: CloneFilter::All,
+                sort: MachineSort::DescriptionAsc,
                 include_devices: false,
                 limit: 50,
                 offset: 0,
@@ -800,6 +828,7 @@ mod tests {
                 year: Some("1979".to_owned()),
                 driver_status: Some("good".to_owned()),
                 clone_filter: CloneFilter::ClonesOnly,
+                sort: MachineSort::DescriptionAsc,
                 include_devices: false,
                 limit: 25,
                 offset: 0,
@@ -823,6 +852,7 @@ mod tests {
                 year: None,
                 driver_status: None,
                 clone_filter: CloneFilter::All,
+                sort: MachineSort::DescriptionAsc,
                 include_devices: false,
                 limit: 25,
                 offset: 0,
@@ -839,6 +869,7 @@ mod tests {
                     year: None,
                     driver_status: None,
                     clone_filter: CloneFilter::All,
+                    sort: MachineSort::DescriptionAsc,
                     include_devices: false,
                     limit: 25,
                     offset: 0,
@@ -981,6 +1012,7 @@ mod tests {
                 year: None,
                 driver_status: None,
                 clone_filter: CloneFilter::ParentsOnly,
+                sort: MachineSort::DescriptionAsc,
                 include_devices: false,
                 limit: 201,
                 offset: 0,

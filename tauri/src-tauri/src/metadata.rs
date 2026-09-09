@@ -5,6 +5,7 @@
 //! after the complete process and import succeed.
 
 mod catalog;
+mod detail;
 mod generator;
 mod model;
 mod parser;
@@ -20,11 +21,11 @@ use crate::{
 };
 
 pub use model::{
-    MachineListItem, MachinePage, MetadataFreshness, MetadataGenerationSummary,
-    MetadataRefreshResult, MetadataStatus,
+    MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MetadataFreshness,
+    MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,
 };
 
-pub(crate) use catalog::{CatalogRepository, CloneFilter, MachineQuery};
+pub(crate) use catalog::{CatalogRepository, CloneFilter, MachineQuery, MachineSort};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

@@ -29,7 +29,9 @@ pub fn run() -> Result<(), tauri::Error> {
             sessions::stop_mame,
             metadata::refresh_mame_metadata,
             metadata::get_mame_metadata_status,
-            library::query_mame_library
+            library::query_mame_library,
+            library::get_mame_machine_detail,
+            library::launch_library_machine
         ])
         .run(tauri::generate_context!())
 }

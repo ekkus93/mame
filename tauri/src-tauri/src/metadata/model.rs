@@ -138,6 +138,47 @@ pub struct MachineListItem {
     pub software_list_count: u32,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineDisplayInfo {
+    pub tag: Option<String>,
+    pub display_type: String,
+    pub rotate: Option<i64>,
+    pub flip_x: bool,
+    pub width: Option<i64>,
+    pub height: Option<i64>,
+    pub refresh_hz: f64,
+    pub pixel_clock_hz: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineDetail {
+    pub schema_version: u32,
+    pub generation_id: i64,
+    pub short_name: String,
+    pub description: String,
+    pub year: Option<String>,
+    pub manufacturer: Option<String>,
+    pub source_file: Option<String>,
+    pub clone_of: Option<String>,
+    pub parent_description: Option<String>,
+    pub rom_of: Option<String>,
+    pub is_bios: bool,
+    pub is_device: bool,
+    pub is_mechanical: bool,
+    pub runnable: bool,
+    pub driver_status: Option<String>,
+    pub driver_emulation: Option<String>,
+    pub driver_cocktail: Option<String>,
+    pub driver_savestate: Option<String>,
+    pub driver_requires_artwork: bool,
+    pub driver_unofficial: bool,
+    pub driver_no_sound_hardware: bool,
+    pub driver_incomplete: bool,
+    pub displays: Vec<MachineDisplayInfo>,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MachinePage {

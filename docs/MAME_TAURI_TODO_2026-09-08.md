@@ -383,22 +383,22 @@ user_tags
 
 Display at minimum:
 
-- [ ] description.
-- [ ] short name.
-- [ ] year.
-- [ ] manufacturer.
-- [ ] parent/clone relation.
-- [ ] working/imperfect status.
-- [ ] display information.
-- [ ] source/driver information where useful.
-- [ ] launch action.
+- [x] description.
+- [x] short name.
+- [x] year.
+- [x] manufacturer.
+- [x] parent/clone relation.
+- [x] working/imperfect status.
+- [x] display information.
+- [x] source/driver information where useful.
+- [x] launch action.
 
 ## MT-403 — Add filtering/sorting
 
-- [ ] manufacturer.
-- [ ] year.
-- [ ] status.
-- [ ] parent/clone policy.
+- [x] manufacturer.
+- [x] year.
+- [x] status.
+- [x] parent/clone policy.
 - [ ] available/audited state when MT-500 exists.
 
 ## MT-404 — Add favorites

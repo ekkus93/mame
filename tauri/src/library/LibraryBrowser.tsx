@@ -1,8 +1,14 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
-import { queryMameLibrary } from "../backend/commands";
+import { getMameMachineDetail, launchLibraryMachine, queryMameLibrary } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
-import type { MachineListItem, MachinePage, MachineSearchRequest } from "../backend/types";
+import type {
+  MachineDetail,
+  MachineListItem,
+  MachinePage,
+  MachineSearchRequest,
+  SessionSnapshot,
+} from "../backend/types";
 import {
   buildMachineSearchRequest,
   DEFAULT_LIBRARY_FILTERS,
@@ -15,6 +21,18 @@ type LoadState =
   | { status: "ready"; page: MachinePage }
   | { status: "error"; message: string };
 
+type DetailState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready"; detail: MachineDetail }
+  | { status: "error"; message: string };
+
+type LaunchState =
+  | { status: "idle" }
+  | { status: "launching" }
+  | { status: "launched"; session: SessionSnapshot }
+  | { status: "error"; message: string };
+
 export function LibraryBrowser() {
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
   const [request, setRequest] = useState<MachineSearchRequest>(() =>
@@ -22,6 +40,8 @@ export function LibraryBrowser() {
   );
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [selected, setSelected] = useState<MachineListItem | null>(null);
+  const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
+  const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +71,33 @@ export function LibraryBrowser() {
     };
   }, [request]);
 
+  useEffect(() => {
+    if (!selected) {
+      setDetailState({ status: "idle" });
+      setLaunchState({ status: "idle" });
+      return;
+    }
+
+    let cancelled = false;
+    setDetailState({ status: "loading" });
+    setLaunchState({ status: "idle" });
+    void getMameMachineDetail({ shortName: selected.shortName })
+      .then((detail) => {
+        if (!cancelled) {
+          setDetailState({ status: "ready", detail });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDetailState({ status: "error", message: errorMessage(error) });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
+
   const page = loadState.status === "ready" ? loadState.page : null;
   const range = useMemo(() => {
     if (!page || page.total === 0) {
@@ -73,6 +120,13 @@ export function LibraryBrowser() {
 
   function movePage(offset: number) {
     setRequest(buildMachineSearchRequest(filters, offset));
+  }
+
+  function launchSelected(detail: MachineDetail) {
+    setLaunchState({ status: "launching" });
+    void launchLibraryMachine({ shortName: detail.shortName })
+      .then((session) => setLaunchState({ status: "launched", session }))
+      .catch((error: unknown) => setLaunchState({ status: "error", message: errorMessage(error) }));
   }
 
   return (
@@ -148,8 +202,25 @@ export function LibraryBrowser() {
             <option value="clonesOnly">Clones only</option>
           </select>
         </label>
+        <label>
+          <span>Sort</span>
+          <select
+            value={filters.sort}
+            onChange={(event) =>
+              setFilters({ ...filters, sort: event.target.value as LibraryFilters["sort"] })
+            }
+          >
+            <option value="descriptionAsc">Description A–Z</option>
+            <option value="descriptionDesc">Description Z–A</option>
+            <option value="shortNameAsc">Short name A–Z</option>
+            <option value="yearAsc">Year oldest first</option>
+            <option value="yearDesc">Year newest first</option>
+            <option value="manufacturerAsc">Manufacturer A–Z</option>
+            <option value="manufacturerDesc">Manufacturer Z–A</option>
+          </select>
+        </label>
         <div className="filter-actions">
-          <button type="submit">Search</button>
+          <button type="submit">Apply</button>
           <button type="button" className="secondary-button" onClick={resetFilters}>
             Reset
           </button>
@@ -238,53 +309,147 @@ export function LibraryBrowser() {
         </div>
 
         <aside className="machine-detail-panel" aria-label="Selected machine details">
-          {selected ? (
-            <>
-              <p className="eyebrow">Selected machine</p>
-              <h3>{selected.description}</h3>
-              <p className="machine-short-name">{selected.shortName}</p>
-              <dl className="machine-facts">
-                <div>
-                  <dt>Manufacturer</dt>
-                  <dd>{selected.manufacturer ?? "Unknown"}</dd>
-                </div>
-                <div>
-                  <dt>Year</dt>
-                  <dd>{selected.year ?? "Unknown"}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{machineStatusLabel(selected)}</dd>
-                </div>
-                <div>
-                  <dt>Relationship</dt>
-                  <dd>{selected.cloneOf ? `Clone of ${selected.cloneOf}` : "Parent"}</dd>
-                </div>
-                <div>
-                  <dt>Displays</dt>
-                  <dd>{selected.displayCount}</dd>
-                </div>
-                <div>
-                  <dt>Software lists</dt>
-                  <dd>{selected.softwareListCount}</dd>
-                </div>
-                <div>
-                  <dt>Source</dt>
-                  <dd>{selected.sourceFile ?? "Unknown"}</dd>
-                </div>
-              </dl>
-              <p className="detail-note">
-                Launch and full machine-detail actions are added in the next MT-400 slices.
-              </p>
-            </>
-          ) : (
+          {detailState.status === "idle" && (
             <div className="library-state">
               <strong>No machine selected</strong>
               <span>Select a catalog row to inspect its indexed metadata.</span>
             </div>
           )}
+          {detailState.status === "loading" && (
+            <div className="library-state">
+              <strong>Loading machine detail…</strong>
+              <span>Reading the selected machine from the active metadata generation.</span>
+            </div>
+          )}
+          {detailState.status === "error" && (
+            <div className="library-state error-state" role="alert">
+              <strong>Machine detail unavailable</strong>
+              <span>{detailState.message}</span>
+            </div>
+          )}
+          {detailState.status === "ready" && (
+            <MachineDetailPanel
+              detail={detailState.detail}
+              launchState={launchState}
+              onLaunch={() => launchSelected(detailState.detail)}
+            />
+          )}
         </aside>
       </div>
     </section>
+  );
+}
+
+function MachineDetailPanel({
+  detail,
+  launchState,
+  onLaunch,
+}: {
+  detail: MachineDetail;
+  launchState: LaunchState;
+  onLaunch: () => void;
+}) {
+  return (
+    <>
+      <p className="eyebrow">Machine detail</p>
+      <h3>{detail.description}</h3>
+      <p className="machine-short-name">{detail.shortName}</p>
+
+      <div className="detail-launch-row">
+        <button
+          type="button"
+          disabled={!detail.runnable || launchState.status === "launching"}
+          onClick={onLaunch}
+        >
+          {launchState.status === "launching" ? "Launching…" : "Launch in MAME"}
+        </button>
+        {!detail.runnable && <span>This catalog entry is not runnable.</span>}
+      </div>
+      {launchState.status === "launched" && (
+        <p className="launch-result" role="status">
+          Session {launchState.session.sessionId} started
+          {launchState.session.pid ? ` as PID ${launchState.session.pid}` : ""}.
+        </p>
+      )}
+      {launchState.status === "error" && (
+        <p className="launch-error" role="alert">
+          {launchState.message}
+        </p>
+      )}
+
+      <dl className="machine-facts">
+        <div>
+          <dt>Manufacturer</dt>
+          <dd>{detail.manufacturer ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Year</dt>
+          <dd>{detail.year ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{machineStatusLabel(detail)}</dd>
+        </div>
+        <div>
+          <dt>Emulation</dt>
+          <dd>{detail.driverEmulation ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Save state</dt>
+          <dd>{detail.driverSavestate ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Relationship</dt>
+          <dd>
+            {detail.cloneOf
+              ? `Clone of ${detail.parentDescription ?? detail.cloneOf} (${detail.cloneOf})`
+              : "Parent"}
+          </dd>
+        </div>
+        <div>
+          <dt>ROM relation</dt>
+          <dd>{detail.romOf ?? "Independent"}</dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{detail.sourceFile ?? "Unknown"}</dd>
+        </div>
+      </dl>
+
+      <section className="display-detail" aria-labelledby={`displays-${detail.shortName}`}>
+        <h4 id={`displays-${detail.shortName}`}>Displays</h4>
+        {detail.displays.length === 0 ? (
+          <p className="detail-note">No display metadata is recorded for this machine.</p>
+        ) : (
+          <ul className="display-list">
+            {detail.displays.map((display, index) => (
+              <li key={`${display.tag ?? "display"}-${index}`}>
+                <strong>{display.displayType}</strong>
+                <span>
+                  {display.width && display.height
+                    ? `${display.width}×${display.height}`
+                    : "Resolution unknown"}
+                </span>
+                <span>{display.refreshHz.toFixed(3)} Hz</span>
+                <span>{display.rotate === null ? "Rotation unknown" : `${display.rotate}°`}</span>
+                {display.tag && <code>{display.tag}</code>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {(detail.driverRequiresArtwork ||
+        detail.driverUnofficial ||
+        detail.driverNoSoundHardware ||
+        detail.driverIncomplete) && (
+        <section className="driver-flags" aria-label="Driver notes">
+          {detail.driverRequiresArtwork && <span>Requires artwork</span>}
+          {detail.driverUnofficial && <span>Unofficial</span>}
+          {detail.driverNoSoundHardware && <span>No sound hardware</span>}
+          {detail.driverIncomplete && <span>Incomplete</span>}
+        </section>
+      )}
+    </>
   );
 }

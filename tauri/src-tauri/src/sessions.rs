@@ -77,9 +77,26 @@ pub fn launch_mame(
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
     let source = executable_source(&request.executable);
+    launch_mame_with_source(
+        source,
+        request.machine,
+        request.software,
+        request.project_paths,
+        supervisor,
+        app,
+    )
+}
+
+pub(crate) fn launch_mame_with_source(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
     let effective_config = EffectiveLaunchConfig {
-        project_paths: request
-            .project_paths
+        project_paths: project_paths
             .iter()
             .map(|project_path| EffectiveProjectPath {
                 option: project_path.option.clone(),
@@ -88,10 +105,9 @@ pub fn launch_mame(
             .collect(),
     };
     let target = MameLaunchTarget {
-        machine: request.machine,
-        software: request.software,
-        project_paths: request
-            .project_paths
+        machine,
+        software,
+        project_paths: project_paths
             .into_iter()
             .map(|project_path| ProjectPathArgument {
                 option: project_path.option,

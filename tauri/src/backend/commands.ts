@@ -4,12 +4,16 @@ import {
   APP_PROTOCOL_VERSION,
   type AppInfoRequest,
   type AppInfoResponse,
+  type LaunchLibraryMachineRequest,
+  type MachineDetail,
+  type MachineDetailRequest,
   type MachinePage,
   type MachineSearchRequest,
   type MetadataRefreshResult,
   type MetadataStatus,
   type MetadataStatusRequest,
   type RefreshMameMetadataRequest,
+  type SessionSnapshot,
 } from "./types";
 
 export async function getAppInfo(): Promise<AppInfoResponse> {
@@ -34,4 +38,14 @@ export async function getMameMetadataStatus(
 
 export async function queryMameLibrary(request: MachineSearchRequest): Promise<MachinePage> {
   return invoke<MachinePage>("query_mame_library", { request });
+}
+
+export async function getMameMachineDetail(request: MachineDetailRequest): Promise<MachineDetail> {
+  return invoke<MachineDetail>("get_mame_machine_detail", { request });
+}
+
+export async function launchLibraryMachine(
+  request: LaunchLibraryMachineRequest,
+): Promise<SessionSnapshot> {
+  return invoke<SessionSnapshot>("launch_library_machine", { request });
 }

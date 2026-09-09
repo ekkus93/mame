@@ -77,12 +77,22 @@ export type MetadataStatusRequest = {
 
 export type CloneFilter = "all" | "parentsOnly" | "clonesOnly";
 
+export type MachineSort =
+  | "descriptionAsc"
+  | "descriptionDesc"
+  | "shortNameAsc"
+  | "yearAsc"
+  | "yearDesc"
+  | "manufacturerAsc"
+  | "manufacturerDesc";
+
 export type MachineSearchRequest = {
   text?: string | null;
   manufacturer?: string | null;
   year?: string | null;
   driverStatus?: "good" | "imperfect" | "preliminary" | null;
   cloneFilter?: CloneFilter;
+  sort?: MachineSort;
   includeDevices?: boolean;
   limit?: number;
   offset?: number;
@@ -109,4 +119,61 @@ export type MachinePage = {
   offset: number;
   limit: number;
   items: MachineListItem[];
+};
+
+export type MachineDetailRequest = {
+  shortName: string;
+};
+
+export type MachineDisplayInfo = {
+  tag: string | null;
+  displayType: string;
+  rotate: number | null;
+  flipX: boolean;
+  width: number | null;
+  height: number | null;
+  refreshHz: number;
+  pixelClockHz: number | null;
+};
+
+export type MachineDetail = {
+  schemaVersion: 1;
+  generationId: number;
+  shortName: string;
+  description: string;
+  year: string | null;
+  manufacturer: string | null;
+  sourceFile: string | null;
+  cloneOf: string | null;
+  parentDescription: string | null;
+  romOf: string | null;
+  isBios: boolean;
+  isDevice: boolean;
+  isMechanical: boolean;
+  runnable: boolean;
+  driverStatus: string | null;
+  driverEmulation: string | null;
+  driverCocktail: string | null;
+  driverSavestate: string | null;
+  driverRequiresArtwork: boolean;
+  driverUnofficial: boolean;
+  driverNoSoundHardware: boolean;
+  driverIncomplete: boolean;
+  displays: MachineDisplayInfo[];
+};
+
+export type LaunchLibraryMachineRequest = {
+  shortName: string;
+};
+
+export type SessionState =
+  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
+
+export type SessionSnapshot = {
+  schemaVersion: 1;
+  sessionId: string;
+  state: SessionState;
+  machine: string;
+  software: string | null;
+  pid: number | null;
 };

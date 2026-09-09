@@ -271,7 +271,7 @@ mod tests {
     use super::refresh_catalog;
     use crate::{
         mame::MameExecutableSource,
-        metadata::catalog::{CatalogRepository, CloneFilter, MachineQuery},
+        metadata::catalog::{CatalogRepository, CloneFilter, MachineQuery, MachineSort},
     };
 
     #[cfg(unix)]
@@ -293,6 +293,7 @@ mod tests {
                 year: None,
                 driver_status: None,
                 clone_filter: CloneFilter::All,
+                sort: MachineSort::DescriptionAsc,
                 include_devices: false,
                 limit: 25,
                 offset: 0,

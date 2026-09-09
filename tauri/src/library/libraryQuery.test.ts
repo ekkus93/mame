@@ -18,6 +18,7 @@ describe("library query view model", () => {
           manufacturer: " Namco ",
           driverStatus: "good",
           cloneFilter: "parentsOnly",
+          sort: "yearDesc",
         },
         200,
       ),
@@ -27,10 +28,24 @@ describe("library query view model", () => {
       year: null,
       driverStatus: "good",
       cloneFilter: "parentsOnly",
+      sort: "yearDesc",
       includeDevices: false,
       limit: LIBRARY_PAGE_SIZE,
       offset: 200,
     });
+  });
+
+  it("uses deterministic description sorting by default", () => {
+    expect(buildMachineSearchRequest(DEFAULT_LIBRARY_FILTERS).sort).toBe("descriptionAsc");
+  });
+
+  it("preserves an explicit manufacturer sort mode", () => {
+    expect(
+      buildMachineSearchRequest({
+        ...DEFAULT_LIBRARY_FILTERS,
+        sort: "manufacturerDesc",
+      }).sort,
+    ).toBe("manufacturerDesc");
   });
 
   it("clamps a negative page offset", () => {

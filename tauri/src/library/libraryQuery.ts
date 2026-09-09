@@ -1,4 +1,4 @@
-import type { MachineListItem, MachineSearchRequest } from "../backend/types";
+import type { MachineListItem, MachineSearchRequest, MachineSort } from "../backend/types";
 
 export const LIBRARY_PAGE_SIZE = 100;
 
@@ -8,6 +8,7 @@ export type LibraryFilters = {
   year: string;
   driverStatus: "" | "good" | "imperfect" | "preliminary";
   cloneFilter: "all" | "parentsOnly" | "clonesOnly";
+  sort: MachineSort;
 };
 
 export const DEFAULT_LIBRARY_FILTERS: LibraryFilters = {
@@ -16,6 +17,7 @@ export const DEFAULT_LIBRARY_FILTERS: LibraryFilters = {
   year: "",
   driverStatus: "",
   cloneFilter: "all",
+  sort: "descriptionAsc",
 };
 
 export function buildMachineSearchRequest(
@@ -28,13 +30,16 @@ export function buildMachineSearchRequest(
     year: normalize(filters.year),
     driverStatus: filters.driverStatus || null,
     cloneFilter: filters.cloneFilter,
+    sort: filters.sort,
     includeDevices: false,
     limit: LIBRARY_PAGE_SIZE,
     offset: Math.max(0, offset),
   };
 }
 
-export function machineStatusLabel(machine: MachineListItem): string {
+export function machineStatusLabel(
+  machine: Pick<MachineListItem, "runnable" | "driverStatus">,
+): string {
   if (!machine.runnable) {
     return "Not runnable";
   }
