@@ -166,6 +166,37 @@ export type LaunchLibraryMachineRequest = {
   shortName: string;
 };
 
+export type FavoriteState = {
+  schemaVersion: 1;
+  shortName: string;
+  favorite: boolean;
+  createdAtEpochMs: number | null;
+};
+
+export type FavoriteEntry = {
+  shortName: string;
+  createdAtEpochMs: number;
+  machine: MachineListItem | null;
+};
+
+export type FavoritePage = {
+  schemaVersion: 1;
+  total: number;
+  offset: number;
+  limit: number;
+  items: FavoriteEntry[];
+};
+
+export type FavoritePageRequest = {
+  limit?: number;
+  offset?: number;
+};
+
+export type SetLibraryFavoriteRequest = {
+  shortName: string;
+  favorite: boolean;
+};
+
 export type SessionState =
   "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
 

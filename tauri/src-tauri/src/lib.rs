@@ -31,7 +31,10 @@ pub fn run() -> Result<(), tauri::Error> {
             metadata::get_mame_metadata_status,
             library::query_mame_library,
             library::get_mame_machine_detail,
-            library::launch_library_machine
+            library::launch_library_machine,
+            library::get_library_favorite,
+            library::set_library_favorite,
+            library::query_library_favorites
         ])
         .run(tauri::generate_context!())
 }

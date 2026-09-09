@@ -6,6 +6,7 @@
 
 mod catalog;
 mod detail;
+mod favorites;
 mod generator;
 mod model;
 mod parser;
@@ -20,6 +21,7 @@ use crate::{
     storage,
 };
 
+pub use favorites::{FavoriteEntry, FavoritePage, FavoriteState};
 pub use model::{
     MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MetadataFreshness,
     MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,

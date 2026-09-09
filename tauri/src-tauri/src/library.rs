@@ -2,6 +2,8 @@
 //!
 //! Generated metadata is never the storage owner for user favorites or history.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
@@ -9,8 +11,8 @@ use crate::{
     errors::{AppError, AppResult},
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
     metadata::{
-        CatalogRepository, CloneFilter, MachineDetail, MachinePage, MachineQuery, MachineSort,
-        MetadataGenerationSummary,
+        CatalogRepository, CloneFilter, FavoritePage, FavoriteState, MachineDetail, MachinePage,
+        MachineQuery, MachineSort, MetadataGenerationSummary,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -78,6 +80,22 @@ pub struct LaunchLibraryMachineRequest {
     pub short_name: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetLibraryFavoriteRequest {
+    pub short_name: String,
+    pub favorite: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoritePageRequest {
+    #[serde(default = "default_page_size")]
+    pub limit: u32,
+    #[serde(default)]
+    pub offset: u32,
+}
+
 #[tauri::command]
 pub async fn query_mame_library(
     request: MachineSearchRequest,
@@ -103,6 +121,56 @@ pub async fn get_mame_machine_detail(
 
     tauri::async_runtime::spawn_blocking(move || {
         CatalogRepository::open(&catalog_path)?.machine_detail(&short_name)
+    })
+    .await
+    .map_err(catalog_worker_error)?
+}
+
+#[tauri::command]
+pub async fn get_library_favorite(
+    request: MachineDetailRequest,
+    app: AppHandle,
+) -> AppResult<FavoriteState> {
+    let short_name = validate_machine_short_name(request.short_name)?;
+    let catalog_path = storage::catalog_path(&app)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        CatalogRepository::open(&catalog_path)?.favorite_state(&short_name)
+    })
+    .await
+    .map_err(catalog_worker_error)?
+}
+
+#[tauri::command]
+pub async fn set_library_favorite(
+    request: SetLibraryFavoriteRequest,
+    app: AppHandle,
+) -> AppResult<FavoriteState> {
+    let short_name = validate_machine_short_name(request.short_name)?;
+    let favorite = request.favorite;
+    let created_at_epoch_ms = now_epoch_ms()?;
+    let catalog_path = storage::catalog_path(&app)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        CatalogRepository::open(&catalog_path)?.set_favorite(
+            &short_name,
+            favorite,
+            created_at_epoch_ms,
+        )
+    })
+    .await
+    .map_err(catalog_worker_error)?
+}
+
+#[tauri::command]
+pub async fn query_library_favorites(
+    request: FavoritePageRequest,
+    app: AppHandle,
+) -> AppResult<FavoritePage> {
+    let catalog_path = storage::catalog_path(&app)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        CatalogRepository::open(&catalog_path)?.query_favorites(request.limit, request.offset)
     })
     .await
     .map_err(catalog_worker_error)?
@@ -277,6 +345,24 @@ fn catalog_worker_error(error: impl std::fmt::Display) -> AppError {
         "The background catalog query worker did not complete normally.",
     )
     .with_details(serde_json::json!({ "cause": error.to_string() }))
+}
+
+fn now_epoch_ms() -> AppResult<u64> {
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| {
+            AppError::new(
+                "SYSTEM_CLOCK_INVALID",
+                "The system clock is earlier than the Unix epoch.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        })?;
+    u64::try_from(duration.as_millis()).map_err(|_| {
+        AppError::new(
+            "SYSTEM_CLOCK_OUT_OF_RANGE",
+            "The current system timestamp cannot be represented by the application.",
+        )
+    })
 }
 
 const fn default_page_size() -> u32 {

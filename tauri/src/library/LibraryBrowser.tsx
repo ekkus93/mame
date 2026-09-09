@@ -15,6 +15,8 @@ import {
   type LibraryFilters,
   machineStatusLabel,
 } from "./libraryQuery";
+import { FavoriteShelf } from "./FavoriteShelf";
+import { FavoriteToggleButton } from "./FavoriteToggleButton";
 
 type LoadState =
   | { status: "loading" }
@@ -42,6 +44,7 @@ export function LibraryBrowser() {
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
+  const [favoritesRevision, setFavoritesRevision] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +230,12 @@ export function LibraryBrowser() {
         </div>
       </form>
 
+      <FavoriteShelf
+        revision={favoritesRevision}
+        onSelect={setSelected}
+        onChanged={() => setFavoritesRevision((current) => current + 1)}
+      />
+
       <div className="library-content" aria-busy={loadState.status === "loading"}>
         <div className="machine-list-panel">
           {loadState.status === "loading" && (
@@ -331,6 +340,8 @@ export function LibraryBrowser() {
             <MachineDetailPanel
               detail={detailState.detail}
               launchState={launchState}
+              favoriteRevision={favoritesRevision}
+              onFavoriteChanged={() => setFavoritesRevision((current) => current + 1)}
               onLaunch={() => launchSelected(detailState.detail)}
             />
           )}
@@ -343,10 +354,14 @@ export function LibraryBrowser() {
 function MachineDetailPanel({
   detail,
   launchState,
+  favoriteRevision,
+  onFavoriteChanged,
   onLaunch,
 }: {
   detail: MachineDetail;
   launchState: LaunchState;
+  favoriteRevision: number;
+  onFavoriteChanged: () => void;
   onLaunch: () => void;
 }) {
   return (
@@ -363,6 +378,11 @@ function MachineDetailPanel({
         >
           {launchState.status === "launching" ? "Launching…" : "Launch in MAME"}
         </button>
+        <FavoriteToggleButton
+          shortName={detail.shortName}
+          revision={favoriteRevision}
+          onChanged={onFavoriteChanged}
+        />
         {!detail.runnable && <span>This catalog entry is not runnable.</span>}
       </div>
       {launchState.status === "launched" && (

@@ -4,6 +4,9 @@ import {
   APP_PROTOCOL_VERSION,
   type AppInfoRequest,
   type AppInfoResponse,
+  type FavoritePage,
+  type FavoritePageRequest,
+  type FavoriteState,
   type LaunchLibraryMachineRequest,
   type MachineDetail,
   type MachineDetailRequest,
@@ -14,6 +17,7 @@ import {
   type MetadataStatusRequest,
   type RefreshMameMetadataRequest,
   type SessionSnapshot,
+  type SetLibraryFavoriteRequest,
 } from "./types";
 
 export async function getAppInfo(): Promise<AppInfoResponse> {
@@ -48,4 +52,18 @@ export async function launchLibraryMachine(
   request: LaunchLibraryMachineRequest,
 ): Promise<SessionSnapshot> {
   return invoke<SessionSnapshot>("launch_library_machine", { request });
+}
+
+export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {
+  return invoke<FavoriteState>("get_library_favorite", { request });
+}
+
+export async function setLibraryFavorite(
+  request: SetLibraryFavoriteRequest,
+): Promise<FavoriteState> {
+  return invoke<FavoriteState>("set_library_favorite", { request });
+}
+
+export async function queryLibraryFavorites(request: FavoritePageRequest): Promise<FavoritePage> {
+  return invoke<FavoritePage>("query_library_favorites", { request });
 }
