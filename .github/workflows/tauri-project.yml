@@ -7,14 +7,13 @@ on:
       - "tauri/**"
       - "scripts/tauri/**"
       - "tests/tauri/**"
-      - "docs/MAME_TAURI_*"
   pull_request:
     paths:
       - ".github/workflows/tauri-project.yml"
       - "tauri/**"
       - "scripts/tauri/**"
       - "tests/tauri/**"
-      - "docs/MAME_TAURI_*"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,32 +25,41 @@ jobs:
       run:
         working-directory: tauri
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tauri
 
-      - name: Install Tauri Linux prerequisites
+      - name: Install Tauri Linux build prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
             build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev \
-            xvfb \
-            xdotool
+            librsvg2-dev
 
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
 
-      - uses: dtolnay/rust-toolchain@stable
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+
+      - name: Cache Rust dependencies and debug build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/debug
+          key: ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-
 
       - name: Install frontend dependencies from lockfile
         run: npm ci
@@ -75,17 +83,77 @@ jobs:
         working-directory: tauri/src-tauri
         run: cargo fmt --check
 
-      - name: Rust clippy
-        working-directory: tauri/src-tauri
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
-
       - name: Rust tests
         working-directory: tauri/src-tauri
         run: cargo test --locked
 
-      - name: Rust release build
+      - name: Rust clippy
         working-directory: tauri/src-tauri
-        run: cargo build --locked --release
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Verify lockfiles remain unchanged
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+
+  linux-release-qualification:
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/master' ||
+      startsWith(github.ref, 'refs/tags/')
+    needs: linux-quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tauri
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tauri
+
+      - name: Install Tauri Linux runtime prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            xvfb \
+            xdotool
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Restore Rust dependencies and debug build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/debug
+          key: ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Cache Rust release build
+        uses: actions/cache@v6
+        with:
+          path: tauri/src-tauri/target/release
+          key: ${{ runner.os }}-tauri-release-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-release-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Install frontend dependencies from lockfile
+        run: npm ci
 
       - name: Tauri production build smoke check
         run: npm run tauri -- build --no-bundle
