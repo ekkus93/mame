@@ -23,6 +23,14 @@ A **development-tree executable** is a separate development/test source and is n
 
 `qualifiedBundled` means only that the executable is the build qualified with that application release. It is not a cryptographic attestation and does not imply that third-party content is trusted.
 
+## Authority boundary
+
+The frontend may provide a path only for explicitly user-selected **external** or **development-tree** executables. It must not be able to provide an arbitrary path and label that path `bundled` or `qualifiedBundled`.
+
+A bundled executable's path and `qualifiedBundled` classification are resolved by the Rust/package layer from release-owned packaging metadata. Until bundled sidecar packaging is enabled, bundled trust remains an internal backend model and is intentionally unavailable through the path-based frontend IPC request.
+
+This preserves the architecture rule that the Rust backend owns native authority and prevents a renderer caller from self-asserting release-qualified trust.
+
 ## Identity contract
 
 Before use, the backend validates that the selected path is a regular usable executable and probes the current MAME CLI with the discrete argument vector:
