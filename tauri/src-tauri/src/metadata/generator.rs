@@ -288,7 +288,7 @@ mod tests {
         let repository = CatalogRepository::open(&database).expect("open imported catalog");
         let page = repository
             .query_machines(&MachineQuery {
-                text: Some("Apple IIe".to_owned()),
+                text: Some("apple2e".to_owned()),
                 manufacturer: None,
                 year: None,
                 driver_status: None,
