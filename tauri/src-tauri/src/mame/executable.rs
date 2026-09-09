@@ -497,10 +497,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("system clock after epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!(
-            "mame-tauri-{label}-{}-{nonce}",
-            std::process::id()
-        ))
+        std::env::temp_dir().join(format!("mame-tauri-{label}-{}-{nonce}", std::process::id()))
     }
 
     #[cfg(unix)]
