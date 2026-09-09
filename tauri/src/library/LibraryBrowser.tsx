@@ -36,6 +36,7 @@ import {
   nextMachineIndex,
   resolveLibraryShortcut,
 } from "./keyboardNavigation";
+import { SoftwareListBrowser } from "./SoftwareListBrowser";
 import "./keyboardNavigation.css";
 
 type LoadState =
@@ -464,6 +465,9 @@ export function LibraryBrowser() {
               favoriteRevision={favoritesRevision}
               onFavoriteChanged={() => setFavoritesRevision((current) => current + 1)}
               onLaunch={() => launchSelected(detailState.detail)}
+              onSoftwareSessionStarted={(session) =>
+                setGameplayInputOwned(isGameplaySessionState(session.state))
+              }
             />
           )}
         </aside>
@@ -478,12 +482,14 @@ function MachineDetailPanel({
   favoriteRevision,
   onFavoriteChanged,
   onLaunch,
+  onSoftwareSessionStarted,
 }: {
   detail: MachineDetail;
   launchState: LaunchState;
   favoriteRevision: number;
   onFavoriteChanged: () => void;
   onLaunch: () => void;
+  onSoftwareSessionStarted: (session: SessionSnapshot) => void;
 }) {
   return (
     <>
@@ -580,6 +586,8 @@ function MachineDetailPanel({
           </ul>
         )}
       </section>
+
+      <SoftwareListBrowser detail={detail} onSessionStarted={onSoftwareSessionStarted} />
 
       {(detail.driverRequiresArtwork ||
         detail.driverUnofficial ||

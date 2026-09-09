@@ -8,6 +8,7 @@ import {
   type FavoritePageRequest,
   type FavoriteState,
   type LaunchLibraryMachineRequest,
+  type LaunchLibrarySoftwareRequest,
   type MachineDetail,
   type MachineDetailRequest,
   type MachinePage,
@@ -18,6 +19,8 @@ import {
   type RefreshMameMetadataRequest,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
+  type SoftwareListPage,
+  type SoftwareListQueryRequest,
 } from "./types";
 
 export async function getAppInfo(): Promise<AppInfoResponse> {
@@ -52,6 +55,18 @@ export async function launchLibraryMachine(
   request: LaunchLibraryMachineRequest,
 ): Promise<SessionSnapshot> {
   return invoke<SessionSnapshot>("launch_library_machine", { request });
+}
+
+export async function queryMameSoftwareList(
+  request: SoftwareListQueryRequest,
+): Promise<SoftwareListPage> {
+  return invoke<SoftwareListPage>("query_mame_software_list", { request });
+}
+
+export async function launchLibrarySoftware(
+  request: LaunchLibrarySoftwareRequest,
+): Promise<SessionSnapshot> {
+  return invoke<SessionSnapshot>("launch_library_software", { request });
 }
 
 export async function getMameSession(): Promise<SessionSnapshot | null> {

@@ -10,6 +10,7 @@ pub mod mame;
 pub mod metadata;
 pub mod platform;
 pub mod sessions;
+pub mod software;
 pub mod storage;
 
 pub fn run() -> Result<(), tauri::Error> {
@@ -43,7 +44,9 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::query_library_collections,
             collections::query_library_collection_members,
             collections::set_library_collection_machine,
-            history::query_library_history
+            history::query_library_history,
+            software::query_mame_software_list,
+            software::launch_library_software
         ])
         .run(tauri::generate_context!())
 }

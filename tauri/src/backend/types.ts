@@ -136,6 +136,13 @@ export type MachineDisplayInfo = {
   pixelClockHz: number | null;
 };
 
+export type MachineSoftwareListInfo = {
+  tag: string;
+  name: string;
+  status: string;
+  filter: string | null;
+};
+
 export type MachineDetail = {
   schemaVersion: 1;
   generationId: number;
@@ -160,10 +167,45 @@ export type MachineDetail = {
   driverNoSoundHardware: boolean;
   driverIncomplete: boolean;
   displays: MachineDisplayInfo[];
+  softwareLists: MachineSoftwareListInfo[];
 };
 
 export type LaunchLibraryMachineRequest = {
   shortName: string;
+};
+
+export type SoftwareItemSummary = {
+  shortName: string;
+  description: string;
+  year: string;
+  publisher: string;
+  cloneOf: string | null;
+  supported: "yes" | "partial" | "no";
+};
+
+export type SoftwareListQueryRequest = {
+  shortName: string;
+  softwareList: string;
+  text?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
+export type SoftwareListPage = {
+  schemaVersion: 1;
+  machineShortName: string;
+  softwareListName: string;
+  softwareListDescription: string | null;
+  total: number;
+  offset: number;
+  limit: number;
+  items: SoftwareItemSummary[];
+};
+
+export type LaunchLibrarySoftwareRequest = {
+  shortName: string;
+  softwareList: string;
+  softwareItem: string;
 };
 
 export type FavoriteState = {

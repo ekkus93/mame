@@ -12,6 +12,7 @@ mod generator;
 mod history;
 mod model;
 mod parser;
+mod software;
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -30,11 +31,13 @@ pub use collections::{
 pub use favorites::{FavoriteEntry, FavoritePage, FavoriteState};
 pub use history::{RecentHistoryEntry, RecentHistoryPage, HISTORY_RETENTION_LIMIT};
 pub use model::{
-    MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MetadataFreshness,
-    MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,
+    MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MachineSoftwareListInfo,
+    MetadataFreshness, MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,
 };
+pub use software::SoftwareItemSummary;
 
 pub(crate) use catalog::{CatalogRepository, CloneFilter, MachineQuery, MachineSort};
+pub(crate) use software::parse_software_list_page;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

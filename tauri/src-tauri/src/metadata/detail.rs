@@ -4,7 +4,7 @@ use crate::errors::{AppError, AppResult};
 
 use super::{
     catalog::CatalogRepository,
-    model::{MachineDetail, MachineDisplayInfo},
+    model::{MachineDetail, MachineDisplayInfo, MachineSoftwareListInfo},
 };
 
 impl CatalogRepository {
@@ -68,14 +68,14 @@ impl CatalogRepository {
             })?;
 
         let mut statement = self
-  .connection
-  .prepare(
-      r#"SELECT tag, display_type, rotate, flip_x, width, height, refresh_hz, pixel_clock_hz
-         FROM displays
-         WHERE generation_id = ?1 AND machine_short_name = ?2
-         ORDER BY id"#,
-  )
-  .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
+            .connection
+            .prepare(
+                r#"SELECT tag, display_type, rotate, flip_x, width, height, refresh_hz, pixel_clock_hz
+                   FROM displays
+                   WHERE generation_id = ?1 AND machine_short_name = ?2
+                   ORDER BY id"#,
+            )
+            .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
         let rows = statement
             .query_map(params![generation_id, short_name], stored_display_from_row)
             .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
@@ -87,7 +87,32 @@ impl CatalogRepository {
             );
         }
 
-        stored.into_detail(generation_id, displays)
+        let mut statement = self
+            .connection
+            .prepare(
+                r#"SELECT tag, software_list_name, status, filter
+                   FROM machine_software_lists
+                   WHERE generation_id = ?1 AND machine_short_name = ?2
+                   ORDER BY software_list_name COLLATE NOCASE ASC, tag COLLATE NOCASE ASC"#,
+            )
+            .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
+        let rows = statement
+            .query_map(params![generation_id, short_name], |row| {
+                Ok(MachineSoftwareListInfo {
+                    tag: row.get(0)?,
+                    name: row.get(1)?,
+                    status: row.get(2)?,
+                    filter: row.get(3)?,
+                })
+            })
+            .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
+        let mut software_lists = Vec::new();
+        for row in rows {
+            software_lists
+                .push(row.map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?);
+        }
+
+        stored.into_detail(generation_id, displays, software_lists)
     }
 }
 
@@ -120,6 +145,7 @@ impl StoredMachineDetail {
         self,
         generation_id: i64,
         displays: Vec<MachineDisplayInfo>,
+        software_lists: Vec<MachineSoftwareListInfo>,
     ) -> AppResult<MachineDetail> {
         Ok(MachineDetail {
             schema_version: 1,
@@ -151,6 +177,7 @@ impl StoredMachineDetail {
             )?,
             driver_incomplete: sqlite_bool(self.driver_incomplete, "driverIncomplete")?,
             displays,
+            software_lists,
         })
     }
 }
@@ -287,6 +314,17 @@ mod tests {
         assert_eq!(detail.driver_status.as_deref(), Some("good"));
         assert_eq!(detail.displays.len(), 1);
         assert_eq!(detail.displays[0].rotate, Some(90));
+    }
+
+    #[test]
+    fn detail_exposes_machine_software_list_associations() {
+        let repository = repository();
+        let detail = repository.machine_detail("apple2e").expect("apple detail");
+        assert_eq!(detail.software_lists.len(), 2);
+        assert_eq!(detail.software_lists[0].name, "apple2_flop_clcracked");
+        assert_eq!(detail.software_lists[1].name, "apple2_flop_orig");
+        assert_eq!(detail.software_lists[1].status, "original");
+        assert_eq!(detail.software_lists[1].filter.as_deref(), Some("A2"));
     }
 
     #[test]

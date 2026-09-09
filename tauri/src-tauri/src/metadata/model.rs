@@ -74,6 +74,15 @@ pub struct SoftwareListAssociation {
     pub filter: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineSoftwareListInfo {
+    pub tag: String,
+    pub name: String,
+    pub status: String,
+    pub filter: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListXmlSummary {
     pub build: Option<String>,
@@ -177,6 +186,7 @@ pub struct MachineDetail {
     pub driver_no_sound_hardware: bool,
     pub driver_incomplete: bool,
     pub displays: Vec<MachineDisplayInfo>,
+    pub software_lists: Vec<MachineSoftwareListInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

@@ -8,6 +8,7 @@ use std::{
 use crate::errors::{AppError, AppResult};
 
 const MAX_IDENTIFIER_SEGMENT_LEN: usize = 16;
+const MAX_SOFTWARE_LIST_IDENTIFIER_LEN: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MameLaunchTarget {
@@ -59,7 +60,11 @@ pub fn build_launch_argv(target: &MameLaunchTarget) -> AppResult<MameArgv> {
 }
 
 pub fn validate_short_identifier(field: &str, value: &str) -> AppResult<()> {
-    validate_identifier_segment(field, value)
+    validate_identifier_segment(field, value, MAX_IDENTIFIER_SEGMENT_LEN)
+}
+
+pub fn validate_software_list_identifier(value: &str) -> AppResult<()> {
+    validate_identifier_segment("softwareList", value, MAX_SOFTWARE_LIST_IDENTIFIER_LEN)
 }
 
 pub fn validate_software_identifier(value: &str) -> AppResult<()> {
@@ -71,8 +76,8 @@ pub fn validate_software_identifier(value: &str) -> AppResult<()> {
         ));
     }
 
-    let segments = value.split(':');
-    if segments.clone().count() > 3 {
+    let segments: Vec<_> = value.split(':').collect();
+    if segments.len() > 3 {
         return Err(invalid_identifier_error(
             "software",
             value,
@@ -80,8 +85,13 @@ pub fn validate_software_identifier(value: &str) -> AppResult<()> {
         ));
     }
 
-    for segment in segments {
-        validate_identifier_segment("software", segment)?;
+    if segments.len() == 1 {
+        validate_identifier_segment("software", segments[0], MAX_IDENTIFIER_SEGMENT_LEN)?;
+    } else {
+        validate_software_list_identifier(segments[0])?;
+        for segment in &segments[1..] {
+            validate_identifier_segment("software", segment, MAX_IDENTIFIER_SEGMENT_LEN)?;
+        }
     }
 
     Ok(())
@@ -144,7 +154,7 @@ pub fn validate_project_controlled_path(path: &Path) -> AppResult<()> {
     Ok(())
 }
 
-fn validate_identifier_segment(field: &str, value: &str) -> AppResult<()> {
+fn validate_identifier_segment(field: &str, value: &str, max_len: usize) -> AppResult<()> {
     if value.is_empty() {
         return Err(invalid_identifier_error(
             field,
@@ -153,11 +163,11 @@ fn validate_identifier_segment(field: &str, value: &str) -> AppResult<()> {
         ));
     }
 
-    if value.len() > MAX_IDENTIFIER_SEGMENT_LEN {
+    if value.len() > max_len {
         return Err(invalid_identifier_error(
             field,
             value,
-            "Identifier segment exceeds MAME's 16-character short-name limit.",
+            &format!("Identifier exceeds the supported {max_len}-character limit."),
         ));
     }
 
@@ -209,7 +219,8 @@ mod tests {
 
     use super::{
         build_launch_argv, validate_project_controlled_path, validate_short_identifier,
-        validate_software_identifier, MameLaunchTarget, ProjectPathArgument,
+        validate_software_identifier, validate_software_list_identifier, MameLaunchTarget,
+        ProjectPathArgument,
     };
 
     #[test]
@@ -230,6 +241,14 @@ mod tests {
         assert_eq!(argv.as_slice()[1], "list_name:item_name:cart");
         assert_eq!(argv.as_slice()[2], "-rompath");
         assert_eq!(PathBuf::from(&argv.as_slice()[3]), path);
+    }
+
+    #[test]
+    fn software_list_prefix_may_exceed_short_name_limit() {
+        validate_software_list_identifier("apple2_flop_clcracked")
+            .expect("known MAME software-list name must validate");
+        validate_software_identifier("apple2_flop_clcracked:agentusa")
+            .expect("list-qualified software target must validate");
     }
 
     #[test]
