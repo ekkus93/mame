@@ -352,7 +352,7 @@ exit 99
     fn write_fake_mame(root: &PathBuf, exit_code: i32) -> PathBuf {
         let executable = root.join("fake mame");
         fs::create_dir_all(root).expect("create test directory");
-        let fixture = include_str!("../../tests/fixtures/listxml-representative.xml");
+        let fixture = include_str!("../../../tests/fixtures/listxml-representative.xml");
         let body = format!(
             "if [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-version' ]; then\n  printf '%s\\n' '0.288 test-fixture'\n  exit 0\nfi\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-listxml' ]; then\n  cat <<'MAME_XML'\n{fixture}\nMAME_XML\n  exit {exit_code}\nfi\nexit 99\n"
         );

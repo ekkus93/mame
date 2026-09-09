@@ -1,10 +1,9 @@
 use std::{collections::HashMap, io::BufRead, str};
 
 use quick_xml::{
-    encoding::Decoder,
     escape::{resolve_predefined_entity, unescape},
     events::{BytesCData, BytesRef, BytesStart, BytesText, Event},
-    Reader,
+    Reader, XmlVersion,
 };
 
 use crate::errors::{AppError, AppResult};
@@ -49,7 +48,7 @@ where
                             "MAME -listxml contains multiple root elements.",
                         ));
                     }
-                    let attributes = attributes(&start, reader.decoder())?;
+                    let attributes = attributes(&start)?;
                     root_build = attributes.get("build").cloned();
                     mame_config = attributes.get("mameconfig").cloned();
                     root_seen = true;
@@ -60,8 +59,7 @@ where
                             "MAME -listxml contains an invalid machine element position.",
                         ));
                     }
-                    current_machine =
-                        Some(MachineBuilder::new(attributes(&start, reader.decoder())?)?);
+                    current_machine = Some(MachineBuilder::new(attributes(&start)?)?);
                 }
                 b"description" => {
                     set_text_target(&current_machine, &mut text_target, TextTarget::Description)?
@@ -77,14 +75,13 @@ where
                             "MAME -listxml contains a nested device element.",
                         ));
                     }
-                    machine.current_device =
-                        Some(parse_device(&attributes(&start, reader.decoder())?)?);
+                    machine.current_device = Some(parse_device(&attributes(&start)?)?);
                 }
                 _ => {}
             },
             Event::Empty(empty) => {
                 let name = empty.name();
-                let attributes = attributes(&empty, reader.decoder())?;
+                let attributes = attributes(&empty)?;
                 match name.as_ref() {
                     b"driver" => {
                         machine_mut(&mut current_machine)?.machine.driver =
@@ -405,7 +402,7 @@ fn parse_software_list(attributes: &HashMap<String, String>) -> AppResult<Softwa
     })
 }
 
-fn attributes(start: &BytesStart<'_>, decoder: Decoder) -> AppResult<HashMap<String, String>> {
+fn attributes(start: &BytesStart<'_>) -> AppResult<HashMap<String, String>> {
     let mut result = HashMap::new();
     for attribute in start.attributes() {
         let attribute = attribute.map_err(|error| {
@@ -423,7 +420,7 @@ fn attributes(start: &BytesStart<'_>, decoder: Decoder) -> AppResult<HashMap<Str
             .with_details(serde_json::json!({ "cause": error.to_string() }))
         })?;
         let value = attribute
-            .decode_and_unescape_value(decoder)
+            .normalized_value(XmlVersion::Implicit1_0)
             .map_err(|error| {
                 AppError::new(
                     "MAME_METADATA_XML_ATTRIBUTE_INVALID",
@@ -577,7 +574,7 @@ mod tests {
 
     use super::parse_listxml;
 
-    const FIXTURE: &str = include_str!("../../tests/fixtures/listxml-representative.xml");
+    const FIXTURE: &str = include_str!("../../../tests/fixtures/listxml-representative.xml");
 
     #[test]
     fn parses_representative_machine_metadata() {

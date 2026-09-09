@@ -750,7 +750,7 @@ mod tests {
     use super::{CatalogRepository, CloneFilter, MachineQuery};
     use crate::metadata::model::MetadataFreshness;
 
-    const FIXTURE: &str = include_str!("../../tests/fixtures/listxml-representative.xml");
+    const FIXTURE: &str = include_str!("../../../tests/fixtures/listxml-representative.xml");
 
     #[test]
     fn import_activates_complete_generation_and_queries_it() {
@@ -955,11 +955,12 @@ mod tests {
     #[test]
     fn changed_executable_identity_marks_generation_stale() {
         let mut repository = CatalogRepository::memory().expect("catalog repository");
-        let identity = identity("/opt/mame/mame", "0.288", "test-fixture");
-        import_fixture(&mut repository, &identity, FIXTURE, 100, 200).expect("fixture import");
+        let current_identity = identity("/opt/mame/mame", "0.288", "test-fixture");
+        import_fixture(&mut repository, &current_identity, FIXTURE, 100, 200)
+            .expect("fixture import");
 
         let fresh = repository
-            .metadata_status(identity.clone())
+            .metadata_status(current_identity.clone())
             .expect("freshness query");
         assert_eq!(fresh.freshness, MetadataFreshness::Fresh);
 
