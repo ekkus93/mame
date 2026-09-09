@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
+import { LibraryBrowser } from "./library/LibraryBrowser";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
 
@@ -32,41 +33,42 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <p className="eyebrow">MAME Tauri modernization</p>
-        <h1>Preserve the emulator. Modernize the desktop experience.</h1>
-        <p className="summary">
-          This shell will manage catalog, configuration, and supervised MAME sessions while video,
-          audio, timing, and gameplay input stay native.
-        </p>
+        <div>
+          <p className="eyebrow">MAME Tauri</p>
+          <h1>Machine Library</h1>
+          <p className="summary">
+            Browse the local MAME catalog while emulation, video, audio, timing, and gameplay input
+            remain native.
+          </p>
+        </div>
+
+        <section className="backend-status" aria-live="polite" aria-label="Backend status">
+          {state.status === "idle" && <span>Waiting for backend</span>}
+          {state.status === "loading" && <span>Connecting…</span>}
+          {state.status === "ready" && (
+            <>
+              <span className="backend-dot" aria-hidden="true" />
+              <span>Rust backend connected</span>
+              <code>v{state.info.protocolVersion}</code>
+            </>
+          )}
+          {state.status === "error" && <span className="error-message">{state.message}</span>}
+        </section>
       </header>
 
-      <section className="status-card" aria-live="polite">
-        <h2>Backend status</h2>
-        {state.status === "idle" && <p>Waiting to connect…</p>}
-        {state.status === "loading" && <p>Connecting to the Rust backend…</p>}
-        {state.status === "ready" && (
-          <dl>
-            <div>
-              <dt>Application</dt>
-              <dd>{state.info.appVersion}</dd>
-            </div>
-            <div>
-              <dt>Protocol</dt>
-              <dd>v{state.info.protocolVersion}</dd>
-            </div>
-            <div>
-              <dt>Backend</dt>
-              <dd>{state.info.backend}</dd>
-            </div>
-          </dl>
-        )}
-        {state.status === "error" && <p className="error-message">{state.message}</p>}
-      </section>
-
-      <section className="next-card">
-        <h2>Next vertical slice</h2>
-        <p>Configure MAME → index a bounded catalog → launch → supervise → stop.</p>
-      </section>
+      {state.status === "ready" ? (
+        <LibraryBrowser />
+      ) : state.status === "error" ? (
+        <section className="fatal-error" role="alert">
+          <h2>Backend unavailable</h2>
+          <p>{state.message}</p>
+        </section>
+      ) : (
+        <section className="status-card" aria-live="polite">
+          <h2>Starting application</h2>
+          <p>Connecting to the trusted Rust backend…</p>
+        </section>
+      )}
     </main>
   );
 }
