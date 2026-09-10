@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, OpenOptions},
-    io::Write,
-    path::Path,
-};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -12,8 +8,9 @@ use tauri_plugin_dialog::DialogExt;
 use crate::{
     config::{
         load_settings, settings_path, validate_content_path, ContentPathsV1, PathValidation,
-        PlatformPath, SettingsV2,
+        PlatformPath,
     },
+    config_persistence::persist_settings,
     errors::{AppError, AppResult},
 };
 
@@ -61,66 +58,6 @@ fn configuration_for(content_paths: ContentPathsV1) -> ContentPathConfiguration 
         content_paths,
         validations,
     }
-}
-
-fn persist_settings(path: &Path, settings: &SettingsV2) -> AppResult<()> {
-    let parent = path.parent().ok_or_else(|| {
-        AppError::new(
-            "CONFIG_PARENT_UNAVAILABLE",
-            "The application settings path has no parent directory.",
-        )
-    })?;
-    fs::create_dir_all(parent).map_err(|error| {
-        AppError::new(
-            "CONFIG_DIRECTORY_CREATE_FAILED",
-            "The application settings directory could not be created.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-
-    let encoded = serde_json::to_vec_pretty(settings).map_err(|error| {
-        AppError::new(
-            "CONFIG_SERIALIZE_FAILED",
-            "The application settings could not be serialized.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-
-    let mut file = OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open(path)
-        .map_err(|error| {
-            AppError::new(
-                "CONFIG_WRITE_FAILED",
-                "The application settings file could not be opened for writing.",
-            )
-            .with_details(serde_json::json!({ "cause": error.to_string() }))
-        })?;
-    file.write_all(&encoded).map_err(|error| {
-        AppError::new(
-            "CONFIG_WRITE_FAILED",
-            "The application settings file could not be written.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-    file.write_all(b"\n").map_err(|error| {
-        AppError::new(
-            "CONFIG_WRITE_FAILED",
-            "The application settings file terminator could not be written.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-    file.sync_all().map_err(|error| {
-        AppError::new(
-            "CONFIG_SYNC_FAILED",
-            "The application settings file could not be synchronized to storage.",
-        )
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-
-    Ok(())
 }
 
 fn apply_content_paths(
