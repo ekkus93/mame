@@ -5,6 +5,7 @@
 
 mod argv;
 mod audit;
+mod audit_store;
 mod executable;
 mod software;
 
@@ -15,6 +16,10 @@ pub use argv::{
 };
 pub use audit::{
     parse_mame_audit_output, MameAuditClassification, MameAuditFacts, MameAuditParseResult,
+};
+pub use audit_store::{
+    invalidate_stale_machine_audit_results, load_current_machine_audit_result,
+    save_machine_audit_result, StoredMachineAuditResult,
 };
 pub use executable::{
     configured_external_source, inspect_executable, validate_executable_path,

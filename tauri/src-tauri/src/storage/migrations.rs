@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::errors::{AppError, AppResult};
 
-pub const CATALOG_SCHEMA_VERSION: i64 = 1;
+pub const CATALOG_SCHEMA_VERSION: i64 = 2;
 
 pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
     connection
@@ -28,6 +28,7 @@ pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
     while version < CATALOG_SCHEMA_VERSION {
         match version {
             0 => migrate_v0_to_v1(connection)?,
+            1 => migrate_v1_to_v2(connection)?,
             unsupported => {
                 return Err(AppError::new(
                     "CATALOG_SCHEMA_MIGRATION_MISSING",
@@ -85,7 +86,27 @@ fn migrate_v0_to_v1(connection: &mut Connection) -> AppResult<()> {
     transaction
         .execute(
             "INSERT INTO app_schema_version(singleton, version) VALUES (1, ?1)",
-            [CATALOG_SCHEMA_VERSION],
+            [1_i64],
+        )
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .commit()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    Ok(())
+}
+
+fn migrate_v1_to_v2(connection: &mut Connection) -> AppResult<()> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+
+    transaction
+        .execute_batch(CREATE_SCHEMA_V2)
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .execute(
+            "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
+            [2_i64],
         )
         .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
     transaction
@@ -283,6 +304,21 @@ CREATE TABLE user_machine_tags (
 );
 "#;
 
+const CREATE_SCHEMA_V2: &str = r#"
+CREATE TABLE machine_audit_results (
+    machine_short_name TEXT PRIMARY KEY,
+    classification TEXT NOT NULL CHECK (
+        classification IN ('complete', 'bestAvailable', 'missingRequired', 'incorrect', 'mixedFailure', 'unknown')
+    ),
+    result_json TEXT NOT NULL,
+    audited_at_epoch_ms INTEGER NOT NULL CHECK (audited_at_epoch_ms >= 0),
+    mame_identity_json TEXT NOT NULL,
+    content_paths_json TEXT NOT NULL
+);
+CREATE INDEX machine_audit_results_classification
+    ON machine_audit_results(classification);
+"#;
+
 fn database_error(code: &str, error: rusqlite::Error) -> AppError {
     AppError::new(code, "The catalog database operation failed.")
         .with_details(serde_json::json!({ "cause": error.to_string() }))
@@ -292,7 +328,7 @@ fn database_error(code: &str, error: rusqlite::Error) -> AppError {
 mod tests {
     use rusqlite::Connection;
 
-    use super::{current_version, migrate, CATALOG_SCHEMA_VERSION};
+    use super::{current_version, migrate, migrate_v0_to_v1, CATALOG_SCHEMA_VERSION};
 
     #[test]
     fn creates_current_schema_and_required_domains() {
@@ -310,6 +346,7 @@ mod tests {
             "devices",
             "software_lists",
             "machine_software_lists",
+            "machine_audit_results",
             "user_favorites",
             "user_collections",
             "recent_history",
@@ -324,6 +361,38 @@ mod tests {
                 .expect("table lookup");
             assert_eq!(exists, 1, "missing table {table}");
         }
+    }
+
+    #[test]
+    fn migrates_v1_to_v2_without_losing_existing_user_state() {
+        let mut connection = Connection::open_in_memory().expect("in-memory SQLite");
+        migrate_v0_to_v1(&mut connection).expect("create v1 schema");
+        assert_eq!(current_version(&connection).expect("v1 version"), 1);
+        connection
+            .execute(
+                "INSERT INTO user_favorites(machine_short_name, created_at_epoch_ms) VALUES ('pacman', 1)",
+                [],
+            )
+            .expect("seed v1 user state");
+
+        migrate(&mut connection).expect("migrate v1 to v2");
+
+        assert_eq!(
+            current_version(&connection).expect("v2 version"),
+            CATALOG_SCHEMA_VERSION
+        );
+        let favorite_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM user_favorites", [], |row| row.get(0))
+            .expect("favorite count");
+        assert_eq!(favorite_count, 1, "v1 user state must survive migration");
+        let audit_table_exists: i64 = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='machine_audit_results')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("audit table lookup");
+        assert_eq!(audit_table_exists, 1);
     }
 
     #[test]
