@@ -8,6 +8,7 @@ pub mod history;
 pub mod library;
 pub mod mame;
 pub mod metadata;
+pub mod path_configuration;
 pub mod platform;
 pub mod sessions;
 pub mod software;
@@ -15,6 +16,7 @@ pub mod storage;
 
 pub fn run() -> Result<(), tauri::Error> {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(sessions::SessionSupervisor::default())
         .setup(|app| {
             let settings_path = config::settings_path(app.handle())?;
@@ -46,7 +48,10 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::set_library_collection_machine,
             history::query_library_history,
             software::query_mame_software_list,
-            software::launch_library_software
+            software::launch_library_software,
+            path_configuration::get_content_path_configuration,
+            path_configuration::set_content_path_configuration,
+            path_configuration::pick_content_directory
         ])
         .run(tauri::generate_context!())
 }
