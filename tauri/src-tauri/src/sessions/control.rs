@@ -721,10 +721,8 @@ mod tests {
             [first.diagnostics, second.diagnostics].concat(),
             b"banner\nafter\n"
         );
-        assert_eq!(
-            [first.events, second.events].concat(),
-            vec![ParserEvent::Ready]
-        );
+        let events: Vec<_> = first.events.into_iter().chain(second.events).collect();
+        assert_eq!(events, vec![ParserEvent::Ready]);
     }
 
     #[test]

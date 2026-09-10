@@ -678,7 +678,7 @@ fn spawn_controlled_stdout_capture<R: Read + Send + 'static>(
                         &ready_observed,
                     );
                     if matches!(
-                        control_state(&control_state),
+                        super::control::control_state(&control_state),
                         ControlChannelState::Initializing | ControlChannelState::Ready
                     ) {
                         set_control_state(&control_state, ControlChannelState::Closed);
