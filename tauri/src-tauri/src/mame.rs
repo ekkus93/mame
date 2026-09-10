@@ -4,6 +4,7 @@
 //! command string. Process supervision itself is implemented in `sessions`.
 
 mod argv;
+mod audit;
 mod executable;
 mod software;
 
@@ -11,6 +12,9 @@ pub use argv::{
     build_launch_argv, validate_project_controlled_path, validate_short_identifier,
     validate_software_identifier, validate_software_list_identifier, MameArgv, MameLaunchTarget,
     ProjectPathArgument,
+};
+pub use audit::{
+    parse_mame_audit_output, MameAuditClassification, MameAuditFacts, MameAuditParseResult,
 };
 pub use executable::{
     configured_external_source, inspect_executable, validate_executable_path,
