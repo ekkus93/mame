@@ -10,11 +10,13 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::{
+    config::settings_path,
     errors::{AppError, AppResult},
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
     metadata::{
-        CatalogRepository, CloneFilter, FavoritePage, FavoriteState, MachineDetail, MachinePage,
-        MachineQuery, MachineSort, MetadataGenerationSummary,
+        AvailabilityFilter, CatalogRepository, CloneFilter, FavoritePage, FavoriteState,
+        MachineAvailabilityQuery, MachineDetail, MachinePage, MachineQuery, MachineSort,
+        MetadataGenerationSummary,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -32,6 +34,14 @@ pub enum CloneFilterRequest {
     All,
     ParentsOnly,
     ClonesOnly,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum AvailabilityFilterRequest {
+    Available,
+    Missing,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
@@ -58,6 +68,8 @@ pub struct MachineSearchRequest {
     pub year: Option<String>,
     #[serde(default)]
     pub driver_status: Option<String>,
+    #[serde(default)]
+    pub availability: Option<AvailabilityFilterRequest>,
     #[serde(default)]
     pub clone_filter: CloneFilterRequest,
     #[serde(default)]
@@ -103,11 +115,16 @@ pub async fn query_mame_library(
     request: MachineSearchRequest,
     app: AppHandle,
 ) -> AppResult<MachinePage> {
+    let availability_filter = availability_filter(request.availability);
     let query = validated_query(request)?;
     let catalog_path = storage::catalog_path(&app)?;
+    let settings_path = settings_path(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        CatalogRepository::open(&catalog_path)?.query_machines(&query)
+        let availability =
+            current_machine_availability_query(&catalog_path, &settings_path, availability_filter)?;
+        CatalogRepository::open(&catalog_path)?
+            .query_machines_with_availability(&query, &availability)
     })
     .await
     .map_err(catalog_worker_error)?
@@ -255,6 +272,73 @@ fn ensure_generation_matches_executable(
     })))
 }
 
+fn availability_filter(request: Option<AvailabilityFilterRequest>) -> AvailabilityFilter {
+    match request {
+        None => AvailabilityFilter::All,
+        Some(AvailabilityFilterRequest::Available) => AvailabilityFilter::Available,
+        Some(AvailabilityFilterRequest::Missing) => AvailabilityFilter::Missing,
+        Some(AvailabilityFilterRequest::Unknown) => AvailabilityFilter::Unknown,
+    }
+}
+
+fn current_machine_availability_query(
+    catalog_path: &std::path::Path,
+    settings_path: &std::path::Path,
+    filter: AvailabilityFilter,
+) -> AppResult<MachineAvailabilityQuery> {
+    let context = match audit::resolve_bulk_audit_context(catalog_path, settings_path) {
+        Ok(context) => context,
+        // Keep browsing available when the current executable cannot establish trustworthy
+        // audit provenance. Do not swallow storage, settings, database, or malformed-catalog
+        // failures: those are operational errors and must remain visible.
+        Err(error) if availability_provenance_unavailable(&error) => {
+            return Ok(MachineAvailabilityQuery::unverified(filter));
+        }
+        Err(error) => return Err(error),
+    };
+
+    let mame_identity_json = serde_json::to_string(&context.identity).map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
+            "Current MAME audit identity could not be serialized for library availability.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    let content_paths_json = serde_json::to_string(&context.content_paths).map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
+            "Current MAME content paths could not be serialized for library availability.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+
+    Ok(MachineAvailabilityQuery::current(
+        filter,
+        mame_identity_json,
+        content_paths_json,
+    ))
+}
+
+fn availability_provenance_unavailable(error: &AppError) -> bool {
+    matches!(
+        error.code.as_str(),
+        "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED"
+            | "MAME_METADATA_STALE"
+            | "MAME_EXECUTABLE_PATH_EMPTY"
+            | "MAME_EXECUTABLE_NOT_FOUND"
+            | "MAME_EXECUTABLE_PATH_INVALID"
+            | "MAME_EXECUTABLE_METADATA_FAILED"
+            | "MAME_EXECUTABLE_NOT_FILE"
+            | "MAME_EXECUTABLE_NOT_EXECUTABLE"
+            | "MAME_EXECUTABLE_LAUNCH_FAILED"
+            | "MAME_VERSION_UNRECOGNIZED"
+            | "MAME_VERSION_PROBE_WAIT_FAILED"
+            | "MAME_VERSION_PROBE_TIMEOUT"
+            | "MAME_VERSION_PROBE_OUTPUT_FAILED"
+            | "MAME_VERSION_PROBE_FAILED"
+    )
+}
+
 fn validated_query(request: MachineSearchRequest) -> AppResult<MachineQuery> {
     let text = normalize_optional(request.text, "text", MAX_SEARCH_TEXT_LENGTH)?;
     let manufacturer =
@@ -376,13 +460,14 @@ const fn default_page_size() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::{
+        availability_filter, availability_provenance_unavailable,
         ensure_generation_matches_executable, launch_source_from_generation,
-        validate_machine_short_name, validated_query, CloneFilterRequest, MachineSearchRequest,
-        MachineSortRequest, DEFAULT_PAGE_SIZE,
+        validate_machine_short_name, validated_query, AvailabilityFilterRequest,
+        CloneFilterRequest, MachineSearchRequest, MachineSortRequest, DEFAULT_PAGE_SIZE,
     };
     use crate::{
         mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
-        metadata::MetadataGenerationSummary,
+        metadata::{AvailabilityFilter, MetadataGenerationSummary},
     };
 
     fn generation(source_kind: &str, trust: &str) -> MetadataGenerationSummary {
@@ -419,6 +504,7 @@ mod tests {
             manufacturer: None,
             year: None,
             driver_status: None,
+            availability: None,
             clone_filter: CloneFilterRequest::All,
             sort: MachineSortRequest::DescriptionAsc,
             include_devices: false,
@@ -464,6 +550,48 @@ mod tests {
         let query = validated_query(base_request()).expect("default query");
         assert_eq!(query.limit, DEFAULT_PAGE_SIZE);
         assert!(!query.include_devices);
+    }
+
+    #[test]
+    fn availability_provenance_errors_fail_closed_without_hiding_operational_failures() {
+        for code in [
+            "MAME_EXECUTABLE_NOT_FOUND",
+            "MAME_VERSION_PROBE_TIMEOUT",
+            "MAME_METADATA_STALE",
+            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
+        ] {
+            assert!(availability_provenance_unavailable(
+                &crate::errors::AppError::new(code, "test",)
+            ));
+        }
+
+        for code in [
+            "CATALOG_QUERY_FAILED",
+            "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
+            "MAME_SETTINGS_READ_FAILED",
+            "MAME_METADATA_NOT_READY",
+        ] {
+            assert!(!availability_provenance_unavailable(
+                &crate::errors::AppError::new(code, "test",)
+            ));
+        }
+    }
+
+    #[test]
+    fn availability_filter_is_explicit_and_defaults_to_all() {
+        assert_eq!(availability_filter(None), AvailabilityFilter::All);
+        assert_eq!(
+            availability_filter(Some(AvailabilityFilterRequest::Available)),
+            AvailabilityFilter::Available
+        );
+        assert_eq!(
+            availability_filter(Some(AvailabilityFilterRequest::Missing)),
+            AvailabilityFilter::Missing
+        );
+        assert_eq!(
+            availability_filter(Some(AvailabilityFilterRequest::Unknown)),
+            AvailabilityFilter::Unknown
+        );
     }
 
     #[test]

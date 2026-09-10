@@ -106,7 +106,7 @@ h1 {
 
 .library-filters {
   display: grid;
-  grid-template-columns: minmax(15rem, 2fr) repeat(4, minmax(8rem, 1fr)) auto;
+  grid-template-columns: minmax(15rem, 2fr) repeat(6, minmax(8rem, 1fr)) auto;
   gap: 0.75rem;
   padding: 1rem 1.4rem;
   border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
@@ -231,7 +231,15 @@ button:disabled {
   opacity: 0.62;
 }
 
-.status-pill {
+.machine-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.status-pill,
+.availability-pill {
   padding: 0.3rem 0.55rem;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
   border-radius: 999px;
@@ -241,8 +249,14 @@ button:disabled {
 }
 
 .status-imperfect,
-.status-preliminary {
+.status-preliminary,
+.availability-missing {
   border-style: dashed;
+}
+
+.availability-unknown {
+  border-style: dotted;
+  opacity: 0.72;
 }
 
 .machine-detail-panel {

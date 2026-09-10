@@ -12,6 +12,10 @@ import "./App.css";
 
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
+  const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
+    (value: number) => value + 1,
+    0,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -62,9 +66,12 @@ export default function App() {
 
       {state.status === "ready" ? (
         <>
-          <PathConfigurationPanel />
-          <BulkAuditPanel />
-          <LibraryBrowser />
+          <PathConfigurationPanel onContentPathsChanged={bumpAvailabilityRevision} />
+          <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
+          <LibraryBrowser
+            availabilityRevision={availabilityRevision}
+            onAuditResultsChanged={bumpAvailabilityRevision}
+          />
           <RecentHistoryPanel />
           <CollectionManager />
         </>

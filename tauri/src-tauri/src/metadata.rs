@@ -33,12 +33,16 @@ pub use collections::{
 pub use favorites::{FavoriteEntry, FavoritePage, FavoriteState};
 pub use history::{RecentHistoryEntry, RecentHistoryPage, HISTORY_RETENTION_LIMIT};
 pub use model::{
-    MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage, MachineSoftwareListInfo,
-    MetadataFreshness, MetadataGenerationSummary, MetadataRefreshResult, MetadataStatus,
+    MachineAvailability, MachineDetail, MachineDisplayInfo, MachineListItem, MachinePage,
+    MachineSoftwareListInfo, MetadataFreshness, MetadataGenerationSummary, MetadataRefreshResult,
+    MetadataStatus,
 };
 pub use software::SoftwareItemSummary;
 
-pub(crate) use catalog::{CatalogRepository, CloneFilter, MachineQuery, MachineSort};
+pub(crate) use catalog::{
+    AvailabilityFilter, CatalogRepository, CloneFilter, MachineAvailabilityQuery, MachineQuery,
+    MachineSort,
+};
 pub(crate) use software::parse_software_list_page;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

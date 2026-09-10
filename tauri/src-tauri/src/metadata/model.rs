@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 
 use crate::mame::MameExecutableIdentity;
@@ -189,6 +191,14 @@ pub struct MachineDetail {
     pub software_lists: Vec<MachineSoftwareListInfo>,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum MachineAvailability {
+    Available,
+    Missing,
+    Unknown,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MachinePage {
@@ -198,4 +208,5 @@ pub struct MachinePage {
     pub offset: u32,
     pub limit: u32,
     pub items: Vec<MachineListItem>,
+    pub availability_by_short_name: BTreeMap<String, MachineAvailability>,
 }

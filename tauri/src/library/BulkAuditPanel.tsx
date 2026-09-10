@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   cancelLibraryBulkAudit,
@@ -15,10 +15,11 @@ function isActive(status: BulkAuditStatus | null): boolean {
   return status?.state === "running" || status?.state === "cancelling";
 }
 
-export function BulkAuditPanel() {
+export function BulkAuditPanel({ onAuditResultsChanged }: { onAuditResultsChanged?: () => void }) {
   const [status, setStatus] = useState<BulkAuditStatus | null>(null);
   const [parallelism, setParallelism] = useState(2);
   const [commandError, setCommandError] = useState<string | null>(null);
+  const previousRunState = useRef<BulkAuditStatus["state"] | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -33,6 +34,20 @@ export function BulkAuditPanel() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const current = status?.state ?? null;
+    const previous = previousRunState.current;
+    if (
+      (previous === "running" || previous === "cancelling") &&
+      current !== null &&
+      current !== "running" &&
+      current !== "cancelling"
+    ) {
+      onAuditResultsChanged?.();
+    }
+    previousRunState.current = current;
+  }, [onAuditResultsChanged, status?.state]);
 
   useEffect(() => {
     if (!isActive(status)) {

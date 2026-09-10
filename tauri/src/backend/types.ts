@@ -77,6 +77,8 @@ export type MetadataStatusRequest = {
 
 export type CloneFilter = "all" | "parentsOnly" | "clonesOnly";
 
+export type MachineAvailability = "available" | "missing" | "unknown";
+
 export type MachineSort =
   | "descriptionAsc"
   | "descriptionDesc"
@@ -91,6 +93,7 @@ export type MachineSearchRequest = {
   manufacturer?: string | null;
   year?: string | null;
   driverStatus?: "good" | "imperfect" | "preliminary" | null;
+  availability?: MachineAvailability | null;
   cloneFilter?: CloneFilter;
   sort?: MachineSort;
   includeDevices?: boolean;
@@ -119,6 +122,7 @@ export type MachinePage = {
   offset: number;
   limit: number;
   items: MachineListItem[];
+  availabilityByShortName: Record<string, MachineAvailability>;
 };
 
 export type MachineDetailRequest = {

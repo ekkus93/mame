@@ -35,7 +35,13 @@ const FACT_LABELS: Array<[keyof MameAuditFacts, string]> = [
   ["targetNotFound", "MAME target not found"],
 ];
 
-export function MachineAuditPanel({ shortName }: { shortName: string }) {
+export function MachineAuditPanel({
+  shortName,
+  onAuditResultChanged,
+}: {
+  shortName: string;
+  onAuditResultChanged?: () => void;
+}) {
   const [state, setState] = useState<AuditState>({ status: "loading", audit: null });
 
   useEffect(() => {
@@ -65,7 +71,10 @@ export function MachineAuditPanel({ shortName }: { shortName: string }) {
     const previous = state.audit;
     setState({ status: "auditing", audit: previous });
     void runLibraryMachineAudit({ shortName })
-      .then((audit) => setState({ status: "ready", audit }))
+      .then((audit) => {
+        setState({ status: "ready", audit });
+        onAuditResultChanged?.();
+      })
       .catch((error: unknown) =>
         setState({ status: "error", audit: previous, message: errorMessage(error) }),
       );

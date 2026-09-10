@@ -1,4 +1,4 @@
-use std::{io::BufRead, path::Path};
+use std::{collections::BTreeMap, io::BufRead, path::Path};
 
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
@@ -10,13 +10,19 @@ use crate::{
 
 use super::{
     model::{
-        ListXmlSummary, MachineListItem, MachineMetadata, MachinePage, MetadataFreshness,
-        MetadataGenerationSummary, MetadataStatus,
+        ListXmlSummary, MachineAvailability, MachineListItem, MachineMetadata, MachinePage,
+        MetadataFreshness, MetadataGenerationSummary, MetadataStatus,
     },
     parser::parse_listxml,
 };
 
 const MAX_QUERY_PAGE_SIZE: u32 = 200;
+const AUDIT_JOIN: &str = r#"
+LEFT JOIN machine_audit_results ar
+  ON ar.machine_short_name = m.short_name
+ AND ar.mame_identity_json = ?8
+ AND ar.content_paths_json = ?9
+"#;
 
 pub(crate) struct CatalogRepository {
     pub(super) connection: Connection,
@@ -115,6 +121,17 @@ impl CatalogRepository {
     }
 
     pub(crate) fn query_machines(&self, query: &MachineQuery) -> AppResult<MachinePage> {
+        self.query_machines_with_availability(
+            query,
+            &MachineAvailabilityQuery::unverified(AvailabilityFilter::All),
+        )
+    }
+
+    pub(crate) fn query_machines_with_availability(
+        &self,
+        query: &MachineQuery,
+        availability: &MachineAvailabilityQuery,
+    ) -> AppResult<MachinePage> {
         if query.limit == 0 || query.limit > MAX_QUERY_PAGE_SIZE {
             return Err(AppError::new(
                 "CATALOG_QUERY_LIMIT_INVALID",
@@ -145,11 +162,17 @@ impl CatalogRepository {
         let search_pattern = query.text.as_deref().map(like_pattern);
         let clone_filter = query.clone_filter.as_token();
         let include_devices = if query.include_devices { 1_i64 } else { 0_i64 };
+        let availability_filter = availability.filter.as_token();
+        let audit_identity_json = availability.mame_identity_json.as_deref();
+        let audit_content_paths_json = availability.content_paths_json.as_deref();
 
         let total_i64: i64 = self
             .connection
             .query_row(
-                &format!("SELECT COUNT(*) FROM machines m WHERE {}", QUERY_WHERE),
+                &format!(
+                    "SELECT COUNT(*) FROM machines m {AUDIT_JOIN} WHERE {}",
+                    QUERY_WHERE
+                ),
                 params![
                     generation_id,
                     search_pattern,
@@ -158,6 +181,9 @@ impl CatalogRepository {
                     query.driver_status.as_deref(),
                     clone_filter,
                     include_devices,
+                    audit_identity_json,
+                    audit_content_paths_json,
+                    availability_filter,
                 ],
                 |row| row.get(0),
             )
@@ -180,6 +206,11 @@ impl CatalogRepository {
                 m.runnable,
                 m.is_device,
                 m.driver_status,
+                CASE
+                    WHEN ar.classification IN ('complete', 'bestAvailable') THEN 'available'
+                    WHEN ar.classification IN ('missingRequired', 'incorrect', 'mixedFailure') THEN 'missing'
+                    ELSE 'unknown'
+                END AS availability,
                 (SELECT COUNT(*) FROM displays d
                     WHERE d.generation_id = m.generation_id
                       AND d.machine_short_name = m.short_name) AS display_count,
@@ -187,9 +218,10 @@ impl CatalogRepository {
                     WHERE sl.generation_id = m.generation_id
                       AND sl.machine_short_name = m.short_name) AS software_list_count
             FROM machines m
+            {AUDIT_JOIN}
             WHERE {}
             ORDER BY {}
-            LIMIT ?8 OFFSET ?9"#,
+            LIMIT ?11 OFFSET ?12"#,
             QUERY_WHERE,
             query.sort.order_by()
         );
@@ -207,6 +239,9 @@ impl CatalogRepository {
                     query.driver_status.as_deref(),
                     clone_filter,
                     include_devices,
+                    audit_identity_json,
+                    audit_content_paths_json,
+                    availability_filter,
                     i64::from(query.limit),
                     i64::from(query.offset),
                 ],
@@ -215,9 +250,12 @@ impl CatalogRepository {
             .map_err(|error| database_error("CATALOG_QUERY_FAILED", error))?;
 
         let mut items = Vec::new();
+        let mut availability_by_short_name = BTreeMap::new();
         for row in rows {
             let stored = row.map_err(|error| database_error("CATALOG_QUERY_FAILED", error))?;
-            items.push(stored.into_item()?);
+            let (item, machine_availability) = stored.into_item()?;
+            availability_by_short_name.insert(item.short_name.clone(), machine_availability);
+            items.push(item);
         }
 
         Ok(MachinePage {
@@ -227,6 +265,7 @@ impl CatalogRepository {
             offset: query.offset,
             limit: query.limit,
             items,
+            availability_by_short_name,
         })
     }
 }
@@ -535,6 +574,54 @@ impl CloneFilter {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AvailabilityFilter {
+    All,
+    Available,
+    Missing,
+    Unknown,
+}
+
+impl AvailabilityFilter {
+    fn as_token(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Available => "available",
+            Self::Missing => "missing",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct MachineAvailabilityQuery {
+    pub filter: AvailabilityFilter,
+    pub mame_identity_json: Option<String>,
+    pub content_paths_json: Option<String>,
+}
+
+impl MachineAvailabilityQuery {
+    pub(crate) fn unverified(filter: AvailabilityFilter) -> Self {
+        Self {
+            filter,
+            mame_identity_json: None,
+            content_paths_json: None,
+        }
+    }
+
+    pub(crate) fn current(
+        filter: AvailabilityFilter,
+        mame_identity_json: String,
+        content_paths_json: String,
+    ) -> Self {
+        Self {
+            filter,
+            mame_identity_json: Some(mame_identity_json),
+            content_paths_json: Some(content_paths_json),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MachineQuery {
     pub text: Option<String>,
@@ -565,6 +652,12 @@ AND (
     OR (?6 = 'clones' AND m.clone_of IS NOT NULL)
 )
 AND (?7 = 1 OR m.is_device = 0)
+AND (
+    ?10 = 'all'
+    OR (?10 = 'available' AND ar.classification IN ('complete', 'bestAvailable'))
+    OR (?10 = 'missing' AND ar.classification IN ('missingRequired', 'incorrect', 'mixedFailure'))
+    OR (?10 = 'unknown' AND (ar.classification IS NULL OR ar.classification = 'unknown'))
+)
 "#;
 
 #[derive(Debug)]
@@ -630,25 +723,30 @@ struct StoredMachineItem {
     runnable: i64,
     is_device: i64,
     driver_status: Option<String>,
+    availability: String,
     display_count: i64,
     software_list_count: i64,
 }
 
 impl StoredMachineItem {
-    fn into_item(self) -> AppResult<MachineListItem> {
-        Ok(MachineListItem {
-            short_name: self.short_name,
-            description: self.description,
-            year: self.year,
-            manufacturer: self.manufacturer,
-            source_file: self.source_file,
-            clone_of: self.clone_of,
-            runnable: sqlite_bool(self.runnable, "runnable")?,
-            is_device: sqlite_bool(self.is_device, "isDevice")?,
-            driver_status: self.driver_status,
-            display_count: to_u32(self.display_count, "displayCount")?,
-            software_list_count: to_u32(self.software_list_count, "softwareListCount")?,
-        })
+    fn into_item(self) -> AppResult<(MachineListItem, MachineAvailability)> {
+        let availability = machine_availability_from_token(&self.availability)?;
+        Ok((
+            MachineListItem {
+                short_name: self.short_name,
+                description: self.description,
+                year: self.year,
+                manufacturer: self.manufacturer,
+                source_file: self.source_file,
+                clone_of: self.clone_of,
+                runnable: sqlite_bool(self.runnable, "runnable")?,
+                is_device: sqlite_bool(self.is_device, "isDevice")?,
+                driver_status: self.driver_status,
+                display_count: to_u32(self.display_count, "displayCount")?,
+                software_list_count: to_u32(self.software_list_count, "softwareListCount")?,
+            },
+            availability,
+        ))
     }
 }
 
@@ -663,8 +761,9 @@ fn stored_machine_item_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Sto
         runnable: row.get(6)?,
         is_device: row.get(7)?,
         driver_status: row.get(8)?,
-        display_count: row.get(9)?,
-        software_list_count: row.get(10)?,
+        availability: row.get(9)?,
+        display_count: row.get(10)?,
+        software_list_count: row.get(11)?,
     })
 }
 
@@ -714,6 +813,19 @@ fn sqlite_bool(value: i64, field: &str) -> AppResult<bool> {
             "field": field,
             "value": invalid
         }))),
+    }
+}
+
+fn machine_availability_from_token(value: &str) -> AppResult<MachineAvailability> {
+    match value {
+        "available" => Ok(MachineAvailability::Available),
+        "missing" => Ok(MachineAvailability::Missing),
+        "unknown" => Ok(MachineAvailability::Unknown),
+        invalid => Err(AppError::new(
+            "CATALOG_QUERY_RESULT_INVALID",
+            "The catalog query produced an invalid machine availability value.",
+        )
+        .with_details(serde_json::json!({ "availability": invalid }))),
     }
 }
 
@@ -774,8 +886,11 @@ mod tests {
 
     use crate::mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust};
 
-    use super::{CatalogRepository, CloneFilter, MachineQuery, MachineSort};
-    use crate::metadata::model::MetadataFreshness;
+    use super::{
+        AvailabilityFilter, CatalogRepository, CloneFilter, MachineAvailabilityQuery, MachineQuery,
+        MachineSort,
+    };
+    use crate::metadata::model::{MachineAvailability, MetadataFreshness};
 
     const FIXTURE: &str = include_str!("../../../tests/fixtures/listxml-representative.xml");
 
@@ -812,6 +927,82 @@ mod tests {
         assert_eq!(page.total, 2);
         assert_eq!(page.items.len(), 2);
         assert!(page.items.iter().all(|item| !item.is_device));
+    }
+
+    #[test]
+    fn availability_is_provenance_gated_and_filtered_before_pagination() {
+        let mut repository = CatalogRepository::memory().expect("catalog repository");
+        let identity = identity("/opt/mame/mame", "0.288", "test-fixture");
+        import_fixture(&mut repository, &identity, FIXTURE, 100, 200)
+            .expect("fixture import must succeed");
+
+        for (machine, classification) in
+            [("galaxian", "complete"), ("galaxiana", "missingRequired")]
+        {
+            repository
+                .connection
+                .execute(
+                    r#"INSERT INTO machine_audit_results(
+                        machine_short_name, classification, result_json, audited_at_epoch_ms,
+                        mame_identity_json, content_paths_json
+                    ) VALUES (?1, ?2, '{}', 123, 'identity', 'paths')"#,
+                    rusqlite::params![machine, classification],
+                )
+                .expect("seed audit result");
+        }
+
+        let query = MachineQuery {
+            text: Some("galax".to_owned()),
+            manufacturer: None,
+            year: None,
+            driver_status: None,
+            clone_filter: CloneFilter::All,
+            sort: MachineSort::DescriptionAsc,
+            include_devices: false,
+            limit: 50,
+            offset: 0,
+        };
+        let current = |filter| {
+            MachineAvailabilityQuery::current(filter, "identity".to_owned(), "paths".to_owned())
+        };
+
+        let page = repository
+            .query_machines_with_availability(&query, &current(AvailabilityFilter::All))
+            .expect("availability query");
+        assert_eq!(
+            page.availability_by_short_name.get("galaxian"),
+            Some(&MachineAvailability::Available)
+        );
+        assert_eq!(
+            page.availability_by_short_name.get("galaxiana"),
+            Some(&MachineAvailability::Missing)
+        );
+
+        let available = repository
+            .query_machines_with_availability(&query, &current(AvailabilityFilter::Available))
+            .expect("available filter");
+        assert_eq!(available.total, 1);
+        assert_eq!(available.items[0].short_name, "galaxian");
+
+        let missing = repository
+            .query_machines_with_availability(&query, &current(AvailabilityFilter::Missing))
+            .expect("missing filter");
+        assert_eq!(missing.total, 1);
+        assert_eq!(missing.items[0].short_name, "galaxiana");
+
+        let stale = MachineAvailabilityQuery::current(
+            AvailabilityFilter::Unknown,
+            "different-identity".to_owned(),
+            "paths".to_owned(),
+        );
+        let unknown = repository
+            .query_machines_with_availability(&query, &stale)
+            .expect("stale provenance must fail closed");
+        assert_eq!(unknown.total, 2);
+        assert!(unknown
+            .availability_by_short_name
+            .values()
+            .all(|status| *status == MachineAvailability::Unknown));
     }
 
     #[test]

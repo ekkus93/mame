@@ -5,6 +5,7 @@ import {
   buildMachineSearchRequest,
   DEFAULT_LIBRARY_FILTERS,
   LIBRARY_PAGE_SIZE,
+  machineAvailabilityLabel,
   machineStatusLabel,
 } from "./libraryQuery";
 
@@ -17,6 +18,7 @@ describe("library query view model", () => {
           text: "  galax  ",
           manufacturer: " Namco ",
           driverStatus: "good",
+          availability: "available",
           cloneFilter: "parentsOnly",
           sort: "yearDesc",
         },
@@ -27,6 +29,7 @@ describe("library query view model", () => {
       manufacturer: "Namco",
       year: null,
       driverStatus: "good",
+      availability: "available",
       cloneFilter: "parentsOnly",
       sort: "yearDesc",
       includeDevices: false,
@@ -50,6 +53,13 @@ describe("library query view model", () => {
 
   it("clamps a negative page offset", () => {
     expect(buildMachineSearchRequest(DEFAULT_LIBRARY_FILTERS, -50).offset).toBe(0);
+  });
+
+  it("keeps unverified availability distinct from confirmed content", () => {
+    expect(machineAvailabilityLabel("available")).toBe("Available");
+    expect(machineAvailabilityLabel("missing")).toBe("Missing");
+    expect(machineAvailabilityLabel("unknown")).toBe("Unknown");
+    expect(buildMachineSearchRequest(DEFAULT_LIBRARY_FILTERS).availability).toBeNull();
   });
 
   it("maps backend driver state to concise user-facing status", () => {

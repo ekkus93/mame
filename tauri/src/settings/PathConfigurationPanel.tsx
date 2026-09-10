@@ -28,7 +28,11 @@ const STATUS_LABELS: Record<PathValidationStatus, string> = {
   unreadable: "Unreadable",
 };
 
-export function PathConfigurationPanel() {
+export function PathConfigurationPanel({
+  onContentPathsChanged,
+}: {
+  onContentPathsChanged?: () => void;
+}) {
   const [configuration, setConfiguration] = useState<ContentPathConfiguration | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +71,7 @@ export function PathConfigurationPanel() {
     try {
       const saved = await setContentPathConfiguration(contentPaths);
       setConfiguration(saved);
+      onContentPathsChanged?.();
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
@@ -98,6 +103,7 @@ export function PathConfigurationPanel() {
         [key]: next,
       });
       setConfiguration(saved);
+      onContentPathsChanged?.();
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {

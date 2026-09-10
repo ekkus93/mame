@@ -26,6 +26,7 @@ import {
   buildMachineSearchRequest,
   DEFAULT_LIBRARY_FILTERS,
   type LibraryFilters,
+  machineAvailabilityLabel,
   machineStatusLabel,
 } from "./libraryQuery";
 import { FavoriteShelf } from "./FavoriteShelf";
@@ -57,7 +58,13 @@ type LaunchState =
   | { status: "launched"; session: SessionSnapshot }
   | { status: "error"; message: string };
 
-export function LibraryBrowser() {
+export function LibraryBrowser({
+  availabilityRevision,
+  onAuditResultsChanged,
+}: {
+  availabilityRevision: number;
+  onAuditResultsChanged: () => void;
+}) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const machineRowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
@@ -110,7 +117,7 @@ export function LibraryBrowser() {
     return () => {
       cancelled = true;
     };
-  }, [request]);
+  }, [availabilityRevision, request]);
 
   useEffect(() => {
     if (!selected) {
@@ -306,6 +313,23 @@ export function LibraryBrowser() {
           </select>
         </label>
         <label>
+          <span>Availability</span>
+          <select
+            value={filters.availability}
+            onChange={(event) =>
+              setFilters({
+                ...filters,
+                availability: event.target.value as LibraryFilters["availability"],
+              })
+            }
+          >
+            <option value="">Any availability</option>
+            <option value="available">Available</option>
+            <option value="missing">Missing</option>
+            <option value="unknown">Unknown / not verified</option>
+          </select>
+        </label>
+        <label>
           <span>Relationship</span>
           <select
             value={filters.cloneFilter}
@@ -409,8 +433,19 @@ export function LibraryBrowser() {
                       <span>{machine.year ?? "Year unknown"}</span>
                       <span>{machine.manufacturer ?? "Manufacturer unknown"}</span>
                     </span>
-                    <span className={`status-pill status-${machine.driverStatus ?? "unknown"}`}>
-                      {machineStatusLabel(machine)}
+                    <span className="machine-statuses">
+                      <span className={`status-pill status-${machine.driverStatus ?? "unknown"}`}>
+                        {machineStatusLabel(machine)}
+                      </span>
+                      <span
+                        className={`availability-pill availability-${
+                          page.availabilityByShortName[machine.shortName] ?? "unknown"
+                        }`}
+                      >
+                        {machineAvailabilityLabel(
+                          page.availabilityByShortName[machine.shortName] ?? "unknown",
+                        )}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -465,6 +500,7 @@ export function LibraryBrowser() {
               launchState={launchState}
               favoriteRevision={favoritesRevision}
               onFavoriteChanged={() => setFavoritesRevision((current) => current + 1)}
+              onAuditResultChanged={onAuditResultsChanged}
               onLaunch={() => launchSelected(detailState.detail)}
               onSoftwareSessionStarted={(session) =>
                 setGameplayInputOwned(isGameplaySessionState(session.state))
@@ -482,6 +518,7 @@ function MachineDetailPanel({
   launchState,
   favoriteRevision,
   onFavoriteChanged,
+  onAuditResultChanged,
   onLaunch,
   onSoftwareSessionStarted,
 }: {
@@ -489,6 +526,7 @@ function MachineDetailPanel({
   launchState: LaunchState;
   favoriteRevision: number;
   onFavoriteChanged: () => void;
+  onAuditResultChanged: () => void;
   onLaunch: () => void;
   onSoftwareSessionStarted: (session: SessionSnapshot) => void;
 }) {
@@ -526,7 +564,11 @@ function MachineDetailPanel({
         </p>
       )}
 
-      <MachineAuditPanel key={detail.shortName} shortName={detail.shortName} />
+      <MachineAuditPanel
+        key={detail.shortName}
+        shortName={detail.shortName}
+        onAuditResultChanged={onAuditResultChanged}
+      />
 
       <dl className="machine-facts">
         <div>
