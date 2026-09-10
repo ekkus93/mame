@@ -21,6 +21,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tauri/src-tauri/Cargo.lock
+          git add -f tauri/src-tauri/Cargo.lock
           git commit -m "chore: resolve MT-502 dialog lockfile [skip ci]"
           git push
