@@ -6,10 +6,11 @@ on:
       - ralph/mt-502-lockgen
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-lockfile:
+    if: github.event.head_commit.message != 'chore: resolve MT-502 dialog lockfile'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -17,10 +18,10 @@ jobs:
       - name: Resolve Cargo lockfile
         working-directory: tauri/src-tauri
         run: cargo metadata --format-version 1 > /dev/null
-      - name: Stage Cargo lockfile
-        run: cp tauri/src-tauri/Cargo.lock Cargo.lock
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mt502-cargo-lock
-          path: Cargo.lock
-          if-no-files-found: error
+      - name: Commit resolved Cargo lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tauri/src-tauri/Cargo.lock
+          git commit -m "chore: resolve MT-502 dialog lockfile"
+          git push
