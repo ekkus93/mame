@@ -464,16 +464,16 @@ Display at minimum:
 
 ## MT-502 — Expose path configuration UI
 
-- [ ] choose path through native dialog.
-- [ ] add/remove/reorder paths as supported.
-- [ ] display invalid/unavailable paths.
+- [x] choose path through native dialog.
+- [x] add/remove/reorder paths as supported.
+- [x] display invalid/unavailable paths.
 
 ## MT-503 — Determine authoritative MAME audit commands
 
-- [ ] document selected MAME command(s).
-- [ ] capture representative outputs.
-- [ ] document exit-code semantics.
-- [ ] avoid inventing availability from file presence alone.
+- [x] document selected MAME command(s).
+- [x] capture representative outputs.
+- [x] document exit-code semantics.
+- [x] avoid inventing availability from file presence alone.
 
 ## MT-504 — Implement audit parser
 

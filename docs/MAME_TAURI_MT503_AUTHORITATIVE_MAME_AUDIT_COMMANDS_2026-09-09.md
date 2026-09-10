@@ -261,3 +261,10 @@ The most important compatibility rules are:
 3. Preserve optional-missing and known-undumped distinctions where MAME exposes them.
 4. Treat no-such-system and unrecognized failures as unknown/error.
 5. Never promote file presence alone to audited/runnable status.
+
+
+## Qualification evidence
+
+The source-grounded MT-503 contract commit is `b8f03258ee917322668b67c7f3308a9b2d054b44`. GitHub Actions documentation run `34432467797` completed successfully against that exact commit, including dependency installation, HTML documentation build, PDF documentation build, and artifact upload.
+
+MT-503 is therefore closed. MT-504 — Implement audit parser — is the next active task.
