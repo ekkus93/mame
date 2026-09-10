@@ -493,10 +493,10 @@ Represent at least:
 
 ## MT-506 — Add per-machine audit action
 
-- [ ] run audit.
-- [ ] show progress.
-- [ ] show structured result.
-- [ ] show raw diagnostic excerpt when useful.
+- [x] run audit.
+- [x] show progress.
+- [x] show structured result.
+- [x] show raw diagnostic excerpt when useful.
 
 ## MT-507 — Add bounded bulk audit
 
