@@ -7,6 +7,7 @@ pub mod config;
 pub mod config_persistence;
 pub mod configuration_explainability;
 pub mod configuration_precedence;
+pub mod controller_profiles;
 pub mod errors;
 pub mod general_settings;
 pub mod history;

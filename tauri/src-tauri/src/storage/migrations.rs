@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::errors::{AppError, AppResult};
 
-pub const CATALOG_SCHEMA_VERSION: i64 = 3;
+pub const CATALOG_SCHEMA_VERSION: i64 = 4;
 
 pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
     connection
@@ -30,6 +30,7 @@ pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
             0 => migrate_v0_to_v1(connection)?,
             1 => migrate_v1_to_v2(connection)?,
             2 => migrate_v2_to_v3(connection)?,
+            3 => migrate_v3_to_v4(connection)?,
             unsupported => {
                 return Err(AppError::new(
                     "CATALOG_SCHEMA_MIGRATION_MISSING",
@@ -128,6 +129,26 @@ fn migrate_v2_to_v3(connection: &mut Connection) -> AppResult<()> {
         .execute(
             "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
             [3_i64],
+        )
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .commit()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    Ok(())
+}
+
+fn migrate_v3_to_v4(connection: &mut Connection) -> AppResult<()> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+
+    transaction
+        .execute_batch(CREATE_SCHEMA_V4)
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .execute(
+            "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
+            [4_i64],
         )
         .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
     transaction
@@ -349,6 +370,38 @@ CREATE TABLE machine_launch_preferences (
 );
 "#;
 
+const CREATE_SCHEMA_V4: &str = r#"
+-- Controller profiles are user-owned state. Device identity and mapping
+-- provenance are typed JSON so future backends can preserve source-specific
+-- identity without flattening it into an assumed hardware serial.
+CREATE TABLE controller_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    device_identity_json TEXT NOT NULL,
+    mapping_provenance_json TEXT NOT NULL,
+    created_at_epoch_ms INTEGER NOT NULL CHECK (created_at_epoch_ms >= 0),
+    updated_at_epoch_ms INTEGER NOT NULL CHECK (updated_at_epoch_ms >= 0)
+);
+
+-- Assignments intentionally do not reference generated machine metadata.
+-- A metadata refresh must not erase a user's machine-scoped profile choice.
+CREATE TABLE controller_profile_assignments (
+    profile_id INTEGER NOT NULL,
+    scope_kind TEXT NOT NULL CHECK (scope_kind IN ('global', 'machine')),
+    scope_key TEXT NOT NULL,
+    machine_short_name TEXT,
+    CHECK (
+        (scope_kind = 'global' AND scope_key = '*' AND machine_short_name IS NULL)
+        OR
+        (scope_kind = 'machine' AND machine_short_name IS NOT NULL AND scope_key = machine_short_name)
+    ),
+    PRIMARY KEY (profile_id, scope_kind, scope_key),
+    FOREIGN KEY (profile_id) REFERENCES controller_profiles(id) ON DELETE CASCADE
+);
+CREATE INDEX controller_profile_assignments_scope
+    ON controller_profile_assignments(scope_kind, scope_key);
+"#;
+
 fn database_error(code: &str, error: rusqlite::Error) -> AppError {
     AppError::new(code, "The catalog database operation failed.")
         .with_details(serde_json::json!({ "cause": error.to_string() }))
@@ -378,6 +431,8 @@ mod tests {
             "machine_software_lists",
             "machine_audit_results",
             "machine_launch_preferences",
+            "controller_profiles",
+            "controller_profile_assignments",
             "user_favorites",
             "user_collections",
             "recent_history",
