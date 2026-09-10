@@ -479,11 +479,11 @@ Display at minimum:
 
 Represent at least:
 
-- [ ] runnable/complete where MAME confirms it.
-- [ ] missing required content.
-- [ ] incorrect content.
-- [ ] optional content distinction where exposed.
-- [ ] unknown/error.
+- [x] runnable/complete where MAME confirms it.
+- [x] missing required content.
+- [x] incorrect content.
+- [x] optional content distinction where exposed.
+- [x] unknown/error.
 
 ## MT-505 — Persist audit results with provenance
 
