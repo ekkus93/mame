@@ -541,10 +541,10 @@ transient launch overrides
 
 ## MT-603 — Implement non-destructive config persistence
 
-- [ ] avoid overwriting unrelated user settings.
-- [ ] backup/recovery policy where files are edited.
-- [ ] atomic writes.
-- [ ] parse/write round-trip tests.
+- [x] avoid overwriting unrelated user settings.
+- [x] backup/recovery policy where files are edited.
+- [x] atomic writes.
+- [x] parse/write round-trip tests.
 
 ## MT-604 — Add general settings UI
 
