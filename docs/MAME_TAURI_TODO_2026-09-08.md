@@ -487,9 +487,9 @@ Represent at least:
 
 ## MT-505 — Persist audit results with provenance
 
-- [ ] tie result to MAME identity.
-- [ ] tie result to configured content paths.
-- [ ] invalidate stale audit results.
+- [x] tie result to MAME identity.
+- [x] tie result to configured content paths.
+- [x] invalidate stale audit results.
 
 ## MT-506 — Add per-machine audit action
 
