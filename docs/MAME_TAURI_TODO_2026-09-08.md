@@ -517,11 +517,11 @@ Represent at least:
 
 ## MT-601 — Inventory relevant MAME configuration sources
 
-- [ ] command-line options.
-- [ ] `mame.ini`/platform equivalents.
-- [ ] machine-specific INI behavior.
-- [ ] controller mappings.
-- [ ] renderer/audio options relevant to frontend.
+- [x] command-line options.
+- [x] `mame.ini`/platform equivalents.
+- [x] machine-specific INI behavior.
+- [x] controller mappings.
+- [x] renderer/audio options relevant to frontend.
 
 ## MT-602 — Define deterministic configuration precedence
 
