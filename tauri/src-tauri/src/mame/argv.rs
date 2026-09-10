@@ -5,7 +5,10 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use crate::errors::{AppError, AppResult};
+use crate::{
+    config::{AudioPreference, LaunchPreferencesV1, RendererPreference, WindowPreference},
+    errors::{AppError, AppResult},
+};
 
 const MAX_IDENTIFIER_SEGMENT_LEN: usize = 16;
 const MAX_SOFTWARE_LIST_IDENTIFIER_LEN: usize = 64;
@@ -57,6 +60,40 @@ pub fn build_launch_argv(target: &MameLaunchTarget) -> AppResult<MameArgv> {
     }
 
     Ok(MameArgv { args })
+}
+
+pub fn build_launch_argv_with_preferences(
+    target: &MameLaunchTarget,
+    preferences: &LaunchPreferencesV1,
+) -> AppResult<MameArgv> {
+    let mut args = build_launch_argv(target)?.into_vec();
+
+    match preferences.window_mode {
+        WindowPreference::Inherit => {}
+        WindowPreference::Windowed => args.push(OsString::from("-window")),
+        WindowPreference::Fullscreen => args.push(OsString::from("-nowindow")),
+    }
+
+    match preferences.renderer {
+        RendererPreference::Inherit => {}
+        RendererPreference::Auto => push_option(&mut args, "video", "auto"),
+        RendererPreference::Bgfx => push_option(&mut args, "video", "bgfx"),
+        RendererPreference::OpenGl => push_option(&mut args, "video", "opengl"),
+        RendererPreference::Software => push_option(&mut args, "video", "soft"),
+    }
+
+    match preferences.audio {
+        AudioPreference::Inherit => {}
+        AudioPreference::Auto => push_option(&mut args, "sound", "auto"),
+        AudioPreference::Disabled => push_option(&mut args, "sound", "none"),
+    }
+
+    Ok(MameArgv { args })
+}
+
+fn push_option(args: &mut Vec<OsString>, option: &str, value: &str) {
+    args.push(OsString::from(format!("-{option}")));
+    args.push(OsString::from(value));
 }
 
 pub fn validate_short_identifier(field: &str, value: &str) -> AppResult<()> {
@@ -217,10 +254,14 @@ fn validate_option_name(option: &str) -> AppResult<()> {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use crate::config::{
+        AudioPreference, LaunchPreferencesV1, RendererPreference, WindowPreference,
+    };
+
     use super::{
-        build_launch_argv, validate_project_controlled_path, validate_short_identifier,
-        validate_software_identifier, validate_software_list_identifier, MameLaunchTarget,
-        ProjectPathArgument,
+        build_launch_argv, build_launch_argv_with_preferences, validate_project_controlled_path,
+        validate_short_identifier, validate_software_identifier, validate_software_list_identifier,
+        MameLaunchTarget, ProjectPathArgument,
     };
 
     #[test]
@@ -241,6 +282,59 @@ mod tests {
         assert_eq!(argv.as_slice()[1], "list_name:item_name:cart");
         assert_eq!(argv.as_slice()[2], "-rompath");
         assert_eq!(PathBuf::from(&argv.as_slice()[3]), path);
+    }
+
+    #[test]
+    fn launch_preferences_map_to_bounded_mame_options() {
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            project_paths: Vec::new(),
+        };
+        let preferences = LaunchPreferencesV1 {
+            window_mode: WindowPreference::Fullscreen,
+            renderer: RendererPreference::Bgfx,
+            audio: AudioPreference::Disabled,
+        };
+
+        let argv = build_launch_argv_with_preferences(&target, &preferences)
+            .expect("bounded preferences must produce safe argv");
+        assert_eq!(
+            argv.as_slice(),
+            ["pacman", "-nowindow", "-video", "bgfx", "-sound", "none"]
+        );
+    }
+
+    #[test]
+    fn inherited_launch_preferences_add_no_arguments() {
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            project_paths: Vec::new(),
+        };
+        let argv = build_launch_argv_with_preferences(&target, &LaunchPreferencesV1::default())
+            .expect("inherited preferences must preserve base argv");
+        assert_eq!(argv.as_slice(), ["pacman"]);
+    }
+
+    #[test]
+    fn automatic_renderer_and_audio_are_explicit_when_requested() {
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            project_paths: Vec::new(),
+        };
+        let preferences = LaunchPreferencesV1 {
+            window_mode: WindowPreference::Windowed,
+            renderer: RendererPreference::Auto,
+            audio: AudioPreference::Auto,
+        };
+        let argv = build_launch_argv_with_preferences(&target, &preferences)
+            .expect("automatic providers must produce bounded argv");
+        assert_eq!(
+            argv.as_slice(),
+            ["pacman", "-window", "-video", "auto", "-sound", "auto"]
+        );
     }
 
     #[test]

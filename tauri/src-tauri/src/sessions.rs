@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::{
+    config::{load_settings, settings_path},
     errors::AppResult,
     history,
     mame::{
@@ -96,6 +97,7 @@ pub(crate) fn launch_mame_with_source(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
+    let launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
         project_paths: project_paths
             .iter()
@@ -130,7 +132,13 @@ pub(crate) fn launch_mame_with_source(
             .map_err(|error| error.to_string())
     });
 
-    match supervisor.launch(source, target, effective_config, event_sink) {
+    match supervisor.launch_with_preferences(
+        source,
+        target,
+        effective_config,
+        launch_preferences,
+        event_sink,
+    ) {
         Ok(mut session) => {
             if let Err(history_error) = history::finish_launch_history(&app, history_id, true) {
                 let warning = format!("PLAY_HISTORY_FINALIZE_FAILED: {}", history_error.message);

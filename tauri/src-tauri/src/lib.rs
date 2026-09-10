@@ -7,6 +7,7 @@ pub mod config;
 pub mod config_persistence;
 pub mod configuration_precedence;
 pub mod errors;
+pub mod general_settings;
 pub mod history;
 pub mod library;
 pub mod mame;
@@ -56,6 +57,10 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::query_library_collection_members,
             collections::set_library_collection_machine,
             history::query_library_history,
+            general_settings::get_general_settings,
+            general_settings::set_general_mame_executable,
+            general_settings::set_general_launch_preferences,
+            general_settings::pick_mame_executable,
             software::query_mame_software_list,
             software::launch_library_software,
             path_configuration::get_content_path_configuration,

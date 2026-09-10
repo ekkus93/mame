@@ -13,10 +13,11 @@ use std::{
 use serde::Serialize;
 
 use crate::{
+    config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        build_launch_argv, inspect_executable, validate_executable_path, MameExecutableIdentity,
-        MameExecutableSource, MameLaunchTarget,
+        build_launch_argv_with_preferences, inspect_executable, validate_executable_path,
+        MameExecutableIdentity, MameExecutableSource, MameLaunchTarget,
     },
 };
 
@@ -194,11 +195,29 @@ impl TailBuffer {
 }
 
 impl SessionSupervisor {
+    #[cfg(test)]
     pub(crate) fn launch(
         &self,
         source: MameExecutableSource,
         target: MameLaunchTarget,
         effective_config: EffectiveLaunchConfig,
+        event_sink: EventSink,
+    ) -> AppResult<SessionSnapshot> {
+        self.launch_with_preferences(
+            source,
+            target,
+            effective_config,
+            LaunchPreferencesV1::default(),
+            event_sink,
+        )
+    }
+
+    pub(crate) fn launch_with_preferences(
+        &self,
+        source: MameExecutableSource,
+        target: MameLaunchTarget,
+        effective_config: EffectiveLaunchConfig,
+        launch_preferences: LaunchPreferencesV1,
         event_sink: EventSink,
     ) -> AppResult<SessionSnapshot> {
         let _launch_guard = recover_lock(&self.launch_gate);
@@ -221,7 +240,7 @@ impl SessionSupervisor {
 
         let executable_path = validate_executable_path(source.path())?;
         let executable = inspect_executable(source)?;
-        let argv = build_launch_argv(&target)?;
+        let argv = build_launch_argv_with_preferences(&target, &launch_preferences)?;
         let created_at_epoch_ms = epoch_millis()?;
         let session_id = new_session_id(created_at_epoch_ms);
         let diagnostics = Arc::new(Mutex::new(SessionDiagnostics::default()));

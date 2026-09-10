@@ -202,21 +202,34 @@ fn merge_settings_value(mut base: Value, settings: &SettingsV2) -> AppResult<Val
             )
         })?;
 
-    match root.get_mut("contentPaths") {
+    merge_object_members(root, "contentPaths", known_content_paths);
+
+    let known_launch_preferences = serde_json::to_value(&settings.launch_preferences)
+        .map_err(serialization_error)?
+        .as_object()
+        .cloned()
+        .ok_or_else(|| {
+            AppError::new(
+                "CONFIG_SERIALIZE_FAILED",
+                "The application launch preferences did not serialize as a JSON object.",
+            )
+        })?;
+    merge_object_members(root, "launchPreferences", known_launch_preferences);
+
+    Ok(base)
+}
+
+fn merge_object_members(root: &mut Map<String, Value>, key: &str, known: Map<String, Value>) {
+    match root.get_mut(key) {
         Some(Value::Object(existing)) => {
-            for (key, value) in known_content_paths {
-                existing.insert(key, value);
+            for (member, value) in known {
+                existing.insert(member, value);
             }
         }
         _ => {
-            root.insert(
-                "contentPaths".to_owned(),
-                Value::Object(known_content_paths),
-            );
+            root.insert(key.to_owned(), Value::Object(known));
         }
     }
-
-    Ok(base)
 }
 
 fn encode_document(value: &Value) -> AppResult<Vec<u8>> {
@@ -279,7 +292,8 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::config::{
-        load_settings, ContentPathsV1, PlatformPath, SettingsV2, SETTINGS_SCHEMA_VERSION,
+        load_settings, AudioPreference, ContentPathsV1, PlatformPath, RendererPreference,
+        SettingsV2, WindowPreference, SETTINGS_SCHEMA_VERSION,
     };
 
     use super::{persist_settings, recover_settings_from_backup, settings_backup_path};
@@ -300,6 +314,12 @@ mod tests {
                 "chdPaths": [],
                 "futureContentPolicy": {"scan": "manual"}
               },
+              "launchPreferences": {
+                "windowMode": "inherit",
+                "renderer": "inherit",
+                "audio": "inherit",
+                "futureVideoPolicy": {"fallback": "report"}
+              },
               "window": {"fullscreen": true, "monitor": 2},
               "futureFeature": {"enabled": true, "threshold": 7}
             }"#,
@@ -308,6 +328,9 @@ mod tests {
 
         let mut settings = load_settings(&path).expect("load supported settings");
         settings.content_paths.rom_paths = vec![PlatformPath::new("/games/roms")];
+        settings.launch_preferences.window_mode = WindowPreference::Fullscreen;
+        settings.launch_preferences.renderer = RendererPreference::Bgfx;
+        settings.launch_preferences.audio = AudioPreference::Disabled;
         persist_settings(&path, &settings).expect("persist merged settings");
 
         let persisted: Value =
@@ -329,6 +352,13 @@ mod tests {
             persisted["contentPaths"]["romPaths"],
             json!(["/games/roms"])
         );
+        assert_eq!(
+            persisted["launchPreferences"]["futureVideoPolicy"],
+            json!({"fallback": "report"})
+        );
+        assert_eq!(persisted["launchPreferences"]["windowMode"], "fullscreen");
+        assert_eq!(persisted["launchPreferences"]["renderer"], "bgfx");
+        assert_eq!(persisted["launchPreferences"]["audio"], "disabled");
 
         fs::remove_dir_all(root).expect("remove temporary settings root");
     }
@@ -438,6 +468,7 @@ mod tests {
             schema_version: SETTINGS_SCHEMA_VERSION,
             mame_executable: Some("/opt/mame/mame".to_owned()),
             content_paths: ContentPathsV1::default(),
+            launch_preferences: Default::default(),
         };
 
         persist_settings(&path, &settings).expect("persist first settings document");

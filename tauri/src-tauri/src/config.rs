@@ -174,6 +174,46 @@ pub enum ContentPathKind {
     Chd,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum WindowPreference {
+    #[default]
+    Inherit,
+    Windowed,
+    Fullscreen,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum RendererPreference {
+    #[default]
+    Inherit,
+    Auto,
+    Bgfx,
+    OpenGl,
+    Software,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum AudioPreference {
+    #[default]
+    Inherit,
+    Auto,
+    Disabled,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchPreferencesV1 {
+    #[serde(default)]
+    pub window_mode: WindowPreference,
+    #[serde(default)]
+    pub renderer: RendererPreference,
+    #[serde(default)]
+    pub audio: AudioPreference,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsV2 {
@@ -181,6 +221,8 @@ pub struct SettingsV2 {
     pub mame_executable: Option<String>,
     #[serde(default)]
     pub content_paths: ContentPathsV1,
+    #[serde(default)]
+    pub launch_preferences: LaunchPreferencesV1,
 }
 
 impl Default for SettingsV2 {
@@ -189,6 +231,7 @@ impl Default for SettingsV2 {
             schema_version: SETTINGS_SCHEMA_VERSION,
             mame_executable: None,
             content_paths: ContentPathsV1::default(),
+            launch_preferences: LaunchPreferencesV1::default(),
         }
     }
 }
@@ -323,6 +366,7 @@ fn migrate_settings(value: Value) -> AppResult<SettingsV2> {
                 schema_version: SETTINGS_SCHEMA_VERSION,
                 mame_executable: legacy.mame_executable,
                 content_paths: ContentPathsV1::default(),
+                launch_preferences: LaunchPreferencesV1::default(),
             })
         }
         2 => serde_json::from_value(value).map_err(|error| {
@@ -389,7 +433,8 @@ mod tests {
 
     use super::{
         load_settings, parse_settings_json, path_error_status, validate_content_path,
-        ContentPathKind, PathValidationStatus, PlatformPath, SettingsV2, SETTINGS_SCHEMA_VERSION,
+        AudioPreference, ContentPathKind, LaunchPreferencesV1, PathValidationStatus, PlatformPath,
+        RendererPreference, SettingsV2, WindowPreference, SETTINGS_SCHEMA_VERSION,
     };
 
     #[test]
@@ -433,6 +478,34 @@ mod tests {
             1
         );
         assert_eq!(settings.content_paths.paths(ContentPathKind::Chd).len(), 1);
+        assert_eq!(settings.launch_preferences, LaunchPreferencesV1::default());
+    }
+
+    #[test]
+    fn parses_launch_preferences_when_present() {
+        let settings = parse_settings_json(
+            r#"{
+                "schemaVersion":2,
+                "mameExecutable":null,
+                "contentPaths":{"romPaths":[],"softwarePaths":[],"chdPaths":[]},
+                "launchPreferences":{
+                    "windowMode":"fullscreen",
+                    "renderer":"bgfx",
+                    "audio":"disabled"
+                }
+            }"#,
+        )
+        .expect("launch preferences must parse");
+
+        assert_eq!(
+            settings.launch_preferences.window_mode,
+            WindowPreference::Fullscreen
+        );
+        assert_eq!(
+            settings.launch_preferences.renderer,
+            RendererPreference::Bgfx
+        );
+        assert_eq!(settings.launch_preferences.audio, AudioPreference::Disabled);
     }
 
     #[test]
@@ -446,6 +519,7 @@ mod tests {
         assert!(settings.content_paths.rom_paths.is_empty());
         assert!(settings.content_paths.software_paths.is_empty());
         assert!(settings.content_paths.chd_paths.is_empty());
+        assert_eq!(settings.launch_preferences, LaunchPreferencesV1::default());
     }
 
     #[test]
