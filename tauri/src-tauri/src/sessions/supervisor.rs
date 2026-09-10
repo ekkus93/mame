@@ -3,7 +3,7 @@ use std::{
     io::{self, Read},
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
-        atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering},
+        atomic::{AtomicU64, AtomicU8, Ordering},
         Arc, Mutex, MutexGuard,
     },
     thread,
@@ -376,7 +376,6 @@ impl SessionSupervisor {
         let child = Arc::new(Mutex::new(child));
         let control = ControlChannel::new(stdin, frame_token.clone());
         let control_state = control.shared_state();
-        let ready_observed = Arc::new(AtomicBool::new(false));
 
         {
             let mut inner = recover_lock(&self.inner);
@@ -392,14 +391,12 @@ impl SessionSupervisor {
             diagnostics.clone(),
             ControlStdoutParser::new(session_id.clone(), frame_token),
             control_state.clone(),
-            ready_observed.clone(),
             capture_done.clone(),
         );
         spawn_capture(stderr, diagnostics.clone(), capture_done.clone());
 
         if let Err(error) = wait_for_control_ready(
             &control_state,
-            &ready_observed,
             Duration::from_millis(CONTROL_READY_TIMEOUT_MS),
         ) {
             fail_control_launch(&self.inner, &session_id, &child, &error);
@@ -658,7 +655,6 @@ fn spawn_controlled_stdout_capture<R: Read + Send + 'static>(
     diagnostics: SharedDiagnostics,
     mut parser: ControlStdoutParser,
     control_state: SharedControlState,
-    ready_observed: Arc<AtomicBool>,
     capture_done: Arc<AtomicU8>,
 ) {
     thread::spawn(move || {
@@ -666,12 +662,7 @@ fn spawn_controlled_stdout_capture<R: Read + Send + 'static>(
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) => {
-                    apply_control_parse_batch(
-                        parser.finish(),
-                        &diagnostics,
-                        &control_state,
-                        &ready_observed,
-                    );
+                    apply_control_parse_batch(parser.finish(), &diagnostics, &control_state);
                     if matches!(
                         super::control::control_state(&control_state),
                         ControlChannelState::Initializing | ControlChannelState::Ready
@@ -684,7 +675,6 @@ fn spawn_controlled_stdout_capture<R: Read + Send + 'static>(
                     parser.feed(&buffer[..count]),
                     &diagnostics,
                     &control_state,
-                    &ready_observed,
                 ),
                 Err(error) => {
                     record_diagnostic_error(
@@ -704,7 +694,6 @@ fn apply_control_parse_batch(
     batch: super::control::ParseBatch,
     diagnostics: &SharedDiagnostics,
     state: &SharedControlState,
-    ready_observed: &AtomicBool,
 ) {
     if !batch.diagnostics.is_empty() {
         recover_lock(diagnostics).stdout.append(&batch.diagnostics);
@@ -712,7 +701,6 @@ fn apply_control_parse_batch(
     for event in batch.events {
         match event {
             ParserEvent::Ready => {
-                ready_observed.store(true, Ordering::Release);
                 if control_state(state) == ControlChannelState::Initializing {
                     set_control_state(state, ControlChannelState::Ready);
                 }
@@ -728,18 +716,11 @@ fn apply_control_parse_batch(
     }
 }
 
-fn wait_for_control_ready(
-    state: &SharedControlState,
-    ready_observed: &AtomicBool,
-    timeout: Duration,
-) -> AppResult<()> {
+fn wait_for_control_ready(state: &SharedControlState, timeout: Duration) -> AppResult<()> {
     let started = Instant::now();
     loop {
-        if ready_observed.load(Ordering::Acquire) {
-            return Ok(());
-        }
-
         match control_state(state) {
+            ControlChannelState::Ready => return Ok(()),
             ControlChannelState::Failed => {
                 return Err(AppError::new(
                     "CONTROL_CHANNEL_FAILED",
@@ -752,7 +733,7 @@ fn wait_for_control_ready(
                     "The MAME runtime-control channel closed before it became ready.",
                 ));
             }
-            ControlChannelState::Initializing | ControlChannelState::Ready => {}
+            ControlChannelState::Initializing => {}
         }
 
         if started.elapsed() >= timeout {
