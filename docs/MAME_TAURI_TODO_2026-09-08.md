@@ -605,10 +605,10 @@ transient launch overrides
 
 ## MT-703 — Implement local authenticated/scoped endpoint model
 
-- [ ] local-only by default.
-- [ ] unpredictable/session-scoped endpoint or equivalent protection.
-- [ ] no ambient LAN listener.
-- [ ] teardown with session.
+- [x] local-only by default.
+- [x] unpredictable/session-scoped endpoint or equivalent protection.
+- [x] no ambient LAN listener.
+- [x] teardown with session.
 
 ## MT-704 — Implement pause/resume
 
