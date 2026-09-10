@@ -35,11 +35,7 @@ export function removePath(paths: PlatformPath[], index: number): PlatformPath[]
   return paths.filter((_, candidateIndex) => candidateIndex !== index);
 }
 
-export function movePath(
-  paths: PlatformPath[],
-  index: number,
-  direction: -1 | 1,
-): PlatformPath[] {
+export function movePath(paths: PlatformPath[], index: number, direction: -1 | 1): PlatformPath[] {
   const target = index + direction;
   if (index < 0 || index >= paths.length || target < 0 || target >= paths.length) {
     return paths;

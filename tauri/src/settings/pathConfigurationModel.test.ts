@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  addUniquePath,
-  displayPlatformPath,
-  movePath,
-  removePath,
-} from "./pathConfigurationModel";
+import { addUniquePath, displayPlatformPath, movePath, removePath } from "./pathConfigurationModel";
 
 describe("path configuration model", () => {
   it("preserves ordering while adding, moving, and removing paths", () => {

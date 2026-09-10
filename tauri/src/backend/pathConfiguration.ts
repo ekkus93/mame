@@ -8,11 +8,7 @@ export type EncodedPlatformPath = {
 export type PlatformPath = string | EncodedPlatformPath;
 
 export type PathValidationStatus =
-  | "accessible"
-  | "missing"
-  | "notDirectory"
-  | "permissionDenied"
-  | "unreadable";
+  "accessible" | "missing" | "notDirectory" | "permissionDenied" | "unreadable";
 
 export type ContentPaths = {
   romPaths: PlatformPath[];

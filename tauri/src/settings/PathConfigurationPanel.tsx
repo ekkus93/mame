@@ -139,7 +139,11 @@ export function PathConfigurationPanel() {
             const paths = configuration.contentPaths[group.key];
             const validations = configuration.validations[group.key];
             return (
-              <section className="path-group" key={group.key} aria-labelledby={`${group.key}-title`}>
+              <section
+                className="path-group"
+                key={group.key}
+                aria-labelledby={`${group.key}-title`}
+              >
                 <div className="path-group__header">
                   <h3 id={`${group.key}-title`}>{group.label}</h3>
                   <button type="button" disabled={busy} onClick={() => void addPath(group.key)}>
@@ -169,7 +173,10 @@ export function PathConfigurationPanel() {
                               <span className="path-entry__status">Validation unavailable</span>
                             )}
                           </div>
-                          <div className="path-entry__actions" aria-label={`Actions for path ${index + 1}`}>
+                          <div
+                            className="path-entry__actions"
+                            aria-label={`Actions for path ${index + 1}`}
+                          >
                             <button
                               type="button"
                               aria-label="Move path up"
