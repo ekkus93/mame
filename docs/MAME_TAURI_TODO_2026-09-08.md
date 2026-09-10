@@ -562,9 +562,9 @@ transient launch overrides
 
 ## MT-606 — Add configuration explainability
 
-- [ ] show effective value.
-- [ ] show source layer.
-- [ ] show pending launch override.
+- [x] show effective value.
+- [x] show source layer.
+- [x] show pending launch override.
 
 ## MT-607 — Add controller profile data model
 
