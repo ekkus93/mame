@@ -568,10 +568,10 @@ transient launch overrides
 
 ## MT-607 — Add controller profile data model
 
-- [ ] profile identity.
-- [ ] target device/controller identity.
-- [ ] machine/global association.
-- [ ] mapping provenance.
+- [x] profile identity.
+- [x] target device/controller identity.
+- [x] machine/global association.
+- [x] mapping provenance.
 
 ## MT-608 — Controller configuration UI
 
