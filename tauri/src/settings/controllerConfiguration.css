@@ -1,0 +1,110 @@
+.controller-configuration {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #3a3a3a);
+  border-radius: 0.75rem;
+}
+
+.controller-configuration__heading h3,
+.controller-configuration__heading p,
+.controller-configuration__capture-heading p {
+  margin: 0;
+}
+
+.controller-configuration__heading p,
+.controller-configuration__capture-heading p {
+  margin-top: 0.35rem;
+}
+
+.controller-configuration__selection,
+.controller-configuration__capture-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.controller-configuration__status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.controller-configuration__status div,
+.controller-configuration__provenance {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border-subtle, #3a3a3a);
+  border-radius: 0.55rem;
+}
+
+.controller-configuration__status dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.controller-configuration__status dd {
+  margin: 0;
+}
+
+.controller-configuration__runtime {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle, #3a3a3a);
+  border-radius: 0.55rem;
+}
+
+.controller-configuration__error {
+  margin: 0;
+  color: var(--error-text, #ffb4ab);
+}
+
+.controller-configuration__notice {
+  margin: 0;
+}
+
+.controller-configuration__capture {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle, #3a3a3a);
+}
+
+.controller-configuration__capture-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.controller-configuration__devices {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.controller-configuration__devices li {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.controller-configuration__capture-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.7fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+@media (max-width: 760px) {
+  .controller-configuration__capture-heading {
+    display: grid;
+  }
+
+  .controller-configuration__capture-form {
+    grid-template-columns: 1fr;
+  }
+}

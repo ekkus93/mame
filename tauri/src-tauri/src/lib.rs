@@ -8,6 +8,7 @@ pub mod config_persistence;
 pub mod configuration_explainability;
 pub mod configuration_precedence;
 pub mod controller_profiles;
+pub mod controller_settings;
 pub mod errors;
 pub mod general_settings;
 pub mod history;
@@ -67,6 +68,9 @@ pub fn run() -> Result<(), tauri::Error> {
             machine_settings::get_machine_launch_settings,
             machine_settings::set_machine_launch_settings,
             machine_settings::reset_machine_launch_settings,
+            controller_settings::get_controller_profile_configuration,
+            controller_settings::set_controller_profile_selection,
+            controller_settings::create_browser_controller_profile,
             software::query_mame_software_list,
             software::launch_library_software,
             path_configuration::get_content_path_configuration,

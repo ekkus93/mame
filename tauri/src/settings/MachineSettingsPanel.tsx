@@ -9,6 +9,7 @@ import {
   type ConfigurationLayer,
   type MachineLaunchSettings,
 } from "../backend/machineSettings";
+import { ControllerConfigurationPanel } from "./ControllerConfigurationPanel";
 import "./machineSettings.css";
 
 const INHERITED_PREFERENCES: LaunchPreferences = {
@@ -377,6 +378,8 @@ export function MachineSettingsPanel({
           </div>
         </>
       )}
+
+      <ControllerConfigurationPanel shortName={shortName} />
     </section>
   );
 }

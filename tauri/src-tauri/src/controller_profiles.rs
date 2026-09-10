@@ -92,7 +92,10 @@ pub struct ControllerProfile {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum ControllerProfileScope {
     Global,
-    Machine { short_name: String },
+    Machine {
+        #[serde(rename = "shortName")]
+        short_name: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -149,6 +152,30 @@ pub fn list_controller_profile_assignments(
 ) -> AppResult<Vec<ControllerProfileAssignment>> {
     let connection = open_catalog_connection(catalog_path)?;
     list_controller_profile_assignments_with_connection(&connection, profile_id)
+}
+
+pub fn get_controller_profile_assignment_for_scope(
+    catalog_path: &Path,
+    scope: ControllerProfileScope,
+) -> AppResult<Option<ControllerProfileAssignment>> {
+    let connection = open_catalog_connection(catalog_path)?;
+    get_controller_profile_assignment_for_scope_with_connection(&connection, scope)
+}
+
+pub fn clear_controller_profile_assignment(
+    catalog_path: &Path,
+    scope: ControllerProfileScope,
+) -> AppResult<bool> {
+    let connection = open_catalog_connection(catalog_path)?;
+    let scope = validate_scope(scope)?;
+    let (scope_kind, scope_key, _) = scope_storage_fields(&scope);
+    connection
+        .execute(
+            "DELETE FROM controller_profile_assignments WHERE scope_kind = ?1 AND scope_key = ?2",
+            params![scope_kind, scope_key],
+        )
+        .map(|changed| changed != 0)
+        .map_err(controller_profile_database_error)
 }
 
 pub fn delete_controller_profile(catalog_path: &Path, profile_id: i64) -> AppResult<bool> {
@@ -268,11 +295,23 @@ fn set_controller_profile_assignment_with_connection(
     }
     let scope = validate_scope(scope)?;
     let (scope_kind, scope_key, machine_short_name) = scope_storage_fields(&scope);
-    connection
+    let transaction = connection
+        .transaction()
+        .map_err(controller_profile_database_error)?;
+    transaction
         .execute(
-            "INSERT OR IGNORE INTO controller_profile_assignments(profile_id, scope_kind, scope_key, machine_short_name) VALUES (?1, ?2, ?3, ?4)",
-            params![profile_id, scope_kind, scope_key, machine_short_name],
+            "DELETE FROM controller_profile_assignments WHERE scope_kind = ?1 AND scope_key = ?2",
+            params![scope_kind, &scope_key],
         )
+        .map_err(controller_profile_database_error)?;
+    transaction
+        .execute(
+            "INSERT INTO controller_profile_assignments(profile_id, scope_kind, scope_key, machine_short_name) VALUES (?1, ?2, ?3, ?4)",
+            params![profile_id, scope_kind, &scope_key, &machine_short_name],
+        )
+        .map_err(controller_profile_database_error)?;
+    transaction
+        .commit()
         .map_err(controller_profile_database_error)?;
     Ok(ControllerProfileAssignment { profile_id, scope })
 }
@@ -309,6 +348,39 @@ fn list_controller_profile_assignments_with_connection(
         Ok(ControllerProfileAssignment { profile_id, scope })
     })
     .collect()
+}
+
+fn get_controller_profile_assignment_for_scope_with_connection(
+    connection: &Connection,
+    scope: ControllerProfileScope,
+) -> AppResult<Option<ControllerProfileAssignment>> {
+    let scope = validate_scope(scope)?;
+    let (scope_kind, scope_key, _) = scope_storage_fields(&scope);
+    let mut statement = connection
+        .prepare(
+            "SELECT profile_id FROM controller_profile_assignments WHERE scope_kind = ?1 AND scope_key = ?2 ORDER BY profile_id LIMIT 2",
+        )
+        .map_err(controller_profile_database_error)?;
+    let profile_ids = statement
+        .query_map(params![scope_kind, &scope_key], |row| row.get::<_, i64>(0))
+        .map_err(controller_profile_database_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(controller_profile_database_error)?;
+
+    if profile_ids.len() > 1 {
+        return Err(AppError::new(
+            "CONTROLLER_PROFILE_ASSIGNMENT_AMBIGUOUS",
+            "More than one controller profile is assigned to the same scope.",
+        )
+        .with_details(serde_json::json!({ "scope": scope })));
+    }
+
+    Ok(profile_ids
+        .first()
+        .map(|profile_id| ControllerProfileAssignment {
+            profile_id: *profile_id,
+            scope,
+        }))
 }
 
 fn validate_draft(mut draft: ControllerProfileDraft) -> AppResult<ControllerProfileDraft> {

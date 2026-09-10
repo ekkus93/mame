@@ -9,6 +9,7 @@ import {
   type GeneralSettings,
   type LaunchPreferences,
 } from "../backend/generalSettings";
+import { ControllerConfigurationPanel } from "./ControllerConfigurationPanel";
 import { PathConfigurationPanel } from "./PathConfigurationPanel";
 import "./generalSettings.css";
 
@@ -266,6 +267,8 @@ export function GeneralSettingsPanel({
               </button>
             </div>
           </section>
+
+          <ControllerConfigurationPanel allowCapture />
 
           <PathConfigurationPanel onContentPathsChanged={onContentPathsChanged} />
         </div>
