@@ -1,0 +1,37 @@
+name: MT-502 frontend formatter
+
+on:
+  push:
+    branches:
+      - ralph/mt-502-formatgen
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            tauri
+            .github
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: tauri
+        run: npm ci
+      - name: Format MT-502 frontend
+        working-directory: tauri
+        run: npx prettier --write src/backend/pathConfiguration.ts src/settings/pathConfigurationModel.test.ts src/settings/pathConfigurationModel.ts src/settings/PathConfigurationPanel.tsx
+      - name: Commit formatted blobs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tauri/src/backend/pathConfiguration.ts tauri/src/settings/pathConfigurationModel.test.ts tauri/src/settings/pathConfigurationModel.ts tauri/src/settings/PathConfigurationPanel.tsx
+          git commit -m "style: format MT-502 frontend [skip ci]"
+          git push
