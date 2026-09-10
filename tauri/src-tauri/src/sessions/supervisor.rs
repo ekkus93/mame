@@ -395,12 +395,7 @@ impl SessionSupervisor {
             ready_observed.clone(),
             capture_done.clone(),
         );
-        spawn_capture(
-            stderr,
-            diagnostics.clone(),
-            DiagnosticStream::Stderr,
-            capture_done.clone(),
-        );
+        spawn_capture(stderr, diagnostics.clone(), capture_done.clone());
 
         if let Err(error) = wait_for_control_ready(
             &control_state,
@@ -815,7 +810,6 @@ fn terminate_supervised_child(child: &Arc<Mutex<Child>>) -> io::Result<()> {
 fn spawn_capture<R: Read + Send + 'static>(
     mut reader: R,
     diagnostics: SharedDiagnostics,
-    stream: DiagnosticStream,
     capture_done: Arc<AtomicU8>,
 ) {
     thread::spawn(move || {
@@ -823,13 +817,7 @@ fn spawn_capture<R: Read + Send + 'static>(
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) => break,
-                Ok(count) => {
-                    let mut diagnostics = recover_lock(&diagnostics);
-                    match stream {
-                        DiagnosticStream::Stdout => diagnostics.stdout.append(&buffer[..count]),
-                        DiagnosticStream::Stderr => diagnostics.stderr.append(&buffer[..count]),
-                    }
-                }
+                Ok(count) => recover_lock(&diagnostics).stderr.append(&buffer[..count]),
                 Err(error) => {
                     record_diagnostic_error(
                         &diagnostics,
@@ -841,12 +829,6 @@ fn spawn_capture<R: Read + Send + 'static>(
         }
         capture_done.fetch_add(1, Ordering::Release);
     });
-}
-
-#[derive(Clone, Copy)]
-enum DiagnosticStream {
-    Stdout,
-    Stderr,
 }
 
 fn spawn_exit_watcher(
