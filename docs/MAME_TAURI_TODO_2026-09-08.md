@@ -585,10 +585,10 @@ transient launch overrides
 
 ## MT-701 — Characterize MAME control options
 
-- [ ] inventory existing mechanisms suitable for external control.
-- [ ] identify minimal MAME-side changes if required.
-- [ ] compare local socket/pipe/other IPC options.
-- [ ] document platform implications.
+- [x] inventory existing mechanisms suitable for external control.
+- [x] identify minimal MAME-side changes if required.
+- [x] compare local socket/pipe/other IPC options.
+- [x] document platform implications.
 
 **Decision gate DG-3:** runtime-control transport.
 
