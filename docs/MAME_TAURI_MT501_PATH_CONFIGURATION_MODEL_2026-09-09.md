@@ -59,3 +59,11 @@ The MT-501 unit tests cover:
 ## Deferred work
 
 MT-502 owns add/remove/reorder UI, native directory selection, live accessibility feedback, and durable writing of the updated settings. MT-503 and later tasks own supervised verification commands and audit persistence. No MAME process behavior changes in MT-501.
+
+## Qualification evidence
+
+The finalized implementation source tree is `07e5ec9f26bc16eaa49bf813c06365186ce3f3ea`. GitHub Actions Tauri run `34418697878` completed successfully against that exact tree at pre-squash commit `aa066ef753bed2a61a437cd44a09c31d29c571e9`. The clean implementation commit `54582a87053d4a0f9aa631847ae211002bfcc5bb` points to the same tree, with MT-410 closure `611717bc9635202bbb4a073945fbebc4ae582c85` as its single parent.
+
+The successful qualification covered frontend formatting, linting, typechecking, 27 frontend tests, production build, Rust formatting, the full Rust test suite, the inherited 100,000-row MT-410 performance guard, Clippy with warnings denied, and lockfile integrity.
+
+The Linux CI exercises UTF-8 and lossless non-UTF-8 Unix path serialization. The Windows `windowsWideHex` representation is platform-gated source in this task; Windows-target execution should be added when cross-platform CI is introduced.

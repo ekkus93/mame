@@ -456,11 +456,11 @@ Display at minimum:
 
 ## MT-501 — Define path configuration model
 
-- [ ] ROM paths.
-- [ ] software paths.
-- [ ] CHD-related paths where applicable.
-- [ ] platform-safe path representation.
-- [ ] validation and permissions errors.
+- [x] ROM paths.
+- [x] software paths.
+- [x] CHD-related paths where applicable.
+- [x] platform-safe path representation.
+- [x] validation and permissions errors.
 
 ## MT-502 — Expose path configuration UI
 
