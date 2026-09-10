@@ -1,5 +1,6 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
+mod control;
 mod supervisor;
 
 use std::{path::PathBuf, sync::Arc};
