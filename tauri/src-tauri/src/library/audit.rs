@@ -35,10 +35,11 @@ pub struct MachineAuditResponse {
     pub audited_at_epoch_ms: u64,
 }
 
-struct AuditContext {
-    source: MameExecutableSource,
-    identity: MameExecutableIdentity,
-    content_paths: ContentPathsV1,
+#[derive(Clone)]
+pub(crate) struct AuditContext {
+    pub(crate) source: MameExecutableSource,
+    pub(crate) identity: MameExecutableIdentity,
+    pub(crate) content_paths: ContentPathsV1,
 }
 
 #[tauri::command]
@@ -79,6 +80,14 @@ fn run_machine_audit(
     short_name: String,
 ) -> AppResult<MachineAuditResponse> {
     let context = resolve_audit_context(catalog_path, settings_path, &short_name)?;
+    run_machine_audit_with_context(catalog_path, short_name, &context)
+}
+
+pub(crate) fn run_machine_audit_with_context(
+    catalog_path: &Path,
+    short_name: String,
+    context: &AuditContext,
+) -> AppResult<MachineAuditResponse> {
     let result = audit_machine(&context.source, &short_name, &context.content_paths)?;
     let audited_at_epoch_ms = now_epoch_ms()?;
 
@@ -119,6 +128,18 @@ fn resolve_audit_context(
     settings_path: &Path,
     short_name: &str,
 ) -> AppResult<AuditContext> {
+    let context = resolve_bulk_audit_context(catalog_path, settings_path)?;
+
+    // Keep the command scoped to a machine in the active generation. A syntactically
+    // valid arbitrary frontend string must not become an unconstrained MAME target.
+    CatalogRepository::open(catalog_path)?.machine_detail(short_name)?;
+    Ok(context)
+}
+
+pub(crate) fn resolve_bulk_audit_context(
+    catalog_path: &Path,
+    settings_path: &Path,
+) -> AppResult<AuditContext> {
     let repository = CatalogRepository::open(catalog_path)?;
     let generation = repository.active_generation()?.ok_or_else(|| {
         AppError::new(
@@ -126,10 +147,6 @@ fn resolve_audit_context(
             "No successfully imported MAME metadata generation is active.",
         )
     })?;
-
-    // Keep the command scoped to a machine in the active generation. A syntactically
-    // valid arbitrary frontend string must not become an unconstrained MAME target.
-    repository.machine_detail(short_name)?;
 
     let source = launch_source_from_generation(&generation)?;
     let identity = inspect_executable(source.clone())?;

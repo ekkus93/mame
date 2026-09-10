@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
+import { BulkAuditPanel } from "./library/BulkAuditPanel";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
@@ -62,6 +63,7 @@ export default function App() {
       {state.status === "ready" ? (
         <>
           <PathConfigurationPanel />
+          <BulkAuditPanel />
           <LibraryBrowser />
           <RecentHistoryPanel />
           <CollectionManager />

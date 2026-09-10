@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 
 pub mod app;
+pub mod bulk_audit;
 pub mod collections;
 pub mod config;
 pub mod errors;
@@ -18,6 +19,7 @@ pub fn run() -> Result<(), tauri::Error> {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(sessions::SessionSupervisor::default())
+        .manage(bulk_audit::BulkAuditSupervisor::default())
         .setup(|app| {
             let settings_path = config::settings_path(app.handle())?;
             if let Some(parent) = settings_path.parent() {
@@ -39,6 +41,9 @@ pub fn run() -> Result<(), tauri::Error> {
             library::launch_library_machine,
             library::audit::get_library_machine_audit,
             library::audit::run_library_machine_audit,
+            bulk_audit::get_library_bulk_audit_status,
+            bulk_audit::start_library_bulk_audit,
+            bulk_audit::cancel_library_bulk_audit,
             library::get_library_favorite,
             library::set_library_favorite,
             library::query_library_favorites,

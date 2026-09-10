@@ -32,6 +32,26 @@ export type MachineAuditResponse = {
   auditedAtEpochMs: number;
 };
 
+export type BulkAuditRunState =
+  "idle" | "running" | "cancelling" | "completed" | "cancelled" | "failed";
+
+export type BulkAuditStatus = {
+  schemaVersion: 1;
+  jobId: number | null;
+  state: BulkAuditRunState;
+  maxParallelism: number;
+  total: number;
+  completed: number;
+  failed: number;
+  active: number;
+  lastMachine: string | null;
+  lastError: string | null;
+};
+
+export type StartBulkAuditRequest = {
+  maxParallelism: number;
+};
+
 export async function getLibraryMachineAudit(
   request: MachineAuditRequest,
 ): Promise<MachineAuditResponse | null> {
@@ -42,4 +62,18 @@ export async function runLibraryMachineAudit(
   request: MachineAuditRequest,
 ): Promise<MachineAuditResponse> {
   return invoke<MachineAuditResponse>("run_library_machine_audit", { request });
+}
+
+export async function getLibraryBulkAuditStatus(): Promise<BulkAuditStatus> {
+  return invoke<BulkAuditStatus>("get_library_bulk_audit_status");
+}
+
+export async function startLibraryBulkAudit(
+  request: StartBulkAuditRequest,
+): Promise<BulkAuditStatus> {
+  return invoke<BulkAuditStatus>("start_library_bulk_audit", { request });
+}
+
+export async function cancelLibraryBulkAudit(): Promise<BulkAuditStatus> {
+  return invoke<BulkAuditStatus>("cancel_library_bulk_audit");
 }
