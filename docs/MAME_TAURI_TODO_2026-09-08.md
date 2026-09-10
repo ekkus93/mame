@@ -556,9 +556,9 @@ transient launch overrides
 
 ## MT-605 — Add per-machine settings
 
-- [ ] override storage.
-- [ ] reset to inherited/default.
-- [ ] effective value display.
+- [x] override storage.
+- [x] reset to inherited/default.
+- [x] effective value display.
 
 ## MT-606 — Add configuration explainability
 
