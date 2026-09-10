@@ -535,9 +535,9 @@ machine overrides
 transient launch overrides
 ```
 
-- [ ] precise precedence.
-- [ ] conflict behavior.
-- [ ] effective-value calculation tests.
+- [x] precise precedence.
+- [x] conflict behavior.
+- [x] effective-value calculation tests.
 
 ## MT-603 — Implement non-destructive config persistence
 
