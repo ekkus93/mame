@@ -1,0 +1,75 @@
+.machine-audit-panel {
+  margin: 1.2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.machine-audit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.machine-audit-heading h4,
+.machine-audit-heading .eyebrow {
+  margin-top: 0;
+}
+
+.machine-audit-heading h4 {
+  margin-bottom: 0;
+}
+
+.audit-progress,
+.audit-result-summary {
+  margin: 0.75rem 0 0;
+}
+
+.audit-result-summary {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.audit-result-summary span {
+  font-size: 0.78rem;
+  opacity: 0.62;
+}
+
+.audit-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-facts li {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.audit-diagnostics {
+  margin-top: 0.85rem;
+}
+
+.audit-diagnostics summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.audit-diagnostics pre {
+  max-height: 18rem;
+  margin: 0.65rem 0 0;
+  padding: 0.75rem;
+  overflow: auto;
+  border-radius: 0.5rem;
+  background: var(--panel-raised, rgba(255, 255, 255, 0.05));
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

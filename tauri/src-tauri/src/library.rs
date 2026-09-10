@@ -2,6 +2,8 @@
 //!
 //! Generated metadata is never the storage owner for user favorites or history.
 
+pub(crate) mod audit;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};

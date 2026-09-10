@@ -5,6 +5,7 @@
 
 mod argv;
 mod audit;
+mod audit_runner;
 mod audit_store;
 mod executable;
 mod software;
@@ -17,6 +18,7 @@ pub use argv::{
 pub use audit::{
     parse_mame_audit_output, MameAuditClassification, MameAuditFacts, MameAuditParseResult,
 };
+pub(crate) use audit_runner::audit_machine;
 pub use audit_store::{
     invalidate_stale_machine_audit_results, load_current_machine_audit_result,
     save_machine_audit_result, StoredMachineAuditResult,

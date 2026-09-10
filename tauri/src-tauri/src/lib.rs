@@ -37,6 +37,8 @@ pub fn run() -> Result<(), tauri::Error> {
             library::query_mame_library,
             library::get_mame_machine_detail,
             library::launch_library_machine,
+            library::audit::get_library_machine_audit,
+            library::audit::run_library_machine_audit,
             library::get_library_favorite,
             library::set_library_favorite,
             library::query_library_favorites,

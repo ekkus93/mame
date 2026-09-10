@@ -30,6 +30,7 @@ import {
 } from "./libraryQuery";
 import { FavoriteShelf } from "./FavoriteShelf";
 import { FavoriteToggleButton } from "./FavoriteToggleButton";
+import { MachineAuditPanel } from "./MachineAuditPanel";
 import {
   isEditableElement,
   isGameplaySessionState,
@@ -524,6 +525,8 @@ function MachineDetailPanel({
           {launchState.message}
         </p>
       )}
+
+      <MachineAuditPanel key={detail.shortName} shortName={detail.shortName} />
 
       <dl className="machine-facts">
         <div>
