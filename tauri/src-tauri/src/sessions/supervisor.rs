@@ -3,7 +3,7 @@ use std::{
     io::{self, Read},
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
-        atomic::{AtomicU64, AtomicU8, Ordering},
+        atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering},
         Arc, Mutex, MutexGuard,
     },
     thread,
@@ -11,6 +11,11 @@ use std::{
 };
 
 use serde::Serialize;
+
+use super::control::{
+    control_state, set_control_state, ControlBootstrap, ControlChannel, ControlChannelState,
+    ControlStdoutParser, ParserEvent, SharedControlState, CONTROL_READY_TIMEOUT_MS,
+};
 
 use crate::{
     config::LaunchPreferencesV1,
@@ -135,6 +140,7 @@ struct SupervisorInner {
 struct ManagedSession {
     snapshot: SessionSnapshot,
     child: Option<Arc<Mutex<Child>>>,
+    control: Option<ControlChannel>,
     diagnostics: SharedDiagnostics,
     event_sink: EventSink,
 }
@@ -240,12 +246,14 @@ impl SessionSupervisor {
 
         let executable_path = validate_executable_path(source.path())?;
         let executable = inspect_executable(source)?;
-        let argv = build_launch_argv_with_preferences(&target, &launch_preferences)?;
         let created_at_epoch_ms = epoch_millis()?;
         let session_id = new_session_id(created_at_epoch_ms);
+        let control_bootstrap = ControlBootstrap::create(&session_id)?;
+        let frame_token = control_bootstrap.frame_token().to_owned();
+        let mut argv = build_launch_argv_with_preferences(&target, &launch_preferences)?.into_vec();
+        control_bootstrap.append_launch_arguments(&mut argv);
         let diagnostics = Arc::new(Mutex::new(SessionDiagnostics::default()));
         let effective_argv = argv
-            .as_slice()
             .iter()
             .map(|argument| argument.to_string_lossy().into_owned())
             .collect();
@@ -279,6 +287,7 @@ impl SessionSupervisor {
             inner.current = Some(ManagedSession {
                 snapshot,
                 child: None,
+                control: None,
                 diagnostics: diagnostics.clone(),
                 event_sink: event_sink.clone(),
             });
@@ -286,8 +295,8 @@ impl SessionSupervisor {
 
         let mut command = Command::new(&executable_path);
         command
-            .args(argv.into_vec())
-            .stdin(Stdio::null())
+            .args(&argv)
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -311,6 +320,23 @@ impl SessionSupervisor {
             }
         };
 
+        let stdin = match child.stdin.take() {
+            Some(stdin) => stdin,
+            None => {
+                terminate_unusable_child(&mut child);
+                mark_launch_failed(
+                    &self.inner,
+                    &session_id,
+                    "MAME_STDIN_PIPE_MISSING",
+                    "MAME launched without the requested control stdin pipe.".to_owned(),
+                );
+                return Err(AppError::new(
+                    "MAME_STDIN_PIPE_MISSING",
+                    "MAME launched without the requested control stdin pipe.",
+                )
+                .with_details(serde_json::json!({ "sessionId": session_id })));
+            }
+        };
         let stdout = match child.stdout.take() {
             Some(stdout) => stdout,
             None => {
@@ -348,13 +374,53 @@ impl SessionSupervisor {
 
         let pid = child.id();
         let child = Arc::new(Mutex::new(child));
-        let started_at_epoch_ms = epoch_millis()?;
+        let control = ControlChannel::new(stdin, frame_token.clone());
+        let control_state = control.shared_state();
+        let ready_observed = Arc::new(AtomicBool::new(false));
 
-        let started_snapshot = {
+        {
             let mut inner = recover_lock(&self.inner);
             let current = current_session_mut(&mut inner, &session_id)?;
             current.child = Some(child.clone());
+            current.control = Some(control);
             current.snapshot.pid = Some(pid);
+        }
+
+        let capture_done = Arc::new(AtomicU8::new(0));
+        spawn_controlled_stdout_capture(
+            stdout,
+            diagnostics.clone(),
+            ControlStdoutParser::new(session_id.clone(), frame_token),
+            control_state.clone(),
+            ready_observed.clone(),
+            capture_done.clone(),
+        );
+        spawn_capture(
+            stderr,
+            diagnostics.clone(),
+            DiagnosticStream::Stderr,
+            capture_done.clone(),
+        );
+
+        if let Err(error) = wait_for_control_ready(
+            &control_state,
+            &ready_observed,
+            Duration::from_millis(CONTROL_READY_TIMEOUT_MS),
+        ) {
+            fail_control_launch(&self.inner, &session_id, &child, &error);
+            return Err(error.with_details(serde_json::json!({ "sessionId": session_id })));
+        }
+
+        let started_at_epoch_ms = match epoch_millis() {
+            Ok(timestamp) => timestamp,
+            Err(error) => {
+                fail_control_launch(&self.inner, &session_id, &child, &error);
+                return Err(error);
+            }
+        };
+        let started_snapshot = {
+            let mut inner = recover_lock(&self.inner);
+            let current = current_session_mut(&mut inner, &session_id)?;
             current.snapshot.started_at_epoch_ms = Some(started_at_epoch_ms);
             transition(&mut current.snapshot, SessionState::Running)?;
             snapshot_with_diagnostics(current)
@@ -373,19 +439,6 @@ impl SessionSupervisor {
             );
         }
 
-        let capture_done = Arc::new(AtomicU8::new(0));
-        spawn_capture(
-            stdout,
-            diagnostics.clone(),
-            DiagnosticStream::Stdout,
-            capture_done.clone(),
-        );
-        spawn_capture(
-            stderr,
-            diagnostics,
-            DiagnosticStream::Stderr,
-            capture_done.clone(),
-        );
         spawn_exit_watcher(self.inner.clone(), session_id, child, capture_done);
 
         Ok(started_snapshot)
@@ -413,6 +466,9 @@ impl SessionSupervisor {
             }
 
             transition(&mut current.snapshot, SessionState::Stopping)?;
+            if let Some(control) = current.control.as_mut() {
+                control.begin_close();
+            }
             let child = current.child.clone().ok_or_else(|| {
                 AppError::new(
                     "MAME_SESSION_CHILD_MISSING",
@@ -602,6 +658,160 @@ fn snapshot_with_diagnostics(session: &ManagedSession) -> SessionSnapshot {
     snapshot
 }
 
+fn spawn_controlled_stdout_capture<R: Read + Send + 'static>(
+    mut reader: R,
+    diagnostics: SharedDiagnostics,
+    mut parser: ControlStdoutParser,
+    control_state: SharedControlState,
+    ready_observed: Arc<AtomicBool>,
+    capture_done: Arc<AtomicU8>,
+) {
+    thread::spawn(move || {
+        let mut buffer = [0_u8; 8192];
+        loop {
+            match reader.read(&mut buffer) {
+                Ok(0) => {
+                    apply_control_parse_batch(
+                        parser.finish(),
+                        &diagnostics,
+                        &control_state,
+                        &ready_observed,
+                    );
+                    if matches!(
+                        control_state(&control_state),
+                        ControlChannelState::Initializing | ControlChannelState::Ready
+                    ) {
+                        set_control_state(&control_state, ControlChannelState::Closed);
+                    }
+                    break;
+                }
+                Ok(count) => apply_control_parse_batch(
+                    parser.feed(&buffer[..count]),
+                    &diagnostics,
+                    &control_state,
+                    &ready_observed,
+                ),
+                Err(error) => {
+                    record_diagnostic_error(
+                        &diagnostics,
+                        format!("MAME stdout/control stream read failed: {error}"),
+                    );
+                    set_control_state(&control_state, ControlChannelState::Failed);
+                    break;
+                }
+            }
+        }
+        capture_done.fetch_add(1, Ordering::Release);
+    });
+}
+
+fn apply_control_parse_batch(
+    batch: super::control::ParseBatch,
+    diagnostics: &SharedDiagnostics,
+    state: &SharedControlState,
+    ready_observed: &AtomicBool,
+) {
+    if !batch.diagnostics.is_empty() {
+        recover_lock(diagnostics).stdout.append(&batch.diagnostics);
+    }
+    for event in batch.events {
+        match event {
+            ParserEvent::Ready => {
+                ready_observed.store(true, Ordering::Release);
+                if control_state(state) == ControlChannelState::Initializing {
+                    set_control_state(state, ControlChannelState::Ready);
+                }
+            }
+            ParserEvent::Fatal(message) => {
+                record_diagnostic_error(
+                    diagnostics,
+                    format!("Runtime-control protocol failed: {message}"),
+                );
+                set_control_state(state, ControlChannelState::Failed);
+            }
+        }
+    }
+}
+
+fn wait_for_control_ready(
+    state: &SharedControlState,
+    ready_observed: &AtomicBool,
+    timeout: Duration,
+) -> AppResult<()> {
+    let started = Instant::now();
+    loop {
+        if ready_observed.load(Ordering::Acquire) {
+            return Ok(());
+        }
+
+        match control_state(state) {
+            ControlChannelState::Failed => {
+                return Err(AppError::new(
+                    "CONTROL_CHANNEL_FAILED",
+                    "The MAME runtime-control channel failed during initialization.",
+                ));
+            }
+            ControlChannelState::Closing | ControlChannelState::Closed => {
+                return Err(AppError::new(
+                    "CONTROL_CHANNEL_CLOSED",
+                    "The MAME runtime-control channel closed before it became ready.",
+                ));
+            }
+            ControlChannelState::Initializing | ControlChannelState::Ready => {}
+        }
+
+        if started.elapsed() >= timeout {
+            set_control_state(state, ControlChannelState::Failed);
+            return Err(AppError::new(
+                "CONTROL_READY_TIMEOUT",
+                "MAME did not establish the authenticated runtime-control channel before the deadline.",
+            )
+            .with_details(serde_json::json!({ "timeoutMs": timeout.as_millis() })));
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn fail_control_launch(
+    inner: &Arc<Mutex<SupervisorInner>>,
+    session_id: &str,
+    child: &Arc<Mutex<Child>>,
+    cause: &AppError,
+) {
+    {
+        let mut inner = recover_lock(inner);
+        if let Ok(current) = current_session_mut(&mut inner, session_id) {
+            if let Some(control) = current.control.as_mut() {
+                control.mark_failed();
+            }
+        }
+    }
+
+    let termination_error = terminate_supervised_child(child).err();
+    mark_launch_failed(inner, session_id, &cause.code, cause.message.clone());
+    if let Some(error) = termination_error {
+        let inner = recover_lock(inner);
+        if let Ok(current) = current_session(&inner, session_id) {
+            record_diagnostic_error(
+                &current.diagnostics,
+                format!(
+                    "{}: {}; child cleanup also failed: {error}",
+                    cause.code, cause.message
+                ),
+            );
+        }
+    }
+}
+
+fn terminate_supervised_child(child: &Arc<Mutex<Child>>) -> io::Result<()> {
+    let mut child = recover_lock(child);
+    if child.try_wait()?.is_none() {
+        child.kill()?;
+        let _ = child.wait()?;
+    }
+    Ok(())
+}
+
 fn spawn_capture<R: Read + Send + 'static>(
     mut reader: R,
     diagnostics: SharedDiagnostics,
@@ -709,6 +919,9 @@ fn finalize_session(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str, statu
             return;
         }
 
+        if let Some(control) = current.control.as_mut() {
+            control.mark_closed();
+        }
         current.snapshot.exit_code = status.code();
         current.snapshot.termination_signal = termination_signal(&status);
         match epoch_millis() {
@@ -775,6 +988,9 @@ fn mark_launch_failed(
         Ok(current) => current,
         Err(_) => return,
     };
+    if let Some(control) = current.control.as_mut() {
+        control.mark_failed();
+    }
     current.snapshot.state = SessionState::Failed;
     record_diagnostic_error(&current.diagnostics, format!("{code}: {message}"));
     if let Ok(timestamp) = epoch_millis() {
@@ -789,6 +1005,9 @@ fn mark_supervision_failed(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str
             Ok(current) => current,
             Err(_) => return,
         };
+        if let Some(control) = current.control.as_mut() {
+            control.mark_failed();
+        }
         current.snapshot.state = SessionState::Failed;
         record_diagnostic_error(&current.diagnostics, message);
         match epoch_millis() {
@@ -945,8 +1164,8 @@ mod tests {
     use crate::mame::{MameExecutableSource, MameLaunchTarget};
 
     use super::{
-        recover_lock, EffectiveLaunchConfig, EventSink, SessionLifecycleEventV1, SessionState,
-        SessionSupervisor, DIAGNOSTIC_TAIL_LIMIT,
+        recover_lock, ControlChannelState, EffectiveLaunchConfig, EventSink,
+        SessionLifecycleEventV1, SessionState, SessionSupervisor, DIAGNOSTIC_TAIL_LIMIT,
     };
 
     fn no_op_sink() -> EventSink {
@@ -1097,6 +1316,50 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn control_endpoint_is_session_scoped_and_torn_down_with_session() {
+        let root = unique_temp_dir("control-endpoint");
+        let executable = write_fake_mame(&root, "trap 'exit 0' TERM\nwhile :; do :; done\n");
+        let supervisor = SessionSupervisor::default();
+
+        let started = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("fake MAME control endpoint must become ready");
+
+        assert!(started.effective_argv.iter().any(|arg| arg == "-console"));
+        assert!(started
+            .effective_argv
+            .iter()
+            .any(|arg| arg == "-autoboot_script"));
+        assert!(!started.stdout_tail.contains("@@MAME_TAURI_CONTROL_V1@@"));
+        {
+            let inner = recover_lock(&supervisor.inner);
+            let current = inner.current.as_ref().expect("managed session");
+            let control = current.control.as_ref().expect("control channel");
+            assert_eq!(control.state(), ControlChannelState::Ready);
+        }
+
+        supervisor
+            .stop(&started.session_id)
+            .expect("fake MAME must stop");
+        {
+            let inner = recover_lock(&supervisor.inner);
+            let current = inner.current.as_ref().expect("managed session");
+            let control = current.control.as_ref().expect("control channel");
+            assert_eq!(control.state(), ControlChannelState::Closed);
+        }
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn stop_escalates_when_soft_termination_is_ignored() {
         let root = unique_temp_dir("forced-stop");
         let executable = write_fake_mame(&root, "trap '' TERM\nwhile :; do :; done\n");
@@ -1131,7 +1394,26 @@ mod tests {
         fs::create_dir_all(root).expect("create fake MAME directory");
         let executable = root.join("fake mame executable");
         let script = format!(
-            "#!/bin/sh\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-version' ]; then\n  printf '%s\\n' '0.288 test-build'\n  exit 0\nfi\n{launch_body}"
+            r#"#!/bin/sh
+if [ "$1" = '-noreadconfig' ] && [ "$2" = '-version' ]; then
+  printf '%s\n' '0.288 test-build'
+  exit 0
+fi
+bootstrap=''
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = '-autoboot_script' ]; then
+    shift
+    bootstrap=$1
+  fi
+  shift
+done
+if [ -n "$bootstrap" ]; then
+  ready_frame=$(sed -n 's/^local ready_frame = "\(.*\)"$/\1/p' "$bootstrap")
+  if [ -n "$ready_frame" ]; then
+    printf '\n%s\n' "$ready_frame"
+  fi
+fi
+{launch_body}"#
         );
         fs::write(&executable, script).expect("write fake MAME executable");
         let mut permissions = fs::metadata(&executable)
