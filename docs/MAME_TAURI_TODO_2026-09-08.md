@@ -500,10 +500,10 @@ Represent at least:
 
 ## MT-507 — Add bounded bulk audit
 
-- [ ] cancellation.
-- [ ] progress.
-- [ ] bounded parallelism.
-- [ ] resumable or safely restartable behavior if expensive.
+- [x] cancellation.
+- [x] progress.
+- [x] bounded parallelism.
+- [x] resumable or safely restartable behavior if expensive.
 
 ## MT-508 — Integrate availability into library
 
