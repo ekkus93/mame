@@ -1,0 +1,75 @@
+.machine-settings {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #3b4252);
+  border-radius: 0.75rem;
+}
+
+.machine-settings__heading h4 {
+  margin: 0;
+}
+
+.machine-settings__heading p,
+.machine-settings__loading {
+  margin: 0.4rem 0 0;
+  opacity: 0.8;
+}
+
+.machine-settings__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.machine-settings__grid label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.machine-settings__grid select {
+  width: 100%;
+}
+
+.machine-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.machine-settings__effective {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color, #3b4252);
+}
+
+.machine-settings__effective dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.6rem;
+  margin: 0.65rem 0 0;
+}
+
+.machine-settings__effective dl div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.machine-settings__effective dt {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.machine-settings__effective dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.machine-settings__error {
+  color: var(--error-color, #ff8d8d);
+}
+
+.machine-settings__notice {
+  color: var(--success-color, #98d7a5);
+}

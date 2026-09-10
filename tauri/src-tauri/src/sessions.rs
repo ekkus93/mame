@@ -10,11 +10,12 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     config::{load_settings, settings_path},
     errors::AppResult,
-    history,
+    history, machine_settings,
     mame::{
         build_launch_argv, inspect_executable, MameExecutableIdentity, MameExecutableSource,
         MameLaunchTarget, ProjectPathArgument,
     },
+    storage,
 };
 
 use supervisor::EventSink;
@@ -97,7 +98,7 @@ pub(crate) fn launch_mame_with_source(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
-    let launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
+    let general_launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
         project_paths: project_paths
             .iter()
@@ -122,6 +123,12 @@ pub(crate) fn launch_mame_with_source(
     // Validate identifiers and project-controlled paths before persisting an
     // attempt, so invalid frontend input never becomes durable user history.
     build_launch_argv(&target)?;
+    let catalog_path = storage::catalog_path(&app)?;
+    let launch_preferences = machine_settings::effective_launch_preferences(
+        &catalog_path,
+        &general_launch_preferences,
+        &target.machine,
+    )?;
     let history_id =
         history::begin_launch_history(&app, &target.machine, target.software.as_deref())?;
 

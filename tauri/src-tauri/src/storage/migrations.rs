@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::errors::{AppError, AppResult};
 
-pub const CATALOG_SCHEMA_VERSION: i64 = 2;
+pub const CATALOG_SCHEMA_VERSION: i64 = 3;
 
 pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
     connection
@@ -29,6 +29,7 @@ pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
         match version {
             0 => migrate_v0_to_v1(connection)?,
             1 => migrate_v1_to_v2(connection)?,
+            2 => migrate_v2_to_v3(connection)?,
             unsupported => {
                 return Err(AppError::new(
                     "CATALOG_SCHEMA_MIGRATION_MISSING",
@@ -107,6 +108,26 @@ fn migrate_v1_to_v2(connection: &mut Connection) -> AppResult<()> {
         .execute(
             "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
             [2_i64],
+        )
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .commit()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    Ok(())
+}
+
+fn migrate_v2_to_v3(connection: &mut Connection) -> AppResult<()> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+
+    transaction
+        .execute_batch(CREATE_SCHEMA_V3)
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .execute(
+            "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
+            [3_i64],
         )
         .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
     transaction
@@ -319,6 +340,15 @@ CREATE INDEX machine_audit_results_classification
     ON machine_audit_results(classification);
 "#;
 
+const CREATE_SCHEMA_V3: &str = r#"
+-- User-owned per-machine launch preferences intentionally have no foreign key
+-- into generated metadata. Metadata regeneration must not erase user overrides.
+CREATE TABLE machine_launch_preferences (
+    machine_short_name TEXT PRIMARY KEY,
+    preferences_json TEXT NOT NULL
+);
+"#;
+
 fn database_error(code: &str, error: rusqlite::Error) -> AppError {
     AppError::new(code, "The catalog database operation failed.")
         .with_details(serde_json::json!({ "cause": error.to_string() }))
@@ -347,6 +377,7 @@ mod tests {
             "software_lists",
             "machine_software_lists",
             "machine_audit_results",
+            "machine_launch_preferences",
             "user_favorites",
             "user_collections",
             "recent_history",
@@ -364,7 +395,7 @@ mod tests {
     }
 
     #[test]
-    fn migrates_v1_to_v2_without_losing_existing_user_state() {
+    fn migrates_existing_schema_without_losing_existing_user_state() {
         let mut connection = Connection::open_in_memory().expect("in-memory SQLite");
         migrate_v0_to_v1(&mut connection).expect("create v1 schema");
         assert_eq!(current_version(&connection).expect("v1 version"), 1);
@@ -375,10 +406,10 @@ mod tests {
             )
             .expect("seed v1 user state");
 
-        migrate(&mut connection).expect("migrate v1 to v2");
+        migrate(&mut connection).expect("migrate v1 to current schema");
 
         assert_eq!(
-            current_version(&connection).expect("v2 version"),
+            current_version(&connection).expect("current version"),
             CATALOG_SCHEMA_VERSION
         );
         let favorite_count: i64 = connection
@@ -393,6 +424,14 @@ mod tests {
             )
             .expect("audit table lookup");
         assert_eq!(audit_table_exists, 1);
+        let machine_settings_table_exists: i64 = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='machine_launch_preferences')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("machine settings table lookup");
+        assert_eq!(machine_settings_table_exists, 1);
     }
 
     #[test]

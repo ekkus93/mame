@@ -10,6 +10,7 @@ pub mod errors;
 pub mod general_settings;
 pub mod history;
 pub mod library;
+pub mod machine_settings;
 pub mod mame;
 pub mod metadata;
 pub mod path_configuration;
@@ -61,6 +62,9 @@ pub fn run() -> Result<(), tauri::Error> {
             general_settings::set_general_mame_executable,
             general_settings::set_general_launch_preferences,
             general_settings::pick_mame_executable,
+            machine_settings::get_machine_launch_settings,
+            machine_settings::set_machine_launch_settings,
+            machine_settings::reset_machine_launch_settings,
             software::query_mame_software_list,
             software::launch_library_software,
             path_configuration::get_content_path_configuration,
