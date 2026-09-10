@@ -548,11 +548,11 @@ transient launch overrides
 
 ## MT-604 — Add general settings UI
 
-- [ ] executable.
-- [ ] content paths.
-- [ ] window/fullscreen preference.
-- [ ] renderer selection where supported.
-- [ ] audio preference where supported.
+- [x] executable.
+- [x] content paths.
+- [x] window/fullscreen preference.
+- [x] renderer selection where supported.
+- [x] audio preference where supported.
 
 ## MT-605 — Add per-machine settings
 
