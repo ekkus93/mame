@@ -41,3 +41,13 @@ Rust tests cover persistence order, preservation of the existing MAME executable
 ## Deferred work
 
 MT-503 determines the authoritative MAME audit command and exit/output semantics. MT-504 and later tasks parse, persist, surface, and automatically refresh audit state. MT-502 does not infer machine availability from file presence.
+
+## Qualification evidence
+
+The normalized implementation commit is `10ebff53f8b2d81b705b490a0663d8be90d113af`, with the closed MT-501 head `16582976a21ce3c2d7b137d2859f3652e565dfe4` as its single parent.
+
+GitHub Actions Tauri run `34421486030` completed successfully against that exact normalized implementation SHA. The successful qualification covered frontend formatting, ESLint, TypeScript typechecking, frontend tests, production build, Rust formatting, the full Rust test suite, the inherited 100,000-row MT-410 performance qualification, Clippy with warnings denied, and lockfile integrity.
+
+GitHub Actions documentation run `34421486034` also completed successfully against the same normalized implementation SHA, including HTML and PDF documentation builds.
+
+MT-502 is therefore closed. MT-503 is the next active task.
