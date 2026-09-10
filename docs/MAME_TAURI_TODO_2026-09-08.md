@@ -594,14 +594,14 @@ transient launch overrides
 
 ## MT-702 — Define protocol v1
 
-- [ ] version field.
-- [ ] request ID.
-- [ ] command enum.
-- [ ] structured result/error.
-- [ ] bounded message size.
-- [ ] connection lifecycle.
-- [ ] timeout semantics.
-- [ ] malformed-message behavior.
+- [x] version field.
+- [x] request ID.
+- [x] command enum.
+- [x] structured result/error.
+- [x] bounded message size.
+- [x] connection lifecycle.
+- [x] timeout semantics.
+- [x] malformed-message behavior.
 
 ## MT-703 — Implement local authenticated/scoped endpoint model
 
@@ -1535,4 +1535,4 @@ The core project is considered complete when:
 10. Project-specific MAME divergence is documented and maintainable.
 11. Exact-head CI/release qualification is recorded.
 
-Embedded rendering, a dedicated Tauri OSD, and in-process MAME hosting are **separate optional success tracks**. They must not be falsely treated as required for the core frontend project to be considered successful.
+Embedded rendering, a dedicated Tauri MAME OSD, and in-process MAME hosting are **separate optional success tracks**. They must not be falsely treated as required for the core frontend project to be considered successful.
