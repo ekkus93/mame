@@ -1,0 +1,26 @@
+name: MT-502 lockfile generation
+
+on:
+  push:
+    branches:
+      - ralph/mt-502-lockgen
+
+permissions:
+  contents: read
+
+jobs:
+  generate-lockfile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Resolve Cargo lockfile
+        working-directory: tauri/src-tauri
+        run: cargo metadata --format-version 1 > /dev/null
+      - name: Stage Cargo lockfile
+        run: cp tauri/src-tauri/Cargo.lock Cargo.lock
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mt502-cargo-lock
+          path: Cargo.lock
+          if-no-files-found: error
