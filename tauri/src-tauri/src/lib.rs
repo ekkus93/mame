@@ -4,6 +4,7 @@ pub mod app;
 pub mod bulk_audit;
 pub mod collections;
 pub mod config;
+pub mod configuration_precedence;
 pub mod errors;
 pub mod history;
 pub mod library;
