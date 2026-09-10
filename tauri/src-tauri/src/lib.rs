@@ -5,6 +5,7 @@ pub mod bulk_audit;
 pub mod collections;
 pub mod config;
 pub mod config_persistence;
+pub mod configuration_explainability;
 pub mod configuration_precedence;
 pub mod errors;
 pub mod general_settings;

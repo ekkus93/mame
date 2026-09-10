@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { launchLibrarySoftware, queryMameSoftwareList } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
+import type { LaunchPreferences } from "../backend/generalSettings";
 import type {
   MachineDetail,
   SessionSnapshot,
@@ -26,9 +27,11 @@ type SoftwareLaunchState =
 
 export function SoftwareListBrowser({
   detail,
+  launchOverrides,
   onSessionStarted,
 }: {
   detail: MachineDetail;
+  launchOverrides: LaunchPreferences | null;
   onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const [selectedListName, setSelectedListName] = useState(detail.softwareLists[0]?.name ?? "");
@@ -123,6 +126,7 @@ export function SoftwareListBrowser({
       shortName: detail.shortName,
       softwareList: selectedList.name,
       softwareItem: item.shortName,
+      launchOverrides,
     })
       .then((session) => {
         setLaunchState({ status: "launched", shortName: item.shortName, session });

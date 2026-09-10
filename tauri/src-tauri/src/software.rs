@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::{
+    config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
         get_software_list_xml, inspect_executable, validate_short_identifier,
@@ -53,6 +54,8 @@ pub struct LaunchLibrarySoftwareRequest {
     pub short_name: String,
     pub software_list: String,
     pub software_item: String,
+    #[serde(default)]
+    pub launch_overrides: Option<LaunchPreferencesV1>,
 }
 
 #[tauri::command]
@@ -118,6 +121,7 @@ pub fn launch_library_software(
         short_name,
         Some(software),
         Vec::new(),
+        request.launch_overrides,
         supervisor,
         app,
     )

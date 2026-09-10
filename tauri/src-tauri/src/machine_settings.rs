@@ -9,6 +9,10 @@ use crate::{
         load_settings, settings_path, AudioPreference, LaunchPreferencesV1, RendererPreference,
         WindowPreference,
     },
+    configuration_explainability::{
+        explain_launch_preferences, resolve_effective_launch_preferences,
+        LaunchPreferencesExplanation,
+    },
     errors::{AppError, AppResult},
     mame::validate_short_identifier,
     storage::{self, open_catalog_connection},
@@ -21,12 +25,15 @@ pub struct MachineLaunchSettings {
     pub short_name: String,
     pub overrides: LaunchPreferencesV1,
     pub effective: LaunchPreferencesV1,
+    pub explanation: LaunchPreferencesExplanation,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MachineLaunchSettingsRequest {
     pub short_name: String,
+    #[serde(default)]
+    pub pending_launch_overrides: Option<LaunchPreferencesV1>,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -34,6 +41,8 @@ pub struct MachineLaunchSettingsRequest {
 pub struct SetMachineLaunchSettingsRequest {
     pub short_name: String,
     pub overrides: LaunchPreferencesV1,
+    #[serde(default)]
+    pub pending_launch_overrides: Option<LaunchPreferencesV1>,
 }
 
 #[tauri::command]
@@ -45,11 +54,12 @@ pub fn get_machine_launch_settings(
     let settings = load_settings(&settings_path(&app)?)?;
     let catalog_path = storage::catalog_path(&app)?;
     let overrides = load_machine_overrides(&catalog_path, &short_name)?;
-    Ok(machine_launch_settings(
+    machine_launch_settings(
         short_name,
         overrides,
         &settings.launch_preferences,
-    ))
+        request.pending_launch_overrides.as_ref(),
+    )
 }
 
 #[tauri::command]
@@ -69,11 +79,12 @@ pub fn set_machine_launch_settings(
     }
 
     let overrides = load_machine_overrides_with_connection(&connection, &short_name)?;
-    Ok(machine_launch_settings(
+    machine_launch_settings(
         short_name,
         overrides,
         &settings.launch_preferences,
-    ))
+        request.pending_launch_overrides.as_ref(),
+    )
 }
 
 #[tauri::command]
@@ -86,57 +97,39 @@ pub fn reset_machine_launch_settings(
     let catalog_path = storage::catalog_path(&app)?;
     let mut connection = open_catalog_connection(&catalog_path)?;
     delete_machine_overrides(&mut connection, &short_name)?;
-    Ok(machine_launch_settings(
+    machine_launch_settings(
         short_name,
         LaunchPreferencesV1::default(),
         &settings.launch_preferences,
-    ))
+        request.pending_launch_overrides.as_ref(),
+    )
 }
 
 pub(crate) fn effective_launch_preferences(
     catalog_path: &Path,
     general: &LaunchPreferencesV1,
     short_name: &str,
+    pending_launch_overrides: Option<&LaunchPreferencesV1>,
 ) -> AppResult<LaunchPreferencesV1> {
     let overrides = load_machine_overrides(catalog_path, short_name)?;
-    Ok(resolve_effective_preferences(general, &overrides))
+    resolve_effective_launch_preferences(general, &overrides, pending_launch_overrides)
 }
 
 fn machine_launch_settings(
     short_name: String,
     overrides: LaunchPreferencesV1,
     general: &LaunchPreferencesV1,
-) -> MachineLaunchSettings {
-    let effective = resolve_effective_preferences(general, &overrides);
-    MachineLaunchSettings {
+    pending_launch_overrides: Option<&LaunchPreferencesV1>,
+) -> AppResult<MachineLaunchSettings> {
+    let explanation = explain_launch_preferences(general, &overrides, pending_launch_overrides)?;
+    let effective = explanation.effective_preferences();
+    Ok(MachineLaunchSettings {
         schema_version: 1,
         short_name,
         overrides,
         effective,
-    }
-}
-
-fn resolve_effective_preferences(
-    general: &LaunchPreferencesV1,
-    overrides: &LaunchPreferencesV1,
-) -> LaunchPreferencesV1 {
-    LaunchPreferencesV1 {
-        window_mode: if overrides.window_mode == WindowPreference::Inherit {
-            general.window_mode
-        } else {
-            overrides.window_mode
-        },
-        renderer: if overrides.renderer == RendererPreference::Inherit {
-            general.renderer
-        } else {
-            overrides.renderer
-        },
-        audio: if overrides.audio == AudioPreference::Inherit {
-            general.audio
-        } else {
-            overrides.audio
-        },
-    }
+        explanation,
+    })
 }
 
 fn is_fully_inherited(preferences: &LaunchPreferencesV1) -> bool {
@@ -233,7 +226,7 @@ mod tests {
 
     use super::{
         delete_machine_overrides, is_fully_inherited, load_machine_overrides_with_connection,
-        resolve_effective_preferences, save_machine_overrides,
+        machine_launch_settings, save_machine_overrides,
     };
 
     fn general_preferences() -> LaunchPreferencesV1 {
@@ -298,7 +291,9 @@ mod tests {
         };
 
         assert_eq!(
-            resolve_effective_preferences(&general, &overrides),
+            machine_launch_settings("pacman".to_owned(), overrides, &general, None,)
+                .expect("machine settings must explain")
+                .effective,
             LaunchPreferencesV1 {
                 window_mode: WindowPreference::Fullscreen,
                 renderer: RendererPreference::Bgfx,

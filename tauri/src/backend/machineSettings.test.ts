@@ -38,6 +38,19 @@ describe("per-machine settings backend commands", () => {
     });
   });
 
+  it("includes bounded pending launch overrides when explaining a next launch", async () => {
+    const pending: LaunchPreferences = {
+      windowMode: "windowed",
+      renderer: "software",
+      audio: "inherit",
+    };
+    vi.mocked(invoke).mockResolvedValue({});
+    await getMachineLaunchSettings("pacman", pending);
+    expect(invoke).toHaveBeenCalledWith("get_machine_launch_settings", {
+      request: { shortName: "pacman", pendingLaunchOverrides: pending },
+    });
+  });
+
   it("resets a machine back to inherited settings through a dedicated command", async () => {
     vi.mocked(invoke).mockResolvedValue({});
     await resetMachineLaunchSettings("pacman");

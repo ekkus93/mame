@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::{
-    config::settings_path,
+    config::{settings_path, LaunchPreferencesV1},
     errors::{AppError, AppResult},
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
     metadata::{
@@ -92,6 +92,8 @@ pub struct MachineDetailRequest {
 #[serde(rename_all = "camelCase")]
 pub struct LaunchLibraryMachineRequest {
     pub short_name: String,
+    #[serde(default)]
+    pub launch_overrides: Option<LaunchPreferencesV1>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -218,7 +220,15 @@ pub fn launch_library_machine(
     let current_identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(&generation, &current_identity)?;
 
-    sessions::launch_mame_with_source(source, short_name, None, Vec::new(), supervisor, app)
+    sessions::launch_mame_with_source(
+        source,
+        short_name,
+        None,
+        Vec::new(),
+        request.launch_overrides,
+        supervisor,
+        app,
+    )
 }
 
 fn launch_source_from_generation(

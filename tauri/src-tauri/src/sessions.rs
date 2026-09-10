@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::{
-    config::{load_settings, settings_path},
+    config::{load_settings, settings_path, LaunchPreferencesV1},
     errors::AppResult,
     history, machine_settings,
     mame::{
@@ -58,6 +58,8 @@ pub struct LaunchMameRequest {
     pub software: Option<String>,
     #[serde(default)]
     pub project_paths: Vec<ProjectPathRequest>,
+    #[serde(default)]
+    pub launch_overrides: Option<LaunchPreferencesV1>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -85,6 +87,7 @@ pub fn launch_mame(
         request.machine,
         request.software,
         request.project_paths,
+        request.launch_overrides,
         supervisor,
         app,
     )
@@ -95,6 +98,7 @@ pub(crate) fn launch_mame_with_source(
     machine: String,
     software: Option<String>,
     project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
@@ -128,6 +132,7 @@ pub(crate) fn launch_mame_with_source(
         &catalog_path,
         &general_launch_preferences,
         &target.machine,
+        transient_launch_overrides.as_ref(),
     )?;
     let history_id =
         history::begin_launch_history(&app, &target.machine, target.software.as_deref())?;

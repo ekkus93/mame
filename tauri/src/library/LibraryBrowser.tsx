@@ -15,6 +15,7 @@ import {
   queryMameLibrary,
 } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
+import type { LaunchPreferences } from "../backend/generalSettings";
 import type {
   MachineDetail,
   MachineListItem,
@@ -76,6 +77,9 @@ export function LibraryBrowser({
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
+  const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(
+    null,
+  );
   const [favoritesRevision, setFavoritesRevision] = useState(0);
   // Fail closed until Rust confirms that the Tauri window owns application shortcuts.
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
@@ -130,6 +134,7 @@ export function LibraryBrowser({
     let cancelled = false;
     setDetailState({ status: "loading" });
     setLaunchState({ status: "idle" });
+    setPendingLaunchOverrides(null);
     void getMameMachineDetail({ shortName: selected.shortName })
       .then((detail) => {
         if (!cancelled) {
@@ -174,9 +179,13 @@ export function LibraryBrowser({
   const launchSelected = useCallback(
     (detail: MachineDetail) => {
       setLaunchState({ status: "launching" });
-      void launchLibraryMachine({ shortName: detail.shortName })
+      void launchLibraryMachine({
+        shortName: detail.shortName,
+        launchOverrides: pendingLaunchOverrides,
+      })
         .then((session) => {
           setLaunchState({ status: "launched", session });
+          setPendingLaunchOverrides(null);
           setGameplayInputOwned(isGameplaySessionState(session.state));
         })
         .catch((error: unknown) => {
@@ -184,7 +193,7 @@ export function LibraryBrowser({
           refreshGameplayOwnership();
         });
     },
-    [refreshGameplayOwnership],
+    [pendingLaunchOverrides, refreshGameplayOwnership],
   );
 
   const selectedRowIndex = useMemo(() => {
@@ -502,10 +511,13 @@ export function LibraryBrowser({
               favoriteRevision={favoritesRevision}
               onFavoriteChanged={() => setFavoritesRevision((current) => current + 1)}
               onAuditResultChanged={onAuditResultsChanged}
+              pendingLaunchOverrides={pendingLaunchOverrides}
+              onPendingLaunchOverridesChanged={setPendingLaunchOverrides}
               onLaunch={() => launchSelected(detailState.detail)}
-              onSoftwareSessionStarted={(session) =>
-                setGameplayInputOwned(isGameplaySessionState(session.state))
-              }
+              onSoftwareSessionStarted={(session) => {
+                setPendingLaunchOverrides(null);
+                setGameplayInputOwned(isGameplaySessionState(session.state));
+              }}
             />
           )}
         </aside>
@@ -520,6 +532,8 @@ function MachineDetailPanel({
   favoriteRevision,
   onFavoriteChanged,
   onAuditResultChanged,
+  pendingLaunchOverrides,
+  onPendingLaunchOverridesChanged,
   onLaunch,
   onSoftwareSessionStarted,
 }: {
@@ -528,6 +542,8 @@ function MachineDetailPanel({
   favoriteRevision: number;
   onFavoriteChanged: () => void;
   onAuditResultChanged: () => void;
+  pendingLaunchOverrides: LaunchPreferences | null;
+  onPendingLaunchOverridesChanged: (preferences: LaunchPreferences | null) => void;
   onLaunch: () => void;
   onSoftwareSessionStarted: (session: SessionSnapshot) => void;
 }) {
@@ -571,7 +587,11 @@ function MachineDetailPanel({
         onAuditResultChanged={onAuditResultChanged}
       />
 
-      <MachineSettingsPanel key={`settings-${detail.shortName}`} shortName={detail.shortName} />
+      <MachineSettingsPanel
+        shortName={detail.shortName}
+        pendingLaunchOverrides={pendingLaunchOverrides}
+        onPendingLaunchOverridesChanged={onPendingLaunchOverridesChanged}
+      />
 
       <dl className="machine-facts">
         <div>
@@ -635,7 +655,11 @@ function MachineDetailPanel({
         )}
       </section>
 
-      <SoftwareListBrowser detail={detail} onSessionStarted={onSoftwareSessionStarted} />
+      <SoftwareListBrowser
+        detail={detail}
+        launchOverrides={pendingLaunchOverrides}
+        onSessionStarted={onSoftwareSessionStarted}
+      />
 
       {(detail.driverRequiresArtwork ||
         detail.driverUnofficial ||

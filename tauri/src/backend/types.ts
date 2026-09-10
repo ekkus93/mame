@@ -1,3 +1,5 @@
+import type { LaunchPreferences } from "./generalSettings";
+
 export const APP_PROTOCOL_VERSION = 1 as const;
 
 export type AppErrorEnvelope = {
@@ -176,6 +178,7 @@ export type MachineDetail = {
 
 export type LaunchLibraryMachineRequest = {
   shortName: string;
+  launchOverrides?: LaunchPreferences | null;
 };
 
 export type SoftwareItemSummary = {
@@ -210,6 +213,7 @@ export type LaunchLibrarySoftwareRequest = {
   shortName: string;
   softwareList: string;
   softwareItem: string;
+  launchOverrides?: LaunchPreferences | null;
 };
 
 export type FavoriteState = {
