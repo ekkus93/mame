@@ -5,6 +5,7 @@ import { errorMessage } from "./backend/errors";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
+import { PathConfigurationPanel } from "./settings/PathConfigurationPanel";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
 
@@ -60,6 +61,7 @@ export default function App() {
 
       {state.status === "ready" ? (
         <>
+          <PathConfigurationPanel />
           <LibraryBrowser />
           <RecentHistoryPanel />
           <CollectionManager />
