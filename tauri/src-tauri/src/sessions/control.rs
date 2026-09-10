@@ -353,10 +353,12 @@ impl ControlStdoutParser {
                     .to_owned(),
             );
         }
-        let encoded = std::str::from_utf8(encoded)
-            .map_err(|_| "Authenticated runtime-control payload is not ASCII base64url.".to_owned())?;
-        let decoded = base64url_decode(encoded)
-            .map_err(|message| format!("Authenticated runtime-control base64url is invalid: {message}"))?;
+        let encoded = std::str::from_utf8(encoded).map_err(|_| {
+            "Authenticated runtime-control payload is not ASCII base64url.".to_owned()
+        })?;
+        let decoded = base64url_decode(encoded).map_err(|message| {
+            format!("Authenticated runtime-control base64url is invalid: {message}")
+        })?;
         if decoded.len() > MAX_DECODED_MESSAGE_BYTES {
             return Err(
                 "Authenticated runtime-control message exceeded the decoded JSON limit.".to_owned(),
@@ -452,13 +454,17 @@ fn validate_ready(ready: &ReadyEnvelope, expected_session_id: &str) -> Result<()
         ));
     }
     if ready.message_type != "event" || ready.event != "ready" {
-        return Err("The first authenticated runtime-control message is not a ready event.".to_owned());
+        return Err(
+            "The first authenticated runtime-control message is not a ready event.".to_owned(),
+        );
     }
     if ready.session_id != expected_session_id {
         return Err("Runtime-control ready event belongs to a different MAME session.".to_owned());
     }
     if ready.payload.max_message_bytes != MAX_DECODED_MESSAGE_BYTES {
-        return Err("Runtime-control peer advertised a different message-size contract.".to_owned());
+        return Err(
+            "Runtime-control peer advertised a different message-size contract.".to_owned(),
+        );
     }
 
     let mut commands = HashSet::new();
@@ -485,7 +491,9 @@ fn generate_frame_token() -> AppResult<String> {
     // session framing and defense in depth without adding another dependency.
     let connection = Connection::open_in_memory().map_err(token_generation_error)?;
     let bytes: Vec<u8> = connection
-        .query_row("SELECT randomblob(?1)", [TOKEN_BYTES as i64], |row| row.get(0))
+        .query_row("SELECT randomblob(?1)", [TOKEN_BYTES as i64], |row| {
+            row.get(0)
+        })
         .map_err(token_generation_error)?;
     if bytes.len() != TOKEN_BYTES {
         return Err(AppError::new(
@@ -511,9 +519,7 @@ fn base64url_encode(input: &[u8]) -> String {
     let mut output = String::with_capacity((input.len() * 4).div_ceil(3));
     let mut chunks = input.chunks_exact(3);
     for chunk in &mut chunks {
-        let value = (u32::from(chunk[0]) << 16)
-            | (u32::from(chunk[1]) << 8)
-            | u32::from(chunk[2]);
+        let value = (u32::from(chunk[0]) << 16) | (u32::from(chunk[1]) << 8) | u32::from(chunk[2]);
         output.push(TABLE[((value >> 18) & 0x3f) as usize] as char);
         output.push(TABLE[((value >> 12) & 0x3f) as usize] as char);
         output.push(TABLE[((value >> 6) & 0x3f) as usize] as char);
@@ -633,8 +639,7 @@ mod tests {
 
     use super::{
         base64url_decode, base64url_encode, generate_frame_token, ControlBootstrap,
-        ControlStdoutParser, ParserEvent, FRAME_PREFIX, MAX_DECODED_MESSAGE_BYTES,
-        TOKEN_REDACTION,
+        ControlStdoutParser, ParserEvent, FRAME_PREFIX, MAX_DECODED_MESSAGE_BYTES, TOKEN_REDACTION,
     };
 
     #[test]
@@ -664,7 +669,10 @@ mod tests {
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
         let ready_frame = script
             .lines()
-            .find_map(|line| line.strip_prefix("local ready_frame = \"")?.strip_suffix('"'))
+            .find_map(|line| {
+                line.strip_prefix("local ready_frame = \"")?
+                    .strip_suffix('"')
+            })
             .expect("ready frame literal");
         let expected_prefix = format!("{FRAME_PREFIX}{}@@", bootstrap.frame_token());
         let encoded = ready_frame
