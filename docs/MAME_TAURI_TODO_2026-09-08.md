@@ -575,9 +575,9 @@ transient launch overrides
 
 ## MT-608 — Controller configuration UI
 
-- [ ] inspect active profile.
-- [ ] assign/select profile.
-- [ ] avoid pretending unsupported mappings are active.
+- [x] inspect active profile.
+- [x] assign/select profile.
+- [x] avoid pretending unsupported mappings are active.
 
 ---
 
