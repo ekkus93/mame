@@ -399,7 +399,7 @@ Display at minimum:
 - [x] year.
 - [x] status.
 - [x] parent/clone policy.
-- [ ] available/audited state when MT-500 exists.
+- [x] available/audited state when MT-500 exists.
 
 ## MT-404 — Add favorites
 
@@ -507,9 +507,9 @@ Represent at least:
 
 ## MT-508 — Integrate availability into library
 
-- [ ] filter available/missing/unknown.
-- [ ] status badge.
-- [ ] do not label unverified content as valid.
+- [x] filter available/missing/unknown.
+- [x] status badge.
+- [x] do not label unverified content as valid.
 
 ---
 
