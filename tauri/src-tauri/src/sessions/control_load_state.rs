@@ -236,14 +236,18 @@ impl ControlRequestHandle {
         loop {
             let state = control_state(&self.state);
             if state != ControlChannelState::Ready {
-                return Err(channel_state_error(state));
+                return Err(with_load_completion_cleanup(
+                    channel_state_error(state),
+                    completion_path,
+                ));
             }
 
-            if let Some(result) =
-                read_load_completion_marker(completion_path, request_id, completion_token)?
-            {
-                remove_load_completion_marker(completion_path)?;
-                return result;
+            match read_load_completion_marker(completion_path, request_id, completion_token) {
+                Ok(Some(result)) => return finish_load_completion(result, completion_path),
+                Ok(None) => {}
+                Err(error) => {
+                    return Err(with_load_completion_cleanup(error, completion_path));
+                }
             }
 
             if Instant::now() >= deadline {
@@ -255,19 +259,68 @@ impl ControlRequestHandle {
                     &self.runtime,
                     "MAME accepted the load-state request but did not confirm post-load completion before the deadline.",
                 );
-                return Err(AppError::new(
-                    "LOAD_STATE_COMPLETION_TIMEOUT",
-                    "MAME accepted the load-state request but did not confirm successful restoration before the deadline.",
-                )
-                .with_details(serde_json::json!({
-                    "requestId": request_id,
-                    "command": "load_state",
-                    "timeoutMs": LOAD_STATE_COMPLETION_TIMEOUT.as_millis()
-                })));
+                return Err(with_load_completion_cleanup(
+                    AppError::new(
+                        "LOAD_STATE_COMPLETION_TIMEOUT",
+                        "MAME accepted the load-state request but did not confirm successful restoration before the deadline.",
+                    )
+                    .with_details(serde_json::json!({
+                        "requestId": request_id,
+                        "command": "load_state",
+                        "timeoutMs": LOAD_STATE_COMPLETION_TIMEOUT.as_millis()
+                    })),
+                    completion_path,
+                ));
             }
             std::thread::sleep(LOAD_STATE_COMPLETION_POLL);
         }
     }
+}
+
+fn finish_load_completion(result: AppResult<()>, path: &str) -> AppResult<()> {
+    match (result, remove_load_completion_marker(path)) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Ok(()), Err(cleanup)) => Err(AppError::new(
+            "LOAD_STATE_COMPLETION_CLEANUP_FAILED",
+            "MAME restored the state, but the private completion marker could not be removed.",
+        )
+        .with_details(serde_json::json!({
+            "loadCompleted": true,
+            "cleanup": {
+                "code": cleanup.code,
+                "message": cleanup.message,
+                "details": cleanup.details
+            }
+        }))),
+        (Err(error), Ok(())) => Err(error),
+        (Err(mut error), Err(cleanup)) => {
+            let operation_details = std::mem::take(&mut error.details);
+            error.details = serde_json::json!({
+                "operation": operation_details,
+                "completionCleanup": {
+                    "code": cleanup.code,
+                    "message": cleanup.message,
+                    "details": cleanup.details
+                }
+            });
+            Err(error)
+        }
+    }
+}
+
+fn with_load_completion_cleanup(mut error: AppError, path: &str) -> AppError {
+    if let Err(cleanup) = remove_load_completion_marker(path) {
+        let operation_details = std::mem::take(&mut error.details);
+        error.details = serde_json::json!({
+            "operation": operation_details,
+            "completionCleanup": {
+                "code": cleanup.code,
+                "message": cleanup.message,
+                "details": cleanup.details
+            }
+        });
+    }
+    error
 }
 
 fn read_load_completion_marker(
