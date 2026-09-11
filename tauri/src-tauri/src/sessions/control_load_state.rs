@@ -239,12 +239,11 @@ impl ControlRequestHandle {
                 return Err(channel_state_error(state));
             }
 
-            match read_load_completion_marker(completion_path, request_id, completion_token)? {
-                Some(result) => {
-                    remove_load_completion_marker(completion_path)?;
-                    return result;
-                }
-                None => {}
+            if let Some(result) =
+                read_load_completion_marker(completion_path, request_id, completion_token)?
+            {
+                remove_load_completion_marker(completion_path)?;
+                return result;
             }
 
             if Instant::now() >= deadline {
