@@ -1,9 +1,10 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
 mod control {
-    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt709.rs"));
+    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt710.rs"));
 }
 mod load_state;
+pub(crate) mod query_state;
 pub(crate) mod save_state;
 mod supervisor;
 mod supervisor_exit;
