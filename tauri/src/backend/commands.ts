@@ -20,6 +20,8 @@ import {
   type MetadataStatusRequest,
   type PauseMameRequest,
   type PauseMameResult,
+  type QueryMameRuntimeStateRequest,
+  type QueryMameRuntimeStateResult,
   type RefreshMameMetadataRequest,
   type ResetMameRequest,
   type ResetMameResult,
@@ -105,6 +107,12 @@ export async function loadMameState(request: LoadMameStateRequest): Promise<Load
 
 export async function setMameMute(request: SetMameMuteRequest): Promise<SetMameMuteResult> {
   return invoke<SetMameMuteResult>("set_mame_mute", { request });
+}
+
+export async function queryMameRuntimeState(
+  request: QueryMameRuntimeStateRequest,
+): Promise<QueryMameRuntimeStateResult> {
+  return invoke<QueryMameRuntimeStateResult>("query_mame_runtime_state", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {
