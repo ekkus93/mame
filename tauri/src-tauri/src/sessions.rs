@@ -1,25 +1,8 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
-mod control {
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/sessions/control.rs"
-    ));
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/sessions/control_exit.rs"
-    ));
-}
-mod supervisor {
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/sessions/supervisor.rs"
-    ));
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/sessions/supervisor_exit.rs"
-    ));
-}
+mod control;
+mod supervisor;
+mod supervisor_exit;
 
 use std::{path::PathBuf, sync::Arc};
 
