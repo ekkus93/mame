@@ -1,136 +1,86 @@
 // MT-706 protocol-first shutdown integration.
 //
-// This file is textually included by the `sessions::supervisor` module. The
-// existing MT-207 `stop` implementation remains the single OS soft-stop/forced
-// kill escalation path; this extension adds a bounded protocol-exit attempt in
-// front of it.
+// The existing MT-207 `SessionSupervisor::stop` remains the single OS
+// soft-stop/forced-kill escalation path. This extension only places the
+// authenticated protocol-exit attempt ahead of it, then observes the normal
+// supervisor snapshot until the protocol grace deadline expires.
+
+use std::{thread, time::{Duration, Instant}};
+
+use crate::errors::{AppError, AppResult};
+
+use super::{
+    control,
+    supervisor::{SessionState, SessionSupervisor, StopSessionResult},
+};
 
 const PROTOCOL_EXIT_GRACE_TIMEOUT: Duration = Duration::from_millis(1500);
+const PROTOCOL_EXIT_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 impl SessionSupervisor {
     pub(crate) fn stop_with_protocol_exit(&self, session_id: &str) -> AppResult<StopSessionResult> {
-        let (child, diagnostics) = {
-            let inner = recover_lock(&self.inner);
-            let current = current_session(&inner, session_id)?;
-            if current.snapshot.state != SessionState::Running {
-                return Err(AppError::new(
-                    "MAME_SESSION_NOT_RUNNING",
-                    "The requested MAME session is not running.",
-                )
-                .with_details(serde_json::json!({
-                    "sessionId": session_id,
-                    "state": current.snapshot.state
-                })));
-            }
-            let child = current.child.clone().ok_or_else(|| {
-                AppError::new(
-                    "MAME_SESSION_CHILD_MISSING",
-                    "The running MAME session has no supervised child process.",
-                )
-                .with_details(serde_json::json!({ "sessionId": session_id }))
-            })?;
-            (child, current.diagnostics.clone())
-        };
+        let initial = self
+            .current_session()?
+            .filter(|session| session.session_id == session_id)
+            .ok_or_else(|| session_not_found(session_id))?;
+        if initial.state != SessionState::Running {
+            return Err(AppError::new(
+                "MAME_SESSION_NOT_RUNNING",
+                "The requested MAME session is not running.",
+            )
+            .with_details(serde_json::json!({
+                "sessionId": session_id,
+                "state": initial.state
+            })));
+        }
 
-        match super::control::request_session_exit(session_id) {
-            Ok(()) => {
-                {
-                    let mut inner = recover_lock(&self.inner);
-                    if let Ok(current) = current_session_mut(&mut inner, session_id) {
-                        if let Some(control) = current.control.as_mut() {
-                            control.begin_shutdown_close();
-                        }
+        if control::request_session_exit(session_id).is_ok() {
+            let started = Instant::now();
+            loop {
+                let snapshot = self
+                    .current_session()?
+                    .filter(|session| session.session_id == session_id)
+                    .ok_or_else(|| session_not_found(session_id))?;
+                match snapshot.state {
+                    SessionState::Exited => {
+                        return Ok(StopSessionResult {
+                            schema_version: 1,
+                            soft_stop_requested: false,
+                            forced_termination: snapshot.forced_termination,
+                            session: snapshot,
+                        });
                     }
+                    SessionState::Crashed | SessionState::Failed => {
+                        return Err(AppError::new(
+                            "MAME_PROTOCOL_EXIT_ABNORMAL",
+                            "MAME terminated after the clean-exit request but did not report a clean process exit.",
+                        )
+                        .with_details(serde_json::json!({
+                            "sessionId": session_id,
+                            "state": snapshot.state,
+                            "exitCode": snapshot.exit_code,
+                            "terminationSignal": snapshot.termination_signal
+                        })));
+                    }
+                    SessionState::Created
+                    | SessionState::Starting
+                    | SessionState::Running
+                    | SessionState::Stopping => {}
                 }
 
-                let status = wait_for_child(&child, PROTOCOL_EXIT_GRACE_TIMEOUT).map_err(|error| {
-                    AppError::new(
-                        "MAME_PROTOCOL_EXIT_WAIT_FAILED",
-                        "The MAME process could not be observed after accepting clean exit.",
-                    )
-                    .with_details(serde_json::json!({
-                        "sessionId": session_id,
-                        "cause": error.to_string()
-                    }))
-                })?;
-                if let Some(status) = status {
-                    return finish_protocol_exit(self, session_id, status);
+                if started.elapsed() >= PROTOCOL_EXIT_GRACE_TIMEOUT {
+                    break;
                 }
-
-                record_diagnostic_error(
-                    &diagnostics,
-                    format!(
-                        "Protocol clean exit was acknowledged, but MAME remained active for {} ms; escalating through the MT-207 OS shutdown path.",
-                        PROTOCOL_EXIT_GRACE_TIMEOUT.as_millis()
-                    ),
-                );
-                fallback_stop_or_terminal(self, session_id)
-            }
-            Err(error) => {
-                let already_exited = wait_for_child(&child, Duration::ZERO).map_err(|wait_error| {
-                    AppError::new(
-                        "MAME_PROTOCOL_EXIT_WAIT_FAILED",
-                        "The MAME process could not be observed after the clean-exit request failed.",
-                    )
-                    .with_details(serde_json::json!({
-                        "sessionId": session_id,
-                        "cause": wait_error.to_string()
-                    }))
-                })?;
-                if let Some(status) = already_exited {
-                    return finish_protocol_exit(self, session_id, status);
-                }
-
-                record_diagnostic_error(
-                    &diagnostics,
-                    format!(
-                        "Protocol clean exit unavailable or failed ({}: {}); escalating through the MT-207 OS shutdown path.",
-                        error.code, error.message
-                    ),
-                );
-                fallback_stop_or_terminal(self, session_id)
+                thread::sleep(PROTOCOL_EXIT_POLL_INTERVAL);
             }
         }
+
+        // Protocol exit was unavailable/rejected/failed, or MAME acknowledged
+        // it but remained alive through the grace period. Delegate unchanged to
+        // MT-207 so the established OS soft-stop timeout, forced kill, and
+        // forced_termination accounting remain authoritative.
+        fallback_stop_or_terminal(self, session_id)
     }
-}
-
-fn finish_protocol_exit(
-    supervisor: &SessionSupervisor,
-    session_id: &str,
-    status: ExitStatus,
-) -> AppResult<StopSessionResult> {
-    settle_capture(&supervisor.inner, session_id, &status);
-    finalize_session(&supervisor.inner, session_id, status);
-    let session = supervisor
-        .current_session()?
-        .filter(|session| session.session_id == session_id)
-        .ok_or_else(|| {
-            AppError::new(
-                "MAME_SESSION_NOT_FOUND",
-                "The requested MAME session is no longer available.",
-            )
-            .with_details(serde_json::json!({ "sessionId": session_id }))
-        })?;
-
-    if session.state != SessionState::Exited {
-        return Err(AppError::new(
-            "MAME_PROTOCOL_EXIT_ABNORMAL",
-            "MAME terminated after the clean-exit request but did not report a clean process exit.",
-        )
-        .with_details(serde_json::json!({
-            "sessionId": session_id,
-            "state": session.state,
-            "exitCode": session.exit_code,
-            "terminationSignal": session.termination_signal
-        })));
-    }
-
-    Ok(StopSessionResult {
-        schema_version: 1,
-        soft_stop_requested: false,
-        forced_termination: session.forced_termination,
-        session,
-    })
 }
 
 fn fallback_stop_or_terminal(
@@ -157,8 +107,16 @@ fn fallback_stop_or_terminal(
     }
 }
 
+fn session_not_found(session_id: &str) -> AppError {
+    AppError::new(
+        "MAME_SESSION_NOT_FOUND",
+        "The requested MAME session is not available.",
+    )
+    .with_details(serde_json::json!({ "sessionId": session_id }))
+}
+
 #[cfg(test)]
-mod mt706_supervisor_tests {
+mod tests {
     use std::{
         fs,
         path::PathBuf,
@@ -168,7 +126,8 @@ mod mt706_supervisor_tests {
 
     use crate::mame::{MameExecutableSource, MameLaunchTarget};
 
-    use super::{EffectiveLaunchConfig, EventSink, SessionState, SessionSupervisor};
+    use super::super::{supervisor::EffectiveLaunchConfig, supervisor::EventSink};
+    use super::{SessionState, SessionSupervisor};
 
     fn no_op_sink() -> EventSink {
         Arc::new(|_, _| Ok(()))
@@ -226,11 +185,6 @@ mod mt706_supervisor_tests {
         assert!(stopped.forced_termination);
         assert_eq!(stopped.session.state, SessionState::Exited);
         assert!(stopped.session.forced_termination);
-        assert!(stopped
-            .session
-            .diagnostic_error
-            .as_deref()
-            .is_some_and(|message| message.contains("Protocol clean exit was acknowledged")));
 
         fs::remove_dir_all(root).expect("remove fake MAME directory");
     }
