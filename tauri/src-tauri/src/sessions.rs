@@ -1,6 +1,8 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
-mod control;
+mod control {
+    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt706.rs"));
+}
 mod supervisor;
 mod supervisor_exit;
 
