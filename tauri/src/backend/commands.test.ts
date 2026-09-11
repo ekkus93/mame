@@ -7,6 +7,7 @@ import {
   loadMameState,
   pauseMame,
   queryMameLibrary,
+  queryMameRuntimeState,
   refreshMameMetadata,
   resetMame,
   resumeMame,
@@ -120,6 +121,24 @@ describe("typed backend commands", () => {
     await setMameMute({ sessionId: "mame-1-1", muted: true });
     expect(invoke).toHaveBeenLastCalledWith("set_mame_mute", {
       request: { sessionId: "mame-1-1", muted: true },
+    });
+  });
+
+  it("uses the typed bounded runtime-state query", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      sessionId: "mame-1-1",
+      running: true,
+      paused: false,
+      machine: "pacman",
+      software: null,
+      uiMuted: false,
+      effectiveMuted: false,
+    });
+
+    await queryMameRuntimeState({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("query_mame_runtime_state", {
+      request: { sessionId: "mame-1-1" },
     });
   });
 
