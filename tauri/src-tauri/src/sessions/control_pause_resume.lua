@@ -16,7 +16,7 @@ local known_commands = {
     set_volume = true,
     query_state = true
 }
-local supported_commands = { pause = true, resume = true, reset = true }
+local supported_commands = { pause = true, resume = true, reset = true, exit = true }
 local control_state = {
     seen_request_ids = {},
     seen_request_order = {},
@@ -121,6 +121,19 @@ local function emit_message(message)
     io.write("\n", frame_prefix, expected_token, "@@", encoded, "\n")
     io.flush()
     return true
+end
+
+local function emit_ready()
+    emit_message({
+        version = 1,
+        type = "event",
+        sessionId = session_id,
+        event = "ready",
+        payload = {
+            commands = { "pause", "resume", "reset", "exit" },
+            maxMessageBytes = max_message_bytes
+        }
+    })
 end
 
 local function emit_rejected(request_id, code, message, details, retryable)
@@ -360,7 +373,7 @@ function mame_tauri_control_v1(token, payload)
             return
         end
     elseif not empty_table(request.params) then
-        emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Pause and resume require an empty parameter object.", {}, false)
+        emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Pause, resume, and exit require an empty parameter object.", {}, false)
         return
     end
 
@@ -394,6 +407,17 @@ function mame_tauri_control_v1(token, payload)
         return
     end
 
+    if request.command == "exit" then
+        emit_accepted(request_id)
+        local ok, err = pcall(function ()
+            manager.machine:exit()
+        end)
+        if not ok then
+            emit_protocol_error("CONTROL_OPERATION_FAILED", "MAME rejected the native clean-exit request: " .. tostring(err))
+        end
+        return
+    end
+
     control_state.pending_reset = request_id
     emit_accepted(request_id)
     local ok, err = pcall(function ()
@@ -405,5 +429,6 @@ function mame_tauri_control_v1(token, payload)
     end
 end
 
-io.write("\n", ready_frame, "\n")
-io.flush()
+-- Keep the generated `ready_frame` literal above for backwards-compatible test
+-- fixtures, but production MAME emits the current capability set dynamically.
+emit_ready()
