@@ -27,6 +27,8 @@ import {
   type SaveMameStateResult,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
+  type SetMameMuteRequest,
+  type SetMameMuteResult,
   type SoftwareListPage,
   type SoftwareListQueryRequest,
 } from "./types";
@@ -99,6 +101,10 @@ export async function saveMameState(request: SaveMameStateRequest): Promise<Save
 
 export async function loadMameState(request: LoadMameStateRequest): Promise<LoadMameStateResult> {
   return invoke<LoadMameStateResult>("load_mame_state", { request });
+}
+
+export async function setMameMute(request: SetMameMuteRequest): Promise<SetMameMuteResult> {
+  return invoke<SetMameMuteResult>("set_mame_mute", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {

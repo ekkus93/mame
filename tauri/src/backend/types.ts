@@ -330,3 +330,15 @@ export type LoadMameStateFailedEventV1 = {
   slot: string;
   error: AppErrorEnvelope;
 };
+
+export type SetMameMuteRequest = {
+  sessionId: string;
+  muted: boolean;
+};
+
+export type SetMameMuteResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  uiMuted: boolean;
+  effectiveMuted: boolean;
+};

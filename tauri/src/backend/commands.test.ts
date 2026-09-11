@@ -11,6 +11,7 @@ import {
   resetMame,
   resumeMame,
   saveMameState,
+  setMameMute,
 } from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -105,6 +106,20 @@ describe("typed backend commands", () => {
     await loadMameState({ sessionId: "mame-1-1", slot: "quick1" });
     expect(invoke).toHaveBeenLastCalledWith("load_mame_state", {
       request: { sessionId: "mame-1-1", slot: "quick1" },
+    });
+  });
+
+  it("uses the typed native user-mute command", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      sessionId: "mame-1-1",
+      uiMuted: true,
+      effectiveMuted: true,
+    });
+
+    await setMameMute({ sessionId: "mame-1-1", muted: true });
+    expect(invoke).toHaveBeenLastCalledWith("set_mame_mute", {
+      request: { sessionId: "mame-1-1", muted: true },
     });
   });
 
