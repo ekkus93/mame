@@ -404,7 +404,10 @@ mod tests {
             validate_slot(valid).expect("valid logical slot");
         }
         for invalid in ["", ".hidden", "../escape", "a/b", "a\\b", "white space"] {
-            assert!(validate_slot(invalid).is_err(), "{invalid:?} must be rejected");
+            assert!(
+                validate_slot(invalid).is_err(),
+                "{invalid:?} must be rejected"
+            );
         }
         assert!(validate_slot(&"x".repeat(33)).is_err());
     }
@@ -429,7 +432,10 @@ mod tests {
         file.write_all(&[1, 2, 3, 4]).expect("payload");
         file.sync_all().expect("sync fixture");
 
-        assert_eq!(validate_save_file(&path, "pacman").expect("valid state"), 36);
+        assert_eq!(
+            validate_save_file(&path, "pacman").expect("valid state"),
+            36
+        );
         assert!(validate_save_file(&path, "galaga").is_err());
     }
 }
