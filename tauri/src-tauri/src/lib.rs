@@ -44,6 +44,7 @@ pub fn run() -> Result<(), tauri::Error> {
             sessions::resume_mame,
             sessions::reset_mame,
             sessions::set_mame_mute,
+            sessions::query_state::query_mame_runtime_state,
             sessions::load_mame_state,
             sessions::save_state::save_mame_state,
             sessions::stop_mame,
