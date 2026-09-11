@@ -1,7 +1,25 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
-mod control;
-mod supervisor;
+mod control {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/sessions/control.rs"
+    ));
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/sessions/control_exit.rs"
+    ));
+}
+mod supervisor {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/sessions/supervisor.rs"
+    ));
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/sessions/supervisor_exit.rs"
+    ));
+}
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -214,7 +232,7 @@ pub(crate) fn launch_mame_with_source(
             });
             if let Err(error) = control::register_pause_state_sink(&session.session_id, pause_sink)
             {
-                let _ = supervisor.stop(&session.session_id);
+                let _ = supervisor.stop_with_protocol_exit(&session.session_id);
                 let _ = history::finish_launch_history(&app, history_id, false);
                 return Err(error);
             }
@@ -285,7 +303,7 @@ pub fn stop_mame(
     request: StopMameRequest,
     supervisor: State<'_, SessionSupervisor>,
 ) -> AppResult<StopSessionResult> {
-    supervisor.stop(&request.session_id)
+    supervisor.stop_with_protocol_exit(&request.session_id)
 }
 
 fn executable_source(request: &MameExecutableRequest) -> MameExecutableSource {
