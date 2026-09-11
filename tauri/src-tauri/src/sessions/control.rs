@@ -547,12 +547,14 @@ impl ControlRequestHandle {
                     }
                     self.wait_for_completion(receiver, request_id, command)
                 }
-                "rejected" => Err(response
-                    .error
-                    .map(wire_error_to_app_error)
-                    .unwrap_or_else(|| {
-                        protocol_output_error("A rejected response omitted its error.")
-                    })),
+                "rejected" => {
+                    Err(response
+                        .error
+                        .map(wire_error_to_app_error)
+                        .unwrap_or_else(|| {
+                            protocol_output_error("A rejected response omitted its error.")
+                        }))
+                }
                 _ => Err(protocol_output_error("The response status is invalid.")),
             },
             CommandSignal::Completion(_) => Err(protocol_output_error(
