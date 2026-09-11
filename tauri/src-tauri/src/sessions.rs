@@ -1,8 +1,9 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
 mod control {
-    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt707.rs"));
+    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt708.rs"));
 }
+mod load_state;
 pub(crate) mod save_state;
 mod supervisor;
 mod supervisor_exit;
@@ -23,6 +24,7 @@ use crate::{
     storage,
 };
 
+pub use load_state::{LoadMameStateFailedEventV1, LoadMameStateRequest, LoadMameStateResult};
 pub use save_state::{SaveMameStateFailedEventV1, SaveMameStateRequest, SaveMameStateResult};
 use supervisor::EventSink;
 pub use supervisor::{
@@ -274,6 +276,15 @@ pub fn reset_mame(request: ResetMameRequest) -> AppResult<ResetMameResult> {
         session_id: request.session_id,
         kind: ResetKind::Soft,
     })
+}
+
+#[tauri::command]
+pub fn load_mame_state(
+    request: LoadMameStateRequest,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<LoadMameStateResult> {
+    load_state::load_mame_state_impl(request, supervisor, app)
 }
 
 fn set_mame_paused(session_id: String, paused: bool) -> AppResult<PauseMameResult> {
