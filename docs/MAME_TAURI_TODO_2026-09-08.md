@@ -612,10 +612,10 @@ transient launch overrides
 
 ## MT-704 — Implement pause/resume
 
-- [ ] command.
-- [ ] acknowledgement/completion semantics.
-- [ ] state event.
-- [ ] disconnect/error behavior.
+- [x] command.
+- [x] acknowledgement/completion semantics.
+- [x] state event.
+- [x] disconnect/error behavior.
 
 ## MT-705 — Implement reset
 
