@@ -23,7 +23,9 @@ fn compose_runtime_control() {
         );
 
     let mut composed = source;
-    composed.push_str("\n\ninclude!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/sessions/control_exit.rs\"));\n");
+    composed.push_str(
+        "\n\ninclude!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/sessions/control_exit.rs\"));\n",
+    );
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo OUT_DIR"));
     fs::write(out_dir.join("runtime_control_mt706.rs"), composed)

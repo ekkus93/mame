@@ -5,7 +5,10 @@
 // authenticated protocol-exit attempt ahead of it, then observes the normal
 // supervisor snapshot until the protocol grace deadline expires.
 
-use std::{thread, time::{Duration, Instant}};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 use crate::errors::{AppError, AppResult};
 
