@@ -3,7 +3,7 @@
 mod control {
     include!(concat!(env!("OUT_DIR"), "/runtime_control_mt707.rs"));
 }
-pub mod save_state;
+pub(crate) mod save_state;
 mod supervisor;
 mod supervisor_exit;
 
@@ -172,6 +172,8 @@ pub(crate) fn launch_mame_with_source(
             .collect(),
     };
 
+    // Validate identifiers and project-controlled paths before persisting an
+    // attempt, so invalid frontend input never becomes durable user history.
     build_launch_argv(&target)?;
     let catalog_path = storage::catalog_path(&app)?;
     let launch_preferences = machine_settings::effective_launch_preferences(
