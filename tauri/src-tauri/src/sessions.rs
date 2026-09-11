@@ -91,6 +91,26 @@ pub struct SessionPauseEventV1 {
     pub paused: bool,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResetMameRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ResetKind {
+    Soft,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResetMameResult {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub kind: ResetKind,
+}
+
 #[tauri::command]
 pub fn inspect_mame_executable(
     request: MameExecutableRequest,
@@ -239,6 +259,16 @@ pub fn pause_mame(request: PauseMameRequest) -> AppResult<PauseMameResult> {
 #[tauri::command]
 pub fn resume_mame(request: PauseMameRequest) -> AppResult<PauseMameResult> {
     set_mame_paused(request.session_id, false)
+}
+
+#[tauri::command]
+pub fn reset_mame(request: ResetMameRequest) -> AppResult<ResetMameResult> {
+    control::reset_session_soft(&request.session_id)?;
+    Ok(ResetMameResult {
+        schema_version: 1,
+        session_id: request.session_id,
+        kind: ResetKind::Soft,
+    })
 }
 
 fn set_mame_paused(session_id: String, paused: bool) -> AppResult<PauseMameResult> {
