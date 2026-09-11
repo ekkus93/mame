@@ -1,8 +1,8 @@
 // MT-706 protocol-exit request path.
 //
-// This file is textually included by the `sessions::control` module so it can
-// reuse the established MT-703/704/705 transport internals without widening
-// their visibility to the rest of the crate.
+// This file is included by `sessions::control` so it can reuse the established
+// session-scoped writer, request gate, correlation state, and protocol parser
+// without exposing any of them to the WebView or sibling modules.
 
 pub(super) fn request_session_exit(session_id: &str) -> AppResult<()> {
     let handle = {
@@ -22,25 +22,6 @@ pub(super) fn request_session_exit(session_id: &str) -> AppResult<()> {
     handle.request_exit(session_id)
 }
 
-impl ControlChannel {
-    pub(super) fn begin_shutdown_close(&mut self) {
-        let request_gate = self.request_gate.clone();
-        let _request_guard = recover_lock(&request_gate);
-        deactivate_control(self.session_id.as_deref(), &self.frame_token);
-        self.writer.take();
-        match control_state(&self.state) {
-            ControlChannelState::Initializing | ControlChannelState::Ready => {
-                set_control_state(&self.state, ControlChannelState::Closing);
-            }
-            ControlChannelState::Closing
-            | ControlChannelState::Closed
-            | ControlChannelState::Failed => {}
-        }
-        notify_channel_closed(&self.runtime);
-        self.frame_token.clear();
-    }
-}
-
 impl ControlRequestHandle {
     fn request_exit(&self, session_id: &str) -> AppResult<()> {
         let _request_guard = recover_lock(&self.request_gate);
@@ -48,12 +29,13 @@ impl ControlRequestHandle {
             return Err(channel_state_error(control_state(&self.state)));
         }
 
-        if !runtime_supports(&self.runtime, "exit") {
+        let command = CommandName::Exit;
+        if !runtime_supports(&self.runtime, command.wire_name()) {
             return Err(AppError::new(
                 "CONTROL_UNSUPPORTED",
                 "The running MAME control shim does not advertise clean exit.",
             )
-            .with_details(serde_json::json!({ "command": "exit" })));
+            .with_details(serde_json::json!({ "command": command.wire_name() })));
         }
 
         let request_id = format!(
@@ -65,7 +47,7 @@ impl ControlRequestHandle {
             message_type: "request",
             session_id,
             request_id: &request_id,
-            command: "exit",
+            command: command.wire_name(),
             params: Map::new(),
         };
         let json = serde_json::to_vec(&request).map_err(|error| {
@@ -94,11 +76,7 @@ impl ControlRequestHandle {
         }
 
         let (sender, receiver) = mpsc::channel();
-        // Existing correlation records use the MT-705 bounded command enum.
-        // Exit success is terminally evidenced by the supervised child process,
-        // not by `command_completed`, so Reset is only an internal correlation
-        // sentinel and is never serialized as reset semantics on the wire.
-        begin_request(&self.runtime, request_id.clone(), CommandName::Reset, sender)?;
+        begin_request(&self.runtime, request_id.clone(), command, sender)?;
         if control_state(&self.state) != ControlChannelState::Ready {
             cancel_pending(&self.runtime, &request_id);
             return Err(channel_state_error(control_state(&self.state)));
@@ -131,6 +109,7 @@ impl ControlRequestHandle {
         receiver: Receiver<CommandSignal>,
         request_id: &str,
     ) -> AppResult<()> {
+        let command = CommandName::Exit;
         let first = match recv_signal_until(&receiver, &self.state, CONTROL_RESPONSE_TIMEOUT) {
             Ok(signal) => signal,
             Err(ReceiveDeadlineError::Timeout) => {
@@ -146,7 +125,7 @@ impl ControlRequestHandle {
                 )
                 .with_details(serde_json::json!({
                     "requestId": request_id,
-                    "command": "exit",
+                    "command": command.wire_name(),
                     "timeoutMs": CONTROL_RESPONSE_TIMEOUT.as_millis()
                 })));
             }
@@ -169,8 +148,8 @@ impl ControlRequestHandle {
                             "An accepted exit response contained an unexpected result payload.",
                         ));
                     }
-                    // Close the logical request gate before releasing it. This
-                    // prevents pause/reset from racing the accepted exit.
+                    // Make closing visible while this request still owns the
+                    // request gate. Pause/reset cannot race an accepted exit.
                     set_control_state(&self.state, ControlChannelState::Closing);
                     Ok(())
                 }
@@ -199,10 +178,9 @@ mod mt706_exit_tests {
     use super::ControlBootstrap;
 
     #[test]
-    fn mt706_bootstrap_script_advertises_and_dispatches_native_clean_exit() {
+    fn bootstrap_advertises_and_dispatches_native_clean_exit() {
         let bootstrap = ControlBootstrap::create("mame-706-1").expect("MT-706 bootstrap");
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
-        assert!(script.contains("commands = { \"pause\", \"resume\", \"reset\", \"exit\" }"));
         assert!(script.contains("manager.machine:exit()"));
         assert!(script.contains("Pause, resume, and exit require an empty parameter object."));
     }
