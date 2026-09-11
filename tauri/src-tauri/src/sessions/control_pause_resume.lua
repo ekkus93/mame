@@ -16,13 +16,14 @@ local known_commands = {
     set_volume = true,
     query_state = true
 }
-local supported_commands = { pause = true, resume = true }
+local supported_commands = { pause = true, resume = true, reset = true }
 local control_state = {
     seen_request_ids = {},
     seen_request_order = {},
     max_seen_request_ids = 4096,
     pending_pause = nil,
     pending_resume = nil,
+    pending_reset = nil,
     subscriptions = {}
 }
 local base64url_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -185,7 +186,7 @@ local function emit_state(paused, request_id)
     emit_message(message)
 end
 
-local function emit_command_completed(request_id, command, paused)
+local function emit_command_completed(request_id, command, result)
     emit_message({
         version = 1,
         type = "event",
@@ -195,7 +196,7 @@ local function emit_command_completed(request_id, command, paused)
         payload = {
             command = command,
             ok = true,
-            result = { paused = paused }
+            result = result
         }
     })
 end
@@ -220,7 +221,7 @@ control_state.subscriptions.pause = emu.add_machine_pause_notifier(function ()
     control_state.pending_pause = nil
     emit_state(true, request_id)
     if request_id ~= nil then
-        emit_command_completed(request_id, "pause", true)
+        emit_command_completed(request_id, "pause", { paused = true })
     end
 end)
 
@@ -229,7 +230,27 @@ control_state.subscriptions.resume = emu.add_machine_resume_notifier(function ()
     control_state.pending_resume = nil
     emit_state(false, request_id)
     if request_id ~= nil then
-        emit_command_completed(request_id, "resume", false)
+        emit_command_completed(request_id, "resume", { paused = false })
+    end
+end)
+
+local function emit_reset(request_id)
+    emit_message({
+        version = 1,
+        type = "event",
+        sessionId = session_id,
+        event = "reset",
+        requestId = request_id,
+        payload = { kind = "soft" }
+    })
+end
+
+control_state.subscriptions.reset = emu.add_machine_reset_notifier(function ()
+    local request_id = control_state.pending_reset
+    control_state.pending_reset = nil
+    if request_id ~= nil then
+        emit_reset(request_id)
+        emit_command_completed(request_id, "reset", { kind = "soft" })
     end
 end)
 
@@ -255,6 +276,18 @@ local function empty_table(value)
         return false
     end
     return next(value) == nil
+end
+
+local function has_only_soft_reset_params(value)
+    if type(value) ~= "table" or value.kind ~= "soft" then
+        return false
+    end
+    for key, _ in pairs(value) do
+        if key ~= "kind" then
+            return false
+        end
+    end
+    return true
 end
 
 function mame_tauri_control_v1(token, payload)
@@ -313,7 +346,20 @@ function mame_tauri_control_v1(token, payload)
         emit_rejected(request_id, "CONTROL_UNSUPPORTED", "The command is not implemented by this runtime-control shim.", {}, false)
         return
     end
-    if not empty_table(request.params) then
+    if request.command == "reset" then
+        if type(request.params) ~= "table" then
+            emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Reset requires an object parameter payload.", {}, false)
+            return
+        end
+        if request.params.kind ~= "soft" then
+            emit_rejected(request_id, "CONTROL_UNSUPPORTED_RESET_KIND", "Protocol v1 supports soft reset only.", { requestedKind = request.params.kind }, false)
+            return
+        end
+        if not has_only_soft_reset_params(request.params) then
+            emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Soft reset requires exactly { kind = \"soft\" }.", {}, false)
+            return
+        end
+    elseif not empty_table(request.params) then
         emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Pause and resume require an empty parameter object.", {}, false)
         return
     end
@@ -333,16 +379,29 @@ function mame_tauri_control_v1(token, payload)
         return
     end
 
-    if not manager.machine.paused then
-        emit_completed(request_id, false)
+    if request.command == "resume" then
+        if not manager.machine.paused then
+            emit_completed(request_id, false)
+            return
+        end
+        control_state.pending_resume = request_id
+        emit_accepted(request_id)
+        local ok, err = pcall(emu.unpause)
+        if not ok then
+            control_state.pending_resume = nil
+            emit_command_failed(request_id, "resume", tostring(err))
+        end
         return
     end
-    control_state.pending_resume = request_id
+
+    control_state.pending_reset = request_id
     emit_accepted(request_id)
-    local ok, err = pcall(emu.unpause)
+    local ok, err = pcall(function ()
+        manager.machine:soft_reset()
+    end)
     if not ok then
-        control_state.pending_resume = nil
-        emit_command_failed(request_id, "resume", tostring(err))
+        control_state.pending_reset = nil
+        emit_command_failed(request_id, "reset", tostring(err))
     end
 end
 
