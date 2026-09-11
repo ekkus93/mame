@@ -1453,7 +1453,7 @@ MT-2000  Useful external-window release milestone
          ┌──────────────── OPTIONAL ────────────────┐
          │ MT-1000 Native-window research          │
          │    ↓                                     │
-         │ MT-1100 Dedicated Tauri MAME OSD             │
+         │ MT-1100 Dedicated Tauri OSD             │
          │    ↓                                     │
          │ MT-1200 Optional in-process integration │
          └──────────────────────────────────────────┘
