@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getAppInfo,
   getMameMetadataStatus,
+  loadMameState,
   pauseMame,
   queryMameLibrary,
   refreshMameMetadata,
@@ -73,7 +74,7 @@ describe("typed backend commands", () => {
     });
   });
 
-  it("uses the typed save-state command with a logical slot", async () => {
+  it("uses typed save/load-state commands with logical slots", async () => {
     vi.mocked(invoke).mockResolvedValue({
       schemaVersion: 1,
       sessionId: "mame-1-1",
@@ -87,6 +88,22 @@ describe("typed backend commands", () => {
 
     await saveMameState({ sessionId: "mame-1-1", slot: "quick1" });
     expect(invoke).toHaveBeenLastCalledWith("save_mame_state", {
+      request: { sessionId: "mame-1-1", slot: "quick1" },
+    });
+
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      sessionId: "mame-1-1",
+      machine: "pacman",
+      software: null,
+      slot: "quick1",
+      path: "/tmp/state.sta",
+      bytes: 1024,
+      loadedAtEpochMs: 2,
+    });
+
+    await loadMameState({ sessionId: "mame-1-1", slot: "quick1" });
+    expect(invoke).toHaveBeenLastCalledWith("load_mame_state", {
       request: { sessionId: "mame-1-1", slot: "quick1" },
     });
   });

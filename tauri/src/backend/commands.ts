@@ -9,6 +9,8 @@ import {
   type FavoriteState,
   type LaunchLibraryMachineRequest,
   type LaunchLibrarySoftwareRequest,
+  type LoadMameStateRequest,
+  type LoadMameStateResult,
   type MachineDetail,
   type MachineDetailRequest,
   type MachinePage,
@@ -93,6 +95,10 @@ export async function resetMame(request: ResetMameRequest): Promise<ResetMameRes
 
 export async function saveMameState(request: SaveMameStateRequest): Promise<SaveMameStateResult> {
   return invoke<SaveMameStateResult>("save_mame_state", { request });
+}
+
+export async function loadMameState(request: LoadMameStateRequest): Promise<LoadMameStateResult> {
+  return invoke<LoadMameStateResult>("load_mame_state", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {

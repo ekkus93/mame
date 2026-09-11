@@ -305,3 +305,28 @@ export type SaveMameStateFailedEventV1 = {
   slot: string;
   error: AppErrorEnvelope;
 };
+
+export type LoadMameStateRequest = {
+  sessionId: string;
+  slot: string;
+};
+
+export type LoadMameStateResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  machine: string;
+  software: string | null;
+  slot: string;
+  path: string;
+  bytes: number;
+  loadedAtEpochMs: number;
+};
+
+export type LoadMameStateFailedEventV1 = {
+  schemaVersion: 1;
+  sessionId: string;
+  machine: string;
+  software: string | null;
+  slot: string;
+  error: AppErrorEnvelope;
+};
