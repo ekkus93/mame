@@ -69,6 +69,28 @@ pub struct StopMameRequest {
     pub session_id: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseMameRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseMameResult {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub paused: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionPauseEventV1 {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub paused: bool,
+}
+
 #[tauri::command]
 pub fn inspect_mame_executable(
     request: MameExecutableRequest,
@@ -153,6 +175,30 @@ pub(crate) fn launch_mame_with_source(
         event_sink,
     ) {
         Ok(mut session) => {
+            let app_for_pause_events = app.clone();
+            let pause_session_id = session.session_id.clone();
+            let pause_sink: control::PauseStateSink = Arc::new(move |paused| {
+                let event_name = if paused {
+                    "session.paused"
+                } else {
+                    "session.resumed"
+                };
+                let _ = app_for_pause_events.emit(
+                    event_name,
+                    SessionPauseEventV1 {
+                        schema_version: 1,
+                        session_id: pause_session_id.clone(),
+                        paused,
+                    },
+                );
+            });
+            if let Err(error) = control::register_pause_state_sink(&session.session_id, pause_sink)
+            {
+                let _ = supervisor.stop(&session.session_id);
+                let _ = history::finish_launch_history(&app, history_id, false);
+                return Err(error);
+            }
+
             if let Err(history_error) = history::finish_launch_history(&app, history_id, true) {
                 let warning = format!("PLAY_HISTORY_FINALIZE_FAILED: {}", history_error.message);
                 session.diagnostic_error = Some(match session.diagnostic_error.take() {
@@ -183,6 +229,25 @@ pub fn get_mame_session(
     supervisor: State<'_, SessionSupervisor>,
 ) -> AppResult<Option<SessionSnapshot>> {
     supervisor.current_session()
+}
+
+#[tauri::command]
+pub fn pause_mame(request: PauseMameRequest) -> AppResult<PauseMameResult> {
+    set_mame_paused(request.session_id, true)
+}
+
+#[tauri::command]
+pub fn resume_mame(request: PauseMameRequest) -> AppResult<PauseMameResult> {
+    set_mame_paused(request.session_id, false)
+}
+
+fn set_mame_paused(session_id: String, paused: bool) -> AppResult<PauseMameResult> {
+    let observed = control::set_session_paused(&session_id, paused)?;
+    Ok(PauseMameResult {
+        schema_version: 1,
+        session_id,
+        paused: observed,
+    })
 }
 
 #[tauri::command]

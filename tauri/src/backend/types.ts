@@ -258,3 +258,15 @@ export type SessionSnapshot = {
   software: string | null;
   pid: number | null;
 };
+
+export type PauseMameRequest = {
+  sessionId: string;
+};
+
+export type PauseMameResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  paused: boolean;
+};
+
+export type SessionPauseEventV1 = PauseMameResult;

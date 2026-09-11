@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getAppInfo,
   getMameMetadataStatus,
+  pauseMame,
   queryMameLibrary,
   refreshMameMetadata,
+  resumeMame,
 } from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -44,6 +46,24 @@ describe("typed backend commands", () => {
 
     await getMameMetadataStatus(request);
     expect(invoke).toHaveBeenLastCalledWith("get_mame_metadata_status", { request });
+  });
+
+  it("uses dedicated typed pause and resume commands", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      sessionId: "mame-1-1",
+      paused: true,
+    });
+
+    await pauseMame({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("pause_mame", {
+      request: { sessionId: "mame-1-1" },
+    });
+
+    await resumeMame({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("resume_mame", {
+      request: { sessionId: "mame-1-1" },
+    });
   });
 
   it("sends bounded library query parameters without constructing SQL in the frontend", async () => {

@@ -16,6 +16,8 @@ import {
   type MetadataRefreshResult,
   type MetadataStatus,
   type MetadataStatusRequest,
+  type PauseMameRequest,
+  type PauseMameResult,
   type RefreshMameMetadataRequest,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
@@ -71,6 +73,14 @@ export async function launchLibrarySoftware(
 
 export async function getMameSession(): Promise<SessionSnapshot | null> {
   return invoke<SessionSnapshot | null>("get_mame_session");
+}
+
+export async function pauseMame(request: PauseMameRequest): Promise<PauseMameResult> {
+  return invoke<PauseMameResult>("pause_mame", { request });
+}
+
+export async function resumeMame(request: PauseMameRequest): Promise<PauseMameResult> {
+  return invoke<PauseMameResult>("resume_mame", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {
