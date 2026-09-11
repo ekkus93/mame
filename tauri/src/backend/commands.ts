@@ -21,6 +21,8 @@ import {
   type RefreshMameMetadataRequest,
   type ResetMameRequest,
   type ResetMameResult,
+  type SaveMameStateRequest,
+  type SaveMameStateResult,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
   type SoftwareListPage,
@@ -87,6 +89,10 @@ export async function resumeMame(request: PauseMameRequest): Promise<PauseMameRe
 
 export async function resetMame(request: ResetMameRequest): Promise<ResetMameResult> {
   return invoke<ResetMameResult>("reset_mame", { request });
+}
+
+export async function saveMameState(request: SaveMameStateRequest): Promise<SaveMameStateResult> {
+  return invoke<SaveMameStateResult>("save_mame_state", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {

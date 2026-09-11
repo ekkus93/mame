@@ -280,3 +280,28 @@ export type ResetMameResult = {
   sessionId: string;
   kind: "soft";
 };
+
+export type SaveMameStateRequest = {
+  sessionId: string;
+  slot: string;
+};
+
+export type SaveMameStateResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  machine: string;
+  software: string | null;
+  slot: string;
+  path: string;
+  bytes: number;
+  savedAtEpochMs: number;
+};
+
+export type SaveMameStateFailedEventV1 = {
+  schemaVersion: 1;
+  sessionId: string;
+  machine: string;
+  software: string | null;
+  slot: string;
+  error: AppErrorEnvelope;
+};

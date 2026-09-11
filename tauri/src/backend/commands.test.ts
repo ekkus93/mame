@@ -9,6 +9,7 @@ import {
   refreshMameMetadata,
   resetMame,
   resumeMame,
+  saveMameState,
 } from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -69,6 +70,24 @@ describe("typed backend commands", () => {
     await resetMame({ sessionId: "mame-1-1" });
     expect(invoke).toHaveBeenLastCalledWith("reset_mame", {
       request: { sessionId: "mame-1-1" },
+    });
+  });
+
+  it("uses the typed save-state command with a logical slot", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      sessionId: "mame-1-1",
+      machine: "pacman",
+      software: null,
+      slot: "quick1",
+      path: "/tmp/state.sta",
+      bytes: 1024,
+      savedAtEpochMs: 1,
+    });
+
+    await saveMameState({ sessionId: "mame-1-1", slot: "quick1" });
+    expect(invoke).toHaveBeenLastCalledWith("save_mame_state", {
+      request: { sessionId: "mame-1-1", slot: "quick1" },
     });
   });
 
