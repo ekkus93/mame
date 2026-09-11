@@ -9,7 +9,7 @@ fn replace_once(source: String, from: &str, to: &str, label: &str) -> String {
     assert_eq!(
         source.matches(from).count(),
         1,
-        "MT-708 composition anchor drifted: {label}"
+        "MT-709 composition anchor drifted: {label}"
     );
     source.replacen(from, to, 1)
 }
@@ -19,12 +19,16 @@ fn compose_runtime_control() {
     println!("cargo:rerun-if-changed=src/sessions/control_exit.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_save_state.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_load_state.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_mute.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_pause_resume.lua");
     println!("cargo:rerun-if-changed=src/sessions/control_load_state.lua");
+    println!("cargo:rerun-if-changed=src/sessions/control_mute.lua");
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo OUT_DIR"));
     let lua_extension = fs::read_to_string("src/sessions/control_load_state.lua")
         .expect("read MT-708 load-state Lua extension");
+    let mute_extension = fs::read_to_string("src/sessions/control_mute.lua")
+        .expect("read MT-709 user-mute Lua extension");
     let lua_source = fs::read_to_string("src/sessions/control_pause_resume.lua")
         .expect("read qualified runtime-control Lua source");
     let lua_source = replace_once(
@@ -63,8 +67,38 @@ fn compose_runtime_control() {
         "    if request.command == \"load_state\" then\n        handle_load_state(request, request_id)\n        return\n    end\n\n    if request.command == \"exit\" then",
         "load-state dispatcher",
     );
-    fs::write(out_dir.join("runtime_control_mt708.lua"), lua_source)
-        .expect("write composed MT-708 runtime-control Lua source");
+    let lua_source = replace_once(
+        lua_source,
+        "local supported_commands = { pause = true, resume = true, reset = true, exit = true, save_state = true, load_state = true }",
+        "local supported_commands = { pause = true, resume = true, reset = true, exit = true, save_state = true, load_state = true, set_mute = true }",
+        "MT-709 supported command set",
+    );
+    let lua_source = replace_once(
+        lua_source,
+        "            commands = { \"pause\", \"resume\", \"reset\", \"exit\", \"save_state\", \"load_state\" },",
+        "            commands = { \"pause\", \"resume\", \"reset\", \"exit\", \"save_state\", \"load_state\", \"set_mute\" },",
+        "MT-709 ready capability list",
+    );
+    let lua_source = replace_once(
+        lua_source,
+        "local function has_only_request_fields(request)",
+        &format!("{mute_extension}\n\nlocal function has_only_request_fields(request)"),
+        "MT-709 mute Lua helpers",
+    );
+    let lua_source = replace_once(
+        lua_source,
+        "    elseif request.command == \"load_state\" then\n        if not has_only_load_state_params(request.params) then\n            emit_rejected(request_id, \"PROTOCOL_INVALID_PARAMS\", \"Load state requires exactly a bounded state path, logical slot, completion path, and completion token.\", {}, false)\n            return\n        end\n    elseif not empty_table(request.params) then",
+        "    elseif request.command == \"load_state\" then\n        if not has_only_load_state_params(request.params) then\n            emit_rejected(request_id, \"PROTOCOL_INVALID_PARAMS\", \"Load state requires exactly a bounded state path, logical slot, completion path, and completion token.\", {}, false)\n            return\n        end\n    elseif request.command == \"set_mute\" then\n        if not has_only_set_mute_params(request.params) then\n            emit_rejected(request_id, \"PROTOCOL_INVALID_PARAMS\", \"Set mute requires exactly { muted = boolean }.\", {}, false)\n            return\n        end\n    elseif not empty_table(request.params) then",
+        "MT-709 mute parameter validation",
+    );
+    let lua_source = replace_once(
+        lua_source,
+        "    if request.command == \"exit\" then",
+        "    if request.command == \"set_mute\" then\n        handle_set_mute(request, request_id)\n        return\n    end\n\n    if request.command == \"exit\" then",
+        "MT-709 mute dispatcher",
+    );
+    fs::write(out_dir.join("runtime_control_mt709.lua"), lua_source)
+        .expect("write composed MT-709 runtime-control Lua source");
 
     let source = fs::read_to_string("src/sessions/control.rs")
         .expect("read qualified runtime-control source");
@@ -78,7 +112,7 @@ fn compose_runtime_control() {
         .join("\n")
         .replace(
             "include_str!(\"control_pause_resume.lua\")",
-            "include_str!(concat!(env!(\"OUT_DIR\"), \"/runtime_control_mt708.lua\"))",
+            "include_str!(concat!(env!(\"OUT_DIR\"), \"/runtime_control_mt709.lua\"))",
         );
 
     let mut composed = source;
@@ -91,7 +125,10 @@ fn compose_runtime_control() {
     composed.push_str(
         "\ninclude!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/sessions/control_load_state.rs\"));\n",
     );
+    composed.push_str(
+        "\ninclude!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/sessions/control_mute.rs\"));\n",
+    );
 
-    fs::write(out_dir.join("runtime_control_mt708.rs"), composed)
-        .expect("write composed MT-708 runtime-control source");
+    fs::write(out_dir.join("runtime_control_mt709.rs"), composed)
+        .expect("write composed MT-709 runtime-control source");
 }

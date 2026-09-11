@@ -1,7 +1,7 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
 mod control {
-    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt708.rs"));
+    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt709.rs"));
 }
 mod load_state;
 pub(crate) mod save_state;
@@ -116,6 +116,22 @@ pub struct ResetMameResult {
     pub schema_version: u32,
     pub session_id: String,
     pub kind: ResetKind,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetMameMuteRequest {
+    pub session_id: String,
+    pub muted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetMameMuteResult {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub ui_muted: bool,
+    pub effective_muted: bool,
 }
 
 #[tauri::command]
@@ -285,6 +301,18 @@ pub fn load_mame_state(
     app: AppHandle,
 ) -> AppResult<LoadMameStateResult> {
     load_state::load_mame_state_impl(request, supervisor, app)
+}
+
+#[tauri::command]
+pub fn set_mame_mute(request: SetMameMuteRequest) -> AppResult<SetMameMuteResult> {
+    let (ui_muted, effective_muted) =
+        control::set_session_ui_mute(&request.session_id, request.muted)?;
+    Ok(SetMameMuteResult {
+        schema_version: 1,
+        session_id: request.session_id,
+        ui_muted,
+        effective_muted,
+    })
 }
 
 fn set_mame_paused(session_id: String, paused: bool) -> AppResult<PauseMameResult> {
