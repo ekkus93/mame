@@ -1,8 +1,9 @@
 //! Supervised MAME process lifecycle and authoritative runtime session state.
 
 mod control {
-    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt706.rs"));
+    include!(concat!(env!("OUT_DIR"), "/runtime_control_mt707.rs"));
 }
+mod save_state;
 mod supervisor;
 mod supervisor_exit;
 
@@ -22,6 +23,9 @@ use crate::{
     storage,
 };
 
+pub use save_state::{
+    save_mame_state, SaveMameStateFailedEventV1, SaveMameStateRequest, SaveMameStateResult,
+};
 use supervisor::EventSink;
 pub use supervisor::{
     EffectiveLaunchConfig, EffectiveProjectPath, SessionLifecycleEventV1, SessionSnapshot,
