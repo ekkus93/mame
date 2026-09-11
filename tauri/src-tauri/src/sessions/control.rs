@@ -1,4 +1,4 @@
-//! Session-scoped runtime-control transport primitives for MT-703/MT-704.
+//! Session-scoped runtime-control transport primitives for MT-703/MT-704/MT-705.
 //!
 //! Rust owns the anonymous stdin writer. Protocol output shares MAME stdout and
 //! is separated from diagnostics by a per-session unpredictable frame token.
@@ -29,6 +29,7 @@ pub(super) const MAX_ENCODED_LINE_BYTES: usize = 24_576;
 pub(super) const CONTROL_READY_TIMEOUT_MS: u64 = 15_000;
 const CONTROL_RESPONSE_TIMEOUT: Duration = Duration::from_secs(5);
 const PAUSE_RESUME_COMPLETION_TIMEOUT: Duration = Duration::from_secs(5);
+const RESET_COMPLETION_TIMEOUT: Duration = Duration::from_secs(5);
 
 const FRAME_PREFIX: &str = "@@MAME_TAURI_CONTROL_V1@@";
 const TOKEN_BYTES: usize = 32;
@@ -45,7 +46,7 @@ const KNOWN_COMMANDS: [&str; 9] = [
     "set_volume",
     "query_state",
 ];
-const MT704_COMMANDS: [&str; 2] = ["pause", "resume"];
+const MT705_COMMANDS: [&str; 3] = ["pause", "resume", "reset"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ControlChannelState {
@@ -173,6 +174,24 @@ pub(super) fn set_session_paused(session_id: &str, paused: bool) -> AppResult<bo
     handle.set_paused(session_id, paused)
 }
 
+pub(super) fn reset_session_soft(session_id: &str) -> AppResult<()> {
+    let handle = {
+        let registry = recover_lock(control_registry());
+        registry
+            .active
+            .get(session_id)
+            .map(|active| active.handle.clone())
+            .ok_or_else(|| {
+                AppError::new(
+                    "CONTROL_CHANNEL_CLOSED",
+                    "The requested MAME session has no active runtime-control channel.",
+                )
+                .with_details(serde_json::json!({ "sessionId": session_id }))
+            })?
+    };
+    handle.reset_soft(session_id)
+}
+
 pub(super) struct ControlBootstrap {
     file: NamedTempFile,
     frame_token: String,
@@ -187,7 +206,7 @@ impl ControlBootstrap {
             session_id: session_id.to_owned(),
             event: "ready".to_owned(),
             payload: ReadyPayload {
-                commands: MT704_COMMANDS
+                commands: MT705_COMMANDS
                     .iter()
                     .map(|command| (*command).to_owned())
                     .collect(),
@@ -268,6 +287,7 @@ fn build_bootstrap_script(session_id: &str, frame_token: &str, ready_frame: &str
 enum CommandName {
     Pause,
     Resume,
+    Reset,
 }
 
 impl CommandName {
@@ -275,11 +295,16 @@ impl CommandName {
         match self {
             Self::Pause => "pause",
             Self::Resume => "resume",
+            Self::Reset => "reset",
         }
     }
 
-    fn expected_paused(self) -> bool {
-        matches!(self, Self::Pause)
+    fn expected_paused(self) -> Option<bool> {
+        match self {
+            Self::Pause => Some(true),
+            Self::Resume => Some(false),
+            Self::Reset => None,
+        }
     }
 }
 
@@ -289,6 +314,7 @@ struct PendingCommand {
     sender: Sender<CommandSignal>,
     accepted: bool,
     observed_paused: Option<bool>,
+    observed_reset: bool,
 }
 
 #[derive(Default)]
@@ -496,6 +522,89 @@ impl ControlRequestHandle {
         self.wait_for_command(receiver, &request_id, command)
     }
 
+    pub(super) fn reset_soft(&self, session_id: &str) -> AppResult<()> {
+        let _request_guard = recover_lock(&self.request_gate);
+        if control_state(&self.state) != ControlChannelState::Ready {
+            return Err(channel_state_error(control_state(&self.state)));
+        }
+
+        let command = CommandName::Reset;
+        if !runtime_supports(&self.runtime, command.wire_name()) {
+            return Err(AppError::new(
+                "CONTROL_UNSUPPORTED",
+                "The running MAME control shim does not advertise soft reset.",
+            )
+            .with_details(serde_json::json!({ "command": command.wire_name() })));
+        }
+
+        let request_id = format!(
+            "req-{}",
+            self.next_request_id.fetch_add(1, Ordering::Relaxed)
+        );
+        let mut params = Map::new();
+        params.insert("kind".to_owned(), Value::String("soft".to_owned()));
+        let request = RequestEnvelope {
+            version: PROTOCOL_VERSION,
+            message_type: "request",
+            session_id,
+            request_id: &request_id,
+            command: command.wire_name(),
+            params,
+        };
+        let json = serde_json::to_vec(&request).map_err(|error| {
+            AppError::new(
+                "CONTROL_REQUEST_SERIALIZE_FAILED",
+                "The runtime-control reset request could not be serialized.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        })?;
+        if json.len() > MAX_DECODED_MESSAGE_BYTES {
+            return Err(AppError::new(
+                "PROTOCOL_MESSAGE_TOO_LARGE",
+                "The runtime-control reset request exceeds the decoded message limit.",
+            ));
+        }
+        let encoded = base64url_encode(&json);
+        let line = format!(
+            "mame_tauri_control_v1(\"{}\",\"{}\")\n",
+            self.frame_token, encoded
+        );
+        if line.len() > MAX_ENCODED_LINE_BYTES {
+            return Err(AppError::new(
+                "PROTOCOL_MESSAGE_TOO_LARGE",
+                "The runtime-control reset request exceeds the encoded line limit.",
+            ));
+        }
+
+        let (sender, receiver) = mpsc::channel();
+        begin_request(&self.runtime, request_id.clone(), command, sender)?;
+        if control_state(&self.state) != ControlChannelState::Ready {
+            cancel_pending(&self.runtime, &request_id);
+            return Err(channel_state_error(control_state(&self.state)));
+        }
+
+        let write_result = {
+            let mut writer = recover_lock(&self.writer);
+            writer
+                .write_all(line.as_bytes())
+                .and_then(|_| writer.flush())
+        };
+        if let Err(error) = write_result {
+            set_control_state(&self.state, ControlChannelState::Failed);
+            notify_channel_failed(
+                &self.runtime,
+                "The runtime-control reset request could not be written to MAME.",
+            );
+            return Err(AppError::new(
+                "CONTROL_CHANNEL_FAILED",
+                "The runtime-control reset request could not be written to MAME.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() })));
+        }
+
+        self.wait_for_reset(receiver, &request_id)
+    }
+
     fn wait_for_command(
         &self,
         receiver: Receiver<CommandSignal>,
@@ -532,7 +641,9 @@ impl ControlRequestHandle {
             CommandSignal::Response(response) => match response.status.as_str() {
                 "completed" => extract_paused_result(
                     response.result.as_ref(),
-                    command.expected_paused(),
+                    command
+                        .expected_paused()
+                        .expect("pause/resume command has an expected pause state"),
                     request_id,
                 ),
                 "accepted" => {
@@ -576,7 +687,9 @@ impl ControlRequestHandle {
                 if completion.ok {
                     extract_paused_result(
                         completion.result.as_ref(),
-                        command.expected_paused(),
+                        command
+                            .expected_paused()
+                            .expect("pause/resume command has an expected pause state"),
                         request_id,
                     )
                 } else {
@@ -605,6 +718,111 @@ impl ControlRequestHandle {
                     "requestId": request_id,
                     "command": command.wire_name(),
                     "timeoutMs": PAUSE_RESUME_COMPLETION_TIMEOUT.as_millis()
+                })))
+            }
+            Err(ReceiveDeadlineError::ChannelState(state)) => {
+                cancel_pending(&self.runtime, request_id);
+                Err(channel_state_error(state))
+            }
+            Err(ReceiveDeadlineError::Disconnected) => Err(channel_closed_error()),
+        }
+    }
+
+    fn wait_for_reset(&self, receiver: Receiver<CommandSignal>, request_id: &str) -> AppResult<()> {
+        let command = CommandName::Reset;
+        let first = match recv_signal_until(&receiver, &self.state, CONTROL_RESPONSE_TIMEOUT) {
+            Ok(signal) => signal,
+            Err(ReceiveDeadlineError::Timeout) => {
+                cancel_pending(&self.runtime, request_id);
+                set_control_state(&self.state, ControlChannelState::Failed);
+                notify_channel_failed(
+                    &self.runtime,
+                    "The runtime-control peer did not acknowledge the reset request before the deadline.",
+                );
+                return Err(AppError::new(
+                    "CONTROL_RESPONSE_TIMEOUT",
+                    "MAME did not acknowledge the reset request before the deadline.",
+                )
+                .with_details(serde_json::json!({
+                    "requestId": request_id,
+                    "command": command.wire_name(),
+                    "timeoutMs": CONTROL_RESPONSE_TIMEOUT.as_millis()
+                })));
+            }
+            Err(ReceiveDeadlineError::ChannelState(state)) => {
+                cancel_pending(&self.runtime, request_id);
+                return Err(channel_state_error(state));
+            }
+            Err(ReceiveDeadlineError::Disconnected) => return Err(channel_closed_error()),
+        };
+
+        match first {
+            CommandSignal::Response(response) => match response.status.as_str() {
+                "accepted" => {
+                    if response
+                        .result
+                        .as_ref()
+                        .is_some_and(|result| !result.is_empty())
+                    {
+                        return Err(protocol_output_error(
+                            "An accepted reset response contained an unexpected result payload.",
+                        ));
+                    }
+                    self.wait_for_reset_completion(receiver, request_id)
+                }
+                "completed" => Err(protocol_output_error(
+                    "Soft reset cannot complete synchronously; notifier-backed completion is required.",
+                )),
+                "rejected" => Err(response
+                    .error
+                    .map(wire_error_to_app_error)
+                    .unwrap_or_else(|| protocol_output_error("A rejected response omitted its error."))),
+                _ => Err(protocol_output_error("The response status is invalid.")),
+            },
+            CommandSignal::Completion(_) => Err(protocol_output_error(
+                "A reset completion arrived before its request response.",
+            )),
+            CommandSignal::Closed => Err(channel_closed_error()),
+            CommandSignal::Failed(message) => Err(AppError::new("CONTROL_CHANNEL_FAILED", message)),
+        }
+    }
+
+    fn wait_for_reset_completion(
+        &self,
+        receiver: Receiver<CommandSignal>,
+        request_id: &str,
+    ) -> AppResult<()> {
+        match recv_signal_until(&receiver, &self.state, RESET_COMPLETION_TIMEOUT) {
+            Ok(CommandSignal::Completion(completion)) => {
+                if completion.ok {
+                    extract_reset_result(completion.result.as_ref(), request_id)
+                } else {
+                    Err(completion
+                        .error
+                        .map(wire_error_to_app_error)
+                        .unwrap_or_else(|| {
+                            protocol_output_error("A failed reset completion omitted its error.")
+                        }))
+                }
+            }
+            Ok(CommandSignal::Response(_)) => Err(protocol_output_error(
+                "The runtime-control peer emitted more than one response for a reset request.",
+            )),
+            Ok(CommandSignal::Closed) => Err(channel_closed_error()),
+            Ok(CommandSignal::Failed(message)) => {
+                Err(AppError::new("CONTROL_CHANNEL_FAILED", message))
+            }
+            Err(ReceiveDeadlineError::Timeout) => {
+                abandon_pending(&self.runtime, request_id, CommandName::Reset);
+                Err(AppError::new(
+                    "CONTROL_COMPLETION_TIMEOUT",
+                    "MAME accepted the soft reset but did not confirm reset completion before the deadline.",
+                )
+                .with_details(serde_json::json!({
+                    "requestId": request_id,
+                    "command": "reset",
+                    "kind": "soft",
+                    "timeoutMs": RESET_COMPLETION_TIMEOUT.as_millis()
                 })))
             }
             Err(ReceiveDeadlineError::ChannelState(state)) => {
@@ -669,6 +887,7 @@ fn begin_request(
         sender,
         accepted: false,
         observed_paused: None,
+        observed_reset: false,
     });
     Ok(())
 }
@@ -817,11 +1036,25 @@ fn deliver_completion(
         if !pending.accepted {
             return Err("A command completion arrived before its accepted response.".to_owned());
         }
-        if completion.ok && pending.observed_paused != Some(pending.command.expected_paused()) {
-            return Err(
-                "A successful command completion arrived without its notifier-backed pause-state event."
-                    .to_owned(),
-            );
+        if completion.ok {
+            match pending.command {
+                CommandName::Pause | CommandName::Resume => {
+                    if pending.observed_paused != pending.command.expected_paused() {
+                        return Err(
+                            "A successful pause/resume completion arrived without its notifier-backed pause-state event."
+                                .to_owned(),
+                        );
+                    }
+                }
+                CommandName::Reset => {
+                    if !pending.observed_reset {
+                        return Err(
+                            "A successful reset completion arrived without its notifier-backed reset event."
+                                .to_owned(),
+                        );
+                    }
+                }
+            }
         }
         let pending = correlation
             .pending
@@ -1139,6 +1372,18 @@ fn handle_event_output(
             record_pause_state(runtime, paused, event.request_id.as_deref())?;
             Ok(())
         }
+        "reset" => {
+            let request_id = event
+                .request_id
+                .as_deref()
+                .ok_or_else(|| "A reset event omitted its request ID.".to_owned())?;
+            if event.payload.len() != 1
+                || event.payload.get("kind").and_then(Value::as_str) != Some("soft")
+            {
+                return Err("A reset event has invalid soft-reset semantics.".to_owned());
+            }
+            record_reset(runtime, request_id)
+        }
         "command_completed" => {
             let request_id = event
                 .request_id
@@ -1182,7 +1427,7 @@ fn handle_event_output(
             if payload.fatal {
                 Err(format!("{}: {}", payload.error.code, payload.error.message))
             } else {
-                Err("Non-fatal protocol_error events are not supported by MT-704.".to_owned())
+                Err("Non-fatal protocol_error events are not supported by MT-705.".to_owned())
             }
         }
         _ => Err("Authenticated runtime-control output used an unsupported event name.".to_owned()),
@@ -1200,12 +1445,12 @@ fn record_pause_state(
             if pending.request_id != request_id {
                 return Err("A pause-state event referenced an unknown request ID.".to_owned());
             }
-            if pending.command.expected_paused() != paused {
+            if pending.command.expected_paused() != Some(paused) {
                 return Err("A pause-state event contradicted the pending command.".to_owned());
             }
             pending.observed_paused = Some(paused);
         } else if !correlation.abandoned.iter().any(|(abandoned_id, command)| {
-            abandoned_id == request_id && command.expected_paused() == paused
+            abandoned_id == request_id && command.expected_paused() == Some(paused)
         }) {
             return Err(
                 "A pause-state event referenced no outstanding or timed-out request.".to_owned(),
@@ -1218,6 +1463,30 @@ fn record_pause_state(
         sink(paused);
     }
     Ok(())
+}
+
+fn record_reset(runtime: &SharedControlRuntime, request_id: &str) -> Result<(), String> {
+    let mut correlation = recover_lock(&runtime.correlation);
+    if let Some(pending) = correlation.pending.as_mut() {
+        if pending.request_id != request_id {
+            return Err("A reset event referenced an unknown request ID.".to_owned());
+        }
+        if pending.command != CommandName::Reset {
+            return Err("A reset event contradicted the pending command.".to_owned());
+        }
+        pending.observed_reset = true;
+        return Ok(());
+    }
+
+    if correlation
+        .abandoned
+        .iter()
+        .any(|(abandoned_id, command)| abandoned_id == request_id && *command == CommandName::Reset)
+    {
+        return Ok(());
+    }
+
+    Err("A reset event referenced no outstanding or timed-out request.".to_owned())
 }
 
 fn validate_common_output(
@@ -1480,6 +1749,24 @@ fn extract_paused_result(
     Ok(paused)
 }
 
+fn extract_reset_result(result: Option<&Map<String, Value>>, request_id: &str) -> AppResult<()> {
+    let result = result.ok_or_else(|| {
+        protocol_output_error("A completed reset operation omitted its result object.")
+    })?;
+    if result.len() != 1 || result.get("kind").and_then(Value::as_str) != Some("soft") {
+        return Err(AppError::new(
+            "CONTROL_OPERATION_FAILED",
+            "MAME reported reset completion with unsupported semantics.",
+        )
+        .with_details(serde_json::json!({
+            "requestId": request_id,
+            "expectedKind": "soft",
+            "result": result
+        })));
+    }
+    Ok(())
+}
+
 fn wire_error_to_app_error(error: WireError) -> AppError {
     AppError {
         code: error.code,
@@ -1717,9 +2004,9 @@ mod tests {
     use super::{
         abandon_pending, base64url_decode, base64url_encode, begin_request, deliver_completion,
         deliver_response, generate_frame_token, notify_channel_closed, record_pause_state,
-        CommandCompletion, CommandName, CommandSignal, ControlBootstrap, ControlResponse,
-        ControlRuntime, ControlStdoutParser, ParserEvent, FRAME_PREFIX, MAX_DECODED_MESSAGE_BYTES,
-        TOKEN_REDACTION,
+        record_reset, CommandCompletion, CommandName, CommandSignal, ControlBootstrap,
+        ControlResponse, ControlRuntime, ControlStdoutParser, ParserEvent, FRAME_PREFIX,
+        MAX_DECODED_MESSAGE_BYTES, TOKEN_REDACTION,
     };
 
     #[test]
@@ -1744,13 +2031,17 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_is_private_and_advertises_pause_resume() {
+    fn bootstrap_is_private_and_advertises_pause_resume_and_soft_reset() {
         let bootstrap = ControlBootstrap::create("mame-123-1").expect("bootstrap");
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
         assert!(script.contains("emu.add_machine_pause_notifier"));
         assert!(script.contains("emu.add_machine_resume_notifier"));
         assert!(script.contains("pcall(emu.pause)"));
         assert!(script.contains("pcall(emu.unpause)"));
+        assert!(script.contains("emu.add_machine_reset_notifier"));
+        assert!(script.contains("manager.machine:soft_reset()"));
+        assert!(!script.contains("hard_reset()"));
+        assert!(script.contains("CONTROL_UNSUPPORTED_RESET_KIND"));
         let ready_frame = script
             .lines()
             .find_map(|line| {
@@ -1770,7 +2061,7 @@ mod tests {
         assert_eq!(ready["event"], "ready");
         assert_eq!(
             ready["payload"]["commands"],
-            serde_json::json!(["pause", "resume"])
+            serde_json::json!(["pause", "resume", "reset"])
         );
         assert_eq!(
             ready["payload"]["maxMessageBytes"],
@@ -1842,6 +2133,102 @@ mod tests {
             receiver.recv().expect("accepted signal"),
             CommandSignal::Response(_)
         ));
+        assert!(matches!(
+            receiver.recv().expect("completion signal"),
+            CommandSignal::Completion(_)
+        ));
+    }
+
+    #[test]
+    fn parser_accepts_notifier_backed_soft_reset_completion() {
+        let token = "R".repeat(43);
+        let runtime = std::sync::Arc::new(ControlRuntime::default());
+        let (sender, receiver) = mpsc::channel();
+        begin_request(&runtime, "req-reset".to_owned(), CommandName::Reset, sender)
+            .expect("begin reset request");
+        let ready = serde_json::json!({
+            "version": 1,
+            "type": "event",
+            "sessionId": "mame-1-1",
+            "event": "ready",
+            "payload": {"commands": ["pause", "resume", "reset"], "maxMessageBytes": 16384}
+        });
+        let accepted = serde_json::json!({
+            "version": 1,
+            "type": "response",
+            "sessionId": "mame-1-1",
+            "requestId": "req-reset",
+            "status": "accepted",
+            "ok": true,
+            "result": {}
+        });
+        let reset = serde_json::json!({
+            "version": 1,
+            "type": "event",
+            "sessionId": "mame-1-1",
+            "event": "reset",
+            "requestId": "req-reset",
+            "payload": {"kind": "soft"}
+        });
+        let completed = serde_json::json!({
+            "version": 1,
+            "type": "event",
+            "sessionId": "mame-1-1",
+            "event": "command_completed",
+            "requestId": "req-reset",
+            "payload": {"command": "reset", "ok": true, "result": {"kind": "soft"}}
+        });
+        let stream = [ready, accepted, reset, completed]
+            .into_iter()
+            .map(|message| protocol_frame(&token, &message))
+            .collect::<String>();
+        let mut parser =
+            ControlStdoutParser::new_for_test("mame-1-1".to_owned(), token, runtime.clone());
+        let batch = parser.feed(stream.as_bytes());
+        assert_eq!(batch.events, vec![ParserEvent::Ready]);
+        assert!(matches!(
+            receiver.recv().expect("accepted reset signal"),
+            CommandSignal::Response(_)
+        ));
+        assert!(matches!(
+            receiver.recv().expect("completed reset signal"),
+            CommandSignal::Completion(_)
+        ));
+    }
+
+    #[test]
+    fn reset_completion_requires_reset_notifier_evidence() {
+        let runtime = std::sync::Arc::new(ControlRuntime::default());
+        let (sender, receiver) = mpsc::channel();
+        begin_request(&runtime, "req-reset".to_owned(), CommandName::Reset, sender)
+            .expect("begin reset request");
+        deliver_response(
+            &runtime,
+            ControlResponse {
+                request_id: "req-reset".to_owned(),
+                status: "accepted".to_owned(),
+                result: Some(serde_json::Map::new()),
+                error: None,
+            },
+        )
+        .expect("accepted reset response");
+        assert!(matches!(
+            receiver.recv().expect("accepted signal"),
+            CommandSignal::Response(_)
+        ));
+        let completion = CommandCompletion {
+            request_id: "req-reset".to_owned(),
+            command: "reset".to_owned(),
+            ok: true,
+            result: Some(serde_json::Map::from_iter([(
+                "kind".to_owned(),
+                Value::String("soft".to_owned()),
+            )])),
+            error: None,
+        };
+        assert!(deliver_completion(&runtime, completion.clone()).is_err());
+        record_reset(&runtime, "req-reset").expect("reset notifier evidence");
+        deliver_completion(&runtime, completion).expect("completion after notifier");
         assert!(matches!(
             receiver.recv().expect("completion signal"),
             CommandSignal::Completion(_)
