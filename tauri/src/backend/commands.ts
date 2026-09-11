@@ -19,6 +19,8 @@ import {
   type PauseMameRequest,
   type PauseMameResult,
   type RefreshMameMetadataRequest,
+  type ResetMameRequest,
+  type ResetMameResult,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
   type SoftwareListPage,
@@ -81,6 +83,10 @@ export async function pauseMame(request: PauseMameRequest): Promise<PauseMameRes
 
 export async function resumeMame(request: PauseMameRequest): Promise<PauseMameResult> {
   return invoke<PauseMameResult>("resume_mame", { request });
+}
+
+export async function resetMame(request: ResetMameRequest): Promise<ResetMameResult> {
+  return invoke<ResetMameResult>("reset_mame", { request });
 }
 
 export async function getLibraryFavorite(request: MachineDetailRequest): Promise<FavoriteState> {

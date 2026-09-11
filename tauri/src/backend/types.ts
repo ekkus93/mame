@@ -270,3 +270,13 @@ export type PauseMameResult = {
 };
 
 export type SessionPauseEventV1 = PauseMameResult;
+
+export type ResetMameRequest = {
+  sessionId: string;
+};
+
+export type ResetMameResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  kind: "soft";
+};

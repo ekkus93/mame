@@ -7,6 +7,7 @@ import {
   pauseMame,
   queryMameLibrary,
   refreshMameMetadata,
+  resetMame,
   resumeMame,
 } from "./commands";
 
@@ -48,7 +49,7 @@ describe("typed backend commands", () => {
     expect(invoke).toHaveBeenLastCalledWith("get_mame_metadata_status", { request });
   });
 
-  it("uses dedicated typed pause and resume commands", async () => {
+  it("uses dedicated typed pause, resume, and reset commands", async () => {
     vi.mocked(invoke).mockResolvedValue({
       schemaVersion: 1,
       sessionId: "mame-1-1",
@@ -62,6 +63,11 @@ describe("typed backend commands", () => {
 
     await resumeMame({ sessionId: "mame-1-1" });
     expect(invoke).toHaveBeenLastCalledWith("resume_mame", {
+      request: { sessionId: "mame-1-1" },
+    });
+
+    await resetMame({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("reset_mame", {
       request: { sessionId: "mame-1-1" },
     });
   });

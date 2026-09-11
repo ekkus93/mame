@@ -42,6 +42,7 @@ pub fn run() -> Result<(), tauri::Error> {
             sessions::get_mame_session,
             sessions::pause_mame,
             sessions::resume_mame,
+            sessions::reset_mame,
             sessions::stop_mame,
             metadata::refresh_mame_metadata,
             metadata::get_mame_metadata_status,
