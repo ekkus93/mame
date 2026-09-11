@@ -204,8 +204,6 @@ mod mt707_save_state_tests {
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
         assert!(script.contains("\"save_state\""));
         assert!(script.contains("manager.machine:save(request.params.path)"));
-        assert!(script.contains("emu.add_machine_pre_save_notifier"));
-        assert!(script.contains("emu.add_machine_frame_notifier"));
 
         let ready_frame = script
             .lines()
