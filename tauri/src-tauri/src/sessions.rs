@@ -3,7 +3,7 @@
 mod control {
     include!(concat!(env!("OUT_DIR"), "/runtime_control_mt707.rs"));
 }
-mod save_state;
+pub mod save_state;
 mod supervisor;
 mod supervisor_exit;
 
@@ -23,9 +23,7 @@ use crate::{
     storage,
 };
 
-pub use save_state::{
-    save_mame_state, SaveMameStateFailedEventV1, SaveMameStateRequest, SaveMameStateResult,
-};
+pub use save_state::{SaveMameStateFailedEventV1, SaveMameStateRequest, SaveMameStateResult};
 use supervisor::EventSink;
 pub use supervisor::{
     EffectiveLaunchConfig, EffectiveProjectPath, SessionLifecycleEventV1, SessionSnapshot,
@@ -174,8 +172,6 @@ pub(crate) fn launch_mame_with_source(
             .collect(),
     };
 
-    // Validate identifiers and project-controlled paths before persisting an
-    // attempt, so invalid frontend input never becomes durable user history.
     build_launch_argv(&target)?;
     let catalog_path = storage::catalog_path(&app)?;
     let launch_preferences = machine_settings::effective_launch_preferences(
