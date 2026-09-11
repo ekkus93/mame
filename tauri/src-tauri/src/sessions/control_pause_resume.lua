@@ -16,7 +16,7 @@ local known_commands = {
     set_volume = true,
     query_state = true
 }
-local supported_commands = { pause = true, resume = true, reset = true, exit = true }
+local supported_commands = { pause = true, resume = true, reset = true, exit = true, save_state = true }
 local control_state = {
     seen_request_ids = {},
     seen_request_order = {},
@@ -130,7 +130,7 @@ local function emit_ready()
         sessionId = session_id,
         event = "ready",
         payload = {
-            commands = { "pause", "resume", "reset", "exit" },
+            commands = { "pause", "resume", "reset", "exit", "save_state" },
             maxMessageBytes = max_message_bytes
         }
     })
@@ -303,6 +303,25 @@ local function has_only_soft_reset_params(value)
     return true
 end
 
+local function has_only_save_state_params(value)
+    if type(value) ~= "table"
+        or type(value.path) ~= "string"
+        or #value.path < 1
+        or #value.path > 4096
+        or type(value.slot) ~= "string"
+        or #value.slot < 1
+        or #value.slot > 32
+        or value.slot:match("^[A-Za-z0-9][A-Za-z0-9_-]*$") == nil then
+        return false
+    end
+    for key, _ in pairs(value) do
+        if key ~= "path" and key ~= "slot" then
+            return false
+        end
+    end
+    return true
+end
+
 function mame_tauri_control_v1(token, payload)
     if token ~= expected_token then
         return
@@ -372,6 +391,11 @@ function mame_tauri_control_v1(token, payload)
             emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Soft reset requires exactly { kind = \"soft\" }.", {}, false)
             return
         end
+    elseif request.command == "save_state" then
+        if not has_only_save_state_params(request.params) then
+            emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Save state requires exactly a bounded UTF-8 path and logical slot.", {}, false)
+            return
+        end
     elseif not empty_table(request.params) then
         emit_rejected(request_id, "PROTOCOL_INVALID_PARAMS", "Pause, resume, and exit require an empty parameter object.", {}, false)
         return
@@ -403,6 +427,17 @@ function mame_tauri_control_v1(token, payload)
         if not ok then
             control_state.pending_resume = nil
             emit_command_failed(request_id, "resume", tostring(err))
+        end
+        return
+    end
+
+    if request.command == "save_state" then
+        emit_accepted(request_id)
+        local ok, err = pcall(function ()
+            manager.machine:save(request.params.path)
+        end)
+        if not ok then
+            emit_protocol_error("CONTROL_OPERATION_FAILED", "MAME rejected the native save-state request: " .. tostring(err))
         end
         return
     end
