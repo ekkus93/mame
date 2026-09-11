@@ -244,3 +244,9 @@ mod mt710_query_state_tests {
         assert!(!script.contains("memory"));
     }
 }
+
+#[cfg(test)]
+include!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/sessions/control_adversarial.rs"
+));
