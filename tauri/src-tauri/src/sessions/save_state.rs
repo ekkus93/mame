@@ -66,21 +66,38 @@ pub fn save_mame_state(
     let result = save_state_for_session(&app, &session, &request.slot);
     match result {
         Ok(result) => {
-            let _ = app.emit("session.state_saved", result.clone());
+            if let Err(error) = app.emit("session.state_saved", result.clone()) {
+                return Err(AppError::new(
+                    "SAVE_STATE_EVENT_EMIT_FAILED",
+                    "The save state was written successfully, but its success event could not be emitted.",
+                )
+                .with_details(serde_json::json!({
+                    "event": "session.state_saved",
+                    "cause": error.to_string(),
+                    "saved": result
+                })));
+            }
             Ok(result)
         }
-        Err(error) => {
-            let _ = app.emit(
-                "session.state_save_failed",
-                SaveMameStateFailedEventV1 {
-                    schema_version: 1,
-                    session_id: session.session_id,
-                    machine: session.machine,
-                    software: session.software,
-                    slot: request.slot,
-                    error: error.clone(),
-                },
-            );
+        Err(mut error) => {
+            let failed_event = SaveMameStateFailedEventV1 {
+                schema_version: 1,
+                session_id: session.session_id,
+                machine: session.machine,
+                software: session.software,
+                slot: request.slot,
+                error: error.clone(),
+            };
+            if let Err(emit_error) = app.emit("session.state_save_failed", failed_event) {
+                let operation_details = std::mem::take(&mut error.details);
+                error.details = serde_json::json!({
+                    "operation": operation_details,
+                    "eventEmission": {
+                        "event": "session.state_save_failed",
+                        "cause": emit_error.to_string()
+                    }
+                });
+            }
             Err(error)
         }
     }
@@ -227,23 +244,22 @@ fn wait_for_save_file(path: &Path, machine: &str, session_id: &str) -> AppResult
                 previous_size = None;
                 stable_polls = 0;
             }
-            Err(error) => {
-                let _ = remove_if_exists(path);
-                return Err(error);
-            }
+            Err(error) => return Err(with_pending_cleanup(error, path)),
         }
 
         if Instant::now() >= deadline {
-            let _ = remove_if_exists(path);
-            return Err(AppError::new(
-                "SAVE_STATE_COMPLETION_TIMEOUT",
-                "MAME accepted the save-state request but no complete, valid state file appeared before the deadline.",
-            )
-            .with_details(serde_json::json!({
-                "sessionId": session_id,
-                "machine": machine,
-                "timeoutMs": SAVE_STATE_COMPLETION_TIMEOUT.as_millis()
-            })));
+            return Err(with_pending_cleanup(
+                AppError::new(
+                    "SAVE_STATE_COMPLETION_TIMEOUT",
+                    "MAME accepted the save-state request but no complete, valid state file appeared before the deadline.",
+                )
+                .with_details(serde_json::json!({
+                    "sessionId": session_id,
+                    "machine": machine,
+                    "timeoutMs": SAVE_STATE_COMPLETION_TIMEOUT.as_millis()
+                })),
+                path,
+            ));
         }
         thread::sleep(SAVE_STATE_POLL_INTERVAL);
     }
@@ -312,19 +328,54 @@ fn promote_verified_state(pending: &Path, final_path: &Path, backup: &Path) -> A
     }
 
     if let Err(error) = fs::rename(pending, final_path) {
-        if had_previous {
-            let _ = fs::rename(backup, final_path);
-        }
+        let rollback_error = if had_previous {
+            fs::rename(backup, final_path)
+                .err()
+                .map(|rollback| rollback.to_string())
+        } else {
+            None
+        };
         return Err(AppError::new(
             "SAVE_STATE_PROMOTE_FAILED",
             "The verified MAME state file could not be promoted into its logical slot.",
         )
-        .with_details(serde_json::json!({ "cause": error.to_string() })));
+        .with_details(serde_json::json!({
+            "cause": error.to_string(),
+            "previousSlotRollbackFailure": rollback_error
+        })));
     }
     if had_previous {
-        remove_if_exists(backup)?;
+        remove_if_exists(backup).map_err(|error| {
+            AppError::new(
+                "SAVE_STATE_BACKUP_CLEANUP_FAILED",
+                "The new save state was promoted, but the previous-slot backup could not be removed.",
+            )
+            .with_details(serde_json::json!({
+                "finalStatePreserved": true,
+                "cleanup": {
+                    "code": error.code,
+                    "message": error.message,
+                    "details": error.details
+                }
+            }))
+        })?;
     }
     Ok(())
+}
+
+fn with_pending_cleanup(mut error: AppError, path: &Path) -> AppError {
+    if let Err(cleanup_error) = remove_if_exists(path) {
+        let operation_details = std::mem::take(&mut error.details);
+        error.details = serde_json::json!({
+            "operation": operation_details,
+            "pendingCleanup": {
+                "code": cleanup_error.code,
+                "message": cleanup_error.message,
+                "details": cleanup_error.details
+            }
+        });
+    }
+    error
 }
 
 fn remove_if_exists(path: &Path) -> AppResult<()> {
