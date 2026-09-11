@@ -619,8 +619,8 @@ transient launch overrides
 
 ## MT-705 — Implement reset
 
-- [ ] supported reset semantics documented.
-- [ ] command/result.
+- [x] supported reset semantics documented.
+- [x] command/result.
 
 ## MT-706 — Implement clean exit command
 
