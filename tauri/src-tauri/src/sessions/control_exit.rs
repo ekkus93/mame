@@ -183,6 +183,7 @@ mod mt706_exit_tests {
     fn bootstrap_dispatches_native_clean_exit() {
         let bootstrap = ControlBootstrap::create("mame-706-1").expect("MT-706 bootstrap");
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
+        assert!(script.contains("commands = { \"pause\", \"resume\", \"reset\", \"exit\" }"));
         assert!(script.contains("manager.machine:exit()"));
         assert!(script.contains("Pause, resume, and exit require an empty parameter object."));
     }

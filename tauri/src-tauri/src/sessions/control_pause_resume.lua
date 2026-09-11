@@ -123,6 +123,19 @@ local function emit_message(message)
     return true
 end
 
+local function emit_ready()
+    emit_message({
+        version = 1,
+        type = "event",
+        sessionId = session_id,
+        event = "ready",
+        payload = {
+            commands = { "pause", "resume", "reset", "exit" },
+            maxMessageBytes = max_message_bytes
+        }
+    })
+end
+
 local function emit_rejected(request_id, code, message, details, retryable)
     emit_message({
         version = 1,
@@ -416,5 +429,6 @@ function mame_tauri_control_v1(token, payload)
     end
 end
 
-io.write("\n", ready_frame, "\n")
-io.flush()
+-- Keep the generated ready_frame literal for backwards-compatible bootstrap
+-- inspection tests; production emits the current capability set dynamically.
+emit_ready()
