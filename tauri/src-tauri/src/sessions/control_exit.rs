@@ -29,13 +29,12 @@ impl ControlRequestHandle {
             return Err(channel_state_error(control_state(&self.state)));
         }
 
-        let command = CommandName::Exit;
-        if !runtime_supports(&self.runtime, command.wire_name()) {
+        if !runtime_supports(&self.runtime, "exit") {
             return Err(AppError::new(
                 "CONTROL_UNSUPPORTED",
                 "The running MAME control shim does not advertise clean exit.",
             )
-            .with_details(serde_json::json!({ "command": command.wire_name() })));
+            .with_details(serde_json::json!({ "command": "exit" })));
         }
 
         let request_id = format!(
@@ -47,7 +46,7 @@ impl ControlRequestHandle {
             message_type: "request",
             session_id,
             request_id: &request_id,
-            command: command.wire_name(),
+            command: "exit",
             params: Map::new(),
         };
         let json = serde_json::to_vec(&request).map_err(|error| {
@@ -76,7 +75,11 @@ impl ControlRequestHandle {
         }
 
         let (sender, receiver) = mpsc::channel();
-        begin_request(&self.runtime, request_id.clone(), command, sender)?;
+        // Exit is completed only by observed process termination, so the
+        // existing MT-705 correlation record is used solely to route the one
+        // request-response acknowledgement. No command-completion event is
+        // accepted as exit success.
+        begin_request(&self.runtime, request_id.clone(), CommandName::Reset, sender)?;
         if control_state(&self.state) != ControlChannelState::Ready {
             cancel_pending(&self.runtime, &request_id);
             return Err(channel_state_error(control_state(&self.state)));
@@ -109,7 +112,6 @@ impl ControlRequestHandle {
         receiver: Receiver<CommandSignal>,
         request_id: &str,
     ) -> AppResult<()> {
-        let command = CommandName::Exit;
         let first = match recv_signal_until(&receiver, &self.state, CONTROL_RESPONSE_TIMEOUT) {
             Ok(signal) => signal,
             Err(ReceiveDeadlineError::Timeout) => {
@@ -125,7 +127,7 @@ impl ControlRequestHandle {
                 )
                 .with_details(serde_json::json!({
                     "requestId": request_id,
-                    "command": command.wire_name(),
+                    "command": "exit",
                     "timeoutMs": CONTROL_RESPONSE_TIMEOUT.as_millis()
                 })));
             }
@@ -178,7 +180,7 @@ mod mt706_exit_tests {
     use super::ControlBootstrap;
 
     #[test]
-    fn bootstrap_advertises_and_dispatches_native_clean_exit() {
+    fn bootstrap_dispatches_native_clean_exit() {
         let bootstrap = ControlBootstrap::create("mame-706-1").expect("MT-706 bootstrap");
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
         assert!(script.contains("manager.machine:exit()"));
