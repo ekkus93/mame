@@ -342,3 +342,18 @@ export type SetMameMuteResult = {
   uiMuted: boolean;
   effectiveMuted: boolean;
 };
+
+export type QueryMameRuntimeStateRequest = {
+  sessionId: string;
+};
+
+export type QueryMameRuntimeStateResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  running: boolean;
+  paused: boolean;
+  machine: string;
+  software: string | null;
+  uiMuted: boolean;
+  effectiveMuted: boolean;
+};
