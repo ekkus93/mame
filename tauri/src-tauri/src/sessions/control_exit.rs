@@ -185,7 +185,7 @@ mod mt706_exit_tests {
         let script = fs::read_to_string(bootstrap.path()).expect("read bootstrap");
         let ready_capabilities = script
             .lines()
-            .find(|line| line.contains("commands = {"))
+            .find(|line| line.trim_start().starts_with("commands = {"))
             .expect("ready capability list");
         assert!(ready_capabilities.contains("\"exit\""));
         assert!(script.contains("manager.machine:exit()"));
