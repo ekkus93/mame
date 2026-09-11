@@ -624,8 +624,8 @@ transient launch overrides
 
 ## MT-706 — Implement clean exit command
 
-- [ ] prefer protocol exit before process kill.
-- [ ] integrate with MT-207 escalation path.
+- [x] prefer protocol exit before process kill.
+- [x] integrate with MT-207 escalation path.
 
 ## MT-707 — Implement save state
 
