@@ -512,11 +512,13 @@ fn list_records(
 
     let mut statement = connection
         .prepare(
-            "SELECT id, schema_version, machine, software, mame_version, mame_build,\
-                    mame_raw_version_line, saved_at_epoch_ms, slot, state_path, bytes, screenshot_json\
-             FROM save_state_records\
-             ORDER BY saved_at_epoch_ms DESC, id DESC\
-             LIMIT ?1 OFFSET ?2",
+            r#"
+SELECT id, schema_version, machine, software, mame_version, mame_build,
+       mame_raw_version_line, saved_at_epoch_ms, slot, state_path, bytes, screenshot_json
+FROM save_state_records
+ORDER BY saved_at_epoch_ms DESC, id DESC
+LIMIT ?1 OFFSET ?2
+"#,
         )
         .map_err(|error| database_error("SAVE_STATE_RECORD_LIST_FAILED", error))?;
     let rows = statement
@@ -534,9 +536,12 @@ fn list_records(
 fn load_record(connection: &mut Connection, record_id: i64) -> AppResult<SaveStateRecordV1> {
     let record = connection
         .query_row(
-            "SELECT id, schema_version, machine, software, mame_version, mame_build,\
-                    mame_raw_version_line, saved_at_epoch_ms, slot, state_path, bytes, screenshot_json\
-             FROM save_state_records WHERE id = ?1",
+            r#"
+SELECT id, schema_version, machine, software, mame_version, mame_build,
+       mame_raw_version_line, saved_at_epoch_ms, slot, state_path, bytes, screenshot_json
+FROM save_state_records
+WHERE id = ?1
+"#,
             [record_id],
             row_to_record,
         )
