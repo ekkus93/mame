@@ -90,19 +90,24 @@ export function SessionControlPanel({ onStopped }: { onStopped: () => void }) {
     return (
       <section className="status-card" aria-live="polite" aria-label="MAME session status">
         <strong>Session idle</strong>
-        <p className={state.warning ? "error-message" : undefined} role={state.warning ? "alert" : "status"}>
+        <p
+          className={state.warning ? "error-message" : undefined}
+          role={state.warning ? "alert" : "status"}
+        >
           {state.message}
         </p>
       </section>
     );
   }
 
-  const session = state.status === "error" ? state.session : state.session;
+  const session = state.session;
   if (!session) {
     return (
       <section className="status-card" role="alert" aria-label="MAME session status">
         <strong>Session status unavailable</strong>
-        <p className="error-message">{state.status === "error" ? state.message : "Unknown error"}</p>
+        <p className="error-message">
+          {state.status === "error" ? state.message : "Unknown error"}
+        </p>
         <button type="button" className="secondary-button" onClick={refresh}>
           Retry
         </button>
