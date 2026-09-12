@@ -1,0 +1,99 @@
+name: Tauri native MAME tiny
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tauri-native-mame.yml"
+      - "makefile"
+      - "src/**"
+      - "3rdparty/**"
+      - "scripts/**"
+      - "!scripts/tauri/**"
+      - "tests/tauri/native/**"
+  pull_request:
+    paths:
+      - ".github/workflows/tauri-native-mame.yml"
+      - "makefile"
+      - "src/**"
+      - "3rdparty/**"
+      - "scripts/**"
+      - "!scripts/tauri/**"
+      - "tests/tauri/native/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-tiny:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install native MAME build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            python3 \
+            pkg-config \
+            libsdl3-dev \
+            libsdl3-ttf-dev \
+            libfontconfig1-dev \
+            libasound2-dev \
+            libpulse-dev \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxinerama-dev \
+            libxi-dev
+
+      - name: Build representative SUBTARGET=tiny emulator
+        env:
+          SUBTARGET: tiny
+          USE_SDL3: "1"
+          TOOLS: "0"
+          NO_USE_MIDI: "1"
+          NO_USE_PORTAUDIO: "1"
+          USE_QTDEBUG: "0"
+        run: make -j2
+
+      - name: Validate native tiny emulator
+        run: |
+          test -x ./mametiny
+          ./mametiny -validate
+
+      - name: Capture version and listxml provenance
+        run: |
+          mkdir -p build/tauri-native-evidence
+          ./mametiny -version | tee build/tauri-native-evidence/version.txt
+          ./mametiny -listxml > build/tauri-native-evidence/listxml-full.xml
+          python3 tests/tauri/native/capture_listxml_fixture.py \
+            --input build/tauri-native-evidence/listxml-full.xml \
+            --output build/tauri-native-evidence/listxml-representative-captured.xml \
+            --provenance build/tauri-native-evidence/listxml-provenance.json \
+            --version-file build/tauri-native-evidence/version.txt \
+            --git-sha "$GITHUB_SHA"
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse("build/tauri-native-evidence/listxml-representative-captured.xml")
+          print("--- BEGIN TAURI LISTXML PROVENANCE ---")
+          print(open("build/tauri-native-evidence/listxml-provenance.json", encoding="utf-8").read(), end="")
+          print("--- END TAURI LISTXML PROVENANCE ---")
+          print("--- BEGIN TAURI LISTXML FIXTURE ---")
+          print(open("build/tauri-native-evidence/listxml-representative-captured.xml", encoding="utf-8").read(), end="")
+          print("--- END TAURI LISTXML FIXTURE ---")
+          PY
+
+      - name: Upload native validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mametiny-linux-evidence-${{ github.sha }}
+          path: |
+            build/tauri-native-evidence/version.txt
+            build/tauri-native-evidence/listxml-full.xml
+            build/tauri-native-evidence/listxml-representative-captured.xml
+            build/tauri-native-evidence/listxml-provenance.json
+          if-no-files-found: error
