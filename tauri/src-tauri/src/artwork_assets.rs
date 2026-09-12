@@ -151,9 +151,7 @@ fn read_artwork_asset_from_roots(
     if metadata.len() > MAX_ARTWORK_PREVIEW_BYTES {
         return Err(AppError::new(
             "ARTWORK_ASSET_TOO_LARGE",
-            format!(
-                "Artwork previews are limited to {MAX_ARTWORK_PREVIEW_BYTES} bytes per asset."
-            ),
+            format!("Artwork previews are limited to {MAX_ARTWORK_PREVIEW_BYTES} bytes per asset."),
         )
         .with_details(serde_json::json!({
             "assetId": asset_id,
