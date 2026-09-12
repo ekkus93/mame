@@ -1,0 +1,76 @@
+name: MT-1303 safe RNG fix
+
+on:
+  push:
+    branches:
+      - ralph/mt-1303-windows-packaging
+    paths:
+      - ".github/workflows/mt1303-safe-rng-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            tauri
+            .github/workflows
+
+      - name: Replace platform FFI with safe getrandom
+        shell: python
+        run: |
+          from pathlib import Path
+
+          control = Path("tauri/src-tauri/src/sessions/control.rs")
+          text = control.read_text()
+          start = text.index("#[cfg(unix)]\nfn fill_os_random")
+          end = text.index("\nfn base64url_encode", start)
+          replacement = '''fn fill_os_random(bytes: &mut [u8]) -> AppResult<()> {
+              getrandom::fill(bytes).map_err(|error| {
+                  AppError::new(
+                      "CONTROL_TOKEN_GENERATION_FAILED",
+                      "A cryptographically secure per-session runtime-control token could not be generated.",
+                  )
+                  .with_details(serde_json::json!({ "cause": error.to_string() }))
+              })
+          }
+          '''
+          control.write_text(text[:start] + replacement + text[end:])
+
+          manifest = Path("tauri/src-tauri/Cargo.toml")
+          text = manifest.read_text()
+          anchor = "[dependencies]\n"
+          dependency = 'getrandom = "=0.3.4"\n'
+          if dependency not in text:
+              if text.count(anchor) != 1:
+                  raise SystemExit("Cargo.toml dependency anchor drifted")
+              text = text.replace(anchor, anchor + dependency, 1)
+              manifest.write_text(text)
+
+      - name: Refresh Cargo lockfile deterministically
+        working-directory: tauri/src-tauri
+        run: cargo metadata --format-version 1 --locked >/dev/null || cargo metadata --format-version 1 >/dev/null
+
+      - name: Verify intended dependency resolution
+        working-directory: tauri/src-tauri
+        run: |
+          grep -F 'getrandom = "=0.3.4"' Cargo.toml
+          grep -A15 -F 'name = "mame-tauri"' Cargo.lock | grep -F '"getrandom 0.3.4"'
+          ! grep -q 'BCryptGenRandom' src/sessions/control.rs
+          ! grep -q 'unsafe {' src/sessions/control.rs
+
+      - name: Commit atomic portability fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/mt1303-safe-rng-fix.yml
+          git add tauri/src-tauri/Cargo.toml tauri/src-tauri/Cargo.lock tauri/src-tauri/src/sessions/control.rs
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: use safe cross-platform runtime token RNG"
+          git push origin HEAD:ralph/mt-1303-windows-packaging
