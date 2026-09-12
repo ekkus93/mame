@@ -9,6 +9,7 @@ import {
   type GeneralSettings,
   type LaunchPreferences,
 } from "../backend/generalSettings";
+import { ArtworkConfigurationPanel } from "./ArtworkConfigurationPanel";
 import { ControllerConfigurationPanel } from "./ControllerConfigurationPanel";
 import { PathConfigurationPanel } from "./PathConfigurationPanel";
 import "./generalSettings.css";
@@ -126,9 +127,9 @@ export function GeneralSettingsPanel({
           <p className="eyebrow">Application configuration</p>
           <h2 id="general-settings-heading">General settings</h2>
           <p>
-            Configure the MAME executable, content search paths, and bounded launch preferences.
-            Existing MAME-owned INI and CFG files remain authoritative unless a launch preference
-            explicitly supplies a command-line override.
+            Configure the MAME executable, content search paths, local artwork, and bounded launch
+            preferences. Existing MAME-owned INI and CFG files remain authoritative unless a launch
+            preference explicitly supplies a command-line override.
           </p>
         </div>
       </div>
@@ -271,6 +272,8 @@ export function GeneralSettingsPanel({
           <ControllerConfigurationPanel allowCapture />
 
           <PathConfigurationPanel onContentPathsChanged={onContentPathsChanged} />
+
+          <ArtworkConfigurationPanel />
         </div>
       )}
     </section>
