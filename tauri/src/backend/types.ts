@@ -375,12 +375,7 @@ export type QueryMameRuntimeStateResult = {
 };
 
 export type ArtworkKind =
-  | "screenshot"
-  | "cabinet"
-  | "marquee"
-  | "flyer"
-  | "icon"
-  | "systemImage";
+  "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
 
 export type ArtworkProvenance = {
   kind: "localFile";
