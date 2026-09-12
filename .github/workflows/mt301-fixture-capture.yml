@@ -30,7 +30,6 @@ jobs:
           export MAME_BIN MAME_VERSION PACKAGE_VERSION
 
           python3 - <<'PY'
-          import copy
           import os
           import subprocess
           import xml.etree.ElementTree as ET
@@ -38,8 +37,53 @@ jobs:
 
           names = ["galaxian", "galaxiana", "apple2e", "z80"]
           mame = os.environ["MAME_BIN"]
-          captured = []
           root_attrs = None
+          captured = []
+
+          machine_attrs = {
+              "name", "sourcefile", "cloneof", "romof", "isbios", "isdevice",
+              "ismechanical", "runnable",
+          }
+          child_attrs = {
+              "chip": {"type", "tag", "name", "clock"},
+              "display": {"tag", "type", "rotate", "width", "height", "refresh", "pixclock"},
+              "driver": {
+                  "status", "emulation", "cocktail", "savestate", "requiresartwork",
+                  "unofficial", "nosoundhardware", "incomplete",
+              },
+              "softwarelist": {"tag", "name", "status", "filter"},
+              "device": {"type", "tag", "fixed_image", "mandatory", "interface"},
+          }
+
+          def selected_attrs(source, allowed):
+              return {key: value for key, value in source.attrib.items() if key in allowed}
+
+          def project_machine(source):
+              target = ET.Element("machine", selected_attrs(source, machine_attrs))
+              for child in source:
+                  if child.tag in {"description", "year", "manufacturer"}:
+                      projected = ET.SubElement(target, child.tag)
+                      projected.text = child.text
+                  elif child.tag in {"chip", "display", "driver", "softwarelist"}:
+                      ET.SubElement(target, child.tag, selected_attrs(child, child_attrs[child.tag]))
+                  elif child.tag == "device":
+                      projected_device = ET.SubElement(
+                          target, "device", selected_attrs(child, child_attrs["device"])
+                      )
+                      for nested in child:
+                          if nested.tag == "instance":
+                              ET.SubElement(
+                                  projected_device,
+                                  "instance",
+                                  selected_attrs(nested, {"name", "briefname"}),
+                              )
+                          elif nested.tag == "extension":
+                              ET.SubElement(
+                                  projected_device,
+                                  "extension",
+                                  selected_attrs(nested, {"name"}),
+                              )
+              return target
 
           for name in names:
               result = subprocess.run(
@@ -57,7 +101,7 @@ jobs:
               )
               if machine is None:
                   raise SystemExit(f"MAME listxml did not return requested machine {name!r}")
-              captured.append(copy.deepcopy(machine))
+              captured.append(project_machine(machine))
 
           output_root = ET.Element("mame", root_attrs or {})
           for machine in captured:
@@ -70,8 +114,8 @@ jobs:
           observed = [node.get("name") for node in parsed.findall("machine")]
           if observed != names:
               raise SystemExit(f"unexpected bounded fixture machines: {observed!r}")
-          if out.stat().st_size > 256 * 1024:
-              raise SystemExit("bounded representative fixture unexpectedly exceeds 256 KiB")
+          if out.stat().st_size > 32 * 1024:
+              raise SystemExit("bounded representative fixture unexpectedly exceeds 32 KiB")
           PY
 
           printf 'MT301_MAME_VERSION=%s\n' "$MAME_VERSION"
