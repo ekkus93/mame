@@ -10,10 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{AppError, AppResult},
-    mame::{
-        validate_short_identifier, validate_software_identifier, MameExecutableSourceKind,
-        MameExecutableTrust,
-    },
+    mame::{validate_short_identifier, validate_software_identifier},
     sessions::{SaveMameStateResult, SessionSnapshot},
 };
 
@@ -22,8 +19,6 @@ pub const SAVE_STATE_RECORD_SCHEMA_VERSION: u32 = 1;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveStateMameIdentityV1 {
-    pub source: MameExecutableSourceKind,
-    pub trust: MameExecutableTrust,
     pub version: String,
     pub build: Option<String>,
     pub raw_version_line: String,
@@ -111,8 +106,6 @@ impl SaveStateRecordV1 {
             machine: saved.machine.clone(),
             software: saved.software.clone(),
             mame: SaveStateMameIdentityV1 {
-                source: session.executable.source,
-                trust: session.executable.trust,
                 version: session.executable.version.clone(),
                 build: session.executable.build.clone(),
                 raw_version_line: session.executable.raw_version_line.clone(),
