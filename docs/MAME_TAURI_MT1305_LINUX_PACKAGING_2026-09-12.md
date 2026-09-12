@@ -13,7 +13,7 @@ The first Linux distribution targets are:
 
 RPM/Flatpak/Snap are intentionally deferred. They can be added later without changing the MT-1302 package-owned MAME runtime contract.
 
-`tauri/src-tauri/tauri.linux.conf.json` enables only `deb` and `appimage`, uses the validated Tauri icon, and maps `bundle-resources/mame-runtime` to the package resource directory as `mame-runtime`.
+`tauri/src-tauri/tauri.linux-bundle.conf.json` is an explicit package-build overlay. It enables only `deb` and `appimage`, uses the validated Tauri icon, and maps `bundle-resources/mame-runtime` to the package resource directory as `mame-runtime`. The Linux packaging workflow supplies this file through Tauri CLI `--config`; it is deliberately not named `tauri.linux.conf.json`, because that filename is automatically merged into every Linux Tauri/Cargo build and would make generated package resources mandatory for ordinary developer and unit-test builds.
 
 ## Runtime dependency strategy
 
@@ -52,8 +52,8 @@ A later desktop matrix may add compositor-specific Wayland runtime testing witho
 
 1. stages a bounded synthetic MAME executable/resource fixture through the MT-1302 stager;
 2. installs Linux build and smoke dependencies;
-3. runs the Rust bundled-runtime validator on Linux;
-4. builds `.deb` and AppImage packages with Tauri;
+3. runs the Rust bundled-runtime validator on Linux without applying the packaging overlay;
+4. builds `.deb` and AppImage packages with the explicit `tauri.linux-bundle.conf.json` overlay;
 5. inspects the Debian metadata and payload before installation;
 6. installs the `.deb` with the native package manager;
 7. validates the installed frontend executable, desktop entry, executable bundled MAME, hash data, BGFX data, and license material;
