@@ -1805,74 +1805,14 @@ fn generate_frame_token() -> AppResult<String> {
     Ok(token)
 }
 
-#[cfg(unix)]
 fn fill_os_random(bytes: &mut [u8]) -> AppResult<()> {
-    use std::{fs::File, io::Read};
-
-    File::open("/dev/urandom")
-        .and_then(|mut source| source.read_exact(bytes))
-        .map_err(random_source_error)
-}
-
-#[cfg(windows)]
-fn fill_os_random(bytes: &mut [u8]) -> AppResult<()> {
-    use std::{ffi::c_void, io};
-
-    const BCRYPT_USE_SYSTEM_PREFERRED_RNG: u32 = 0x0000_0002;
-
-    #[link(name = "bcrypt")]
-    extern "system" {
-        #[link_name = "BCryptGenRandom"]
-        fn bcrypt_gen_random(
-            algorithm: *mut c_void,
-            buffer: *mut u8,
-            buffer_len: u32,
-            flags: u32,
-        ) -> i32;
-    }
-
-    let buffer_len = u32::try_from(bytes.len()).map_err(|error| {
+    getrandom::fill(bytes).map_err(|error| {
         AppError::new(
             "CONTROL_TOKEN_GENERATION_FAILED",
-            "The runtime-control token buffer exceeds the Windows random-source limit.",
+            "A cryptographically secure per-session runtime-control token could not be generated.",
         )
         .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-    // SAFETY: BCryptGenRandom receives a valid writable buffer for exactly
-    // `buffer_len` bytes, a null algorithm handle as required by
-    // BCRYPT_USE_SYSTEM_PREFERRED_RNG, and does not retain either pointer.
-    let status = unsafe {
-        bcrypt_gen_random(
-            std::ptr::null_mut(),
-            bytes.as_mut_ptr(),
-            buffer_len,
-            BCRYPT_USE_SYSTEM_PREFERRED_RNG,
-        )
-    };
-    if status >= 0 {
-        Ok(())
-    } else {
-        Err(random_source_error(io::Error::other(format!(
-            "BCryptGenRandom failed with NTSTATUS 0x{:08X}",
-            status as u32
-        ))))
-    }
-}
-
-#[cfg(not(any(unix, windows)))]
-fn fill_os_random(_bytes: &mut [u8]) -> AppResult<()> {
-    Err(AppError::new(
-        "CONTROL_TOKEN_GENERATION_FAILED",
-        "No cryptographically secure runtime-control token source is implemented for this platform.",
-    ))
-}
-
-fn random_source_error(error: io::Error) -> AppError {
-    AppError::new(
-        "CONTROL_TOKEN_GENERATION_FAILED",
-        "A cryptographically secure per-session runtime-control token could not be generated.",
-    )
-    .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })
 }
 
 fn base64url_encode(input: &[u8]) -> String {
