@@ -3,12 +3,14 @@ name: Tauri project
 on:
   push:
     paths:
+      - ".gitattributes"
       - ".github/workflows/tauri-project.yml"
       - "tauri/**"
       - "scripts/tauri/**"
       - "tests/tauri/**"
   pull_request:
     paths:
+      - ".gitattributes"
       - ".github/workflows/tauri-project.yml"
       - "tauri/**"
       - "scripts/tauri/**"

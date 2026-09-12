@@ -3,11 +3,13 @@ name: Tauri Windows packaging
 on:
   push:
     paths:
+      - ".gitattributes"
       - ".github/workflows/tauri-windows-packaging.yml"
       - "tauri/**"
       - "scripts/tauri/**"
   pull_request:
     paths:
+      - ".gitattributes"
       - ".github/workflows/tauri-windows-packaging.yml"
       - "tauri/**"
       - "scripts/tauri/**"
