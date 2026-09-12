@@ -1,11 +1,9 @@
-name: MT-1303 completion ledger
+name: MT-1303 ledger close
 
 on:
   push:
-    branches:
-      - ralph/mt-1303-windows-packaging
-    paths:
-      - ".github/workflows/mt1303-ledger-close.yml"
+    branches: [ralph/mt-1303-windows-packaging]
+    paths: [.github/workflows/mt1303-ledger-close.yml]
 
 permissions:
   contents: write
@@ -15,69 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          sparse-checkout: |
-            docs
-            .github/workflows
-
-      - name: Mark qualified packaging tasks complete
-        shell: python
+      - name: Mark MT-1301 through MT-1303 complete
         run: |
+          python3 - <<'PY'
           from pathlib import Path
-
-          path = Path("docs/MAME_TAURI_TODO_2026-09-08.md")
-          text = path.read_text()
-          replacements = {
-              """## MT-1301 — Define developer executable modes
-
-- [ ] external MAME path.
-- [ ] in-tree development build.
-- [ ] bundled sidecar build where supported.
-""": """## MT-1301 — Define developer executable modes
-
-- [x] external MAME path.
-- [x] in-tree development build.
-- [x] bundled sidecar build where supported.
-""",
-              """## MT-1302 — Bundle required MAME resources correctly
-
-- [ ] identify runtime files.
-- [ ] preserve licenses.
-- [ ] verify paths after installation.
-""": """## MT-1302 — Bundle required MAME resources correctly
-
-- [x] identify runtime files.
-- [x] preserve licenses.
-- [x] verify paths after installation.
-""",
-              """## MT-1303 — Windows packaging
-
-- [ ] installer/package choice.
-- [ ] sidecar path validation.
-- [ ] clean install smoke test.
-- [ ] clean uninstall behavior.
-""": """## MT-1303 — Windows packaging
-
-- [x] installer/package choice.
-- [x] sidecar path validation.
-- [x] clean install smoke test.
-- [x] clean uninstall behavior.
-""",
-          }
-          for old, new in replacements.items():
-              if text.count(old) != 1:
-                  raise SystemExit(f"completion ledger anchor drifted: {old.splitlines()[0]}")
-              text = text.replace(old, new, 1)
-          path.write_text(text)
-
-      - name: Commit ledger closure
-        shell: bash
+          p = Path('docs/MAME_TAURI_TODO_2026-09-08.md')
+          s = p.read_text()
+          blocks = [
+              ('## MT-1301 — Define developer executable modes', '## MT-1302 — Bundle required MAME resources correctly'),
+              ('## MT-1302 — Bundle required MAME resources correctly', '## MT-1303 — Windows packaging'),
+              ('## MT-1303 — Windows packaging', '## MT-1304 — macOS packaging'),
+          ]
+          for start, end in blocks:
+              a = s.index(start)
+              b = s.index(end, a)
+              section = s[a:b].replace('- [ ]', '- [x]')
+              s = s[:a] + section + s[b:]
+          p.write_text(s)
+          PY
+      - name: Commit completion ledger
         run: |
           set -euo pipefail
           git rm .github/workflows/mt1303-ledger-close.yml
-          git add -f docs/MAME_TAURI_TODO_2026-09-08.md
+          git add docs/MAME_TAURI_TODO_2026-09-08.md
           git diff --cached --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs: mark MT-1301 through MT-1303 complete"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: mark MT-1301 through MT-1303 complete'
           git push origin HEAD:ralph/mt-1303-windows-packaging
