@@ -155,9 +155,7 @@ fn record_mismatch(field: &str, session_value: &str, saved_value: &str) -> AppEr
 mod tests {
     use crate::{
         mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
-        sessions::{
-            EffectiveLaunchConfig, SaveMameStateResult, SessionSnapshot, SessionState,
-        },
+        sessions::{EffectiveLaunchConfig, SaveMameStateResult, SessionSnapshot, SessionState},
     };
 
     use super::{SaveStateRecordV1, SAVE_STATE_RECORD_SCHEMA_VERSION};
