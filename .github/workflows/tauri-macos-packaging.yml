@@ -1,0 +1,118 @@
+name: Tauri macOS packaging
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tauri-macos-packaging.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+  pull_request:
+    paths:
+      - ".github/workflows/tauri-macos-packaging.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-app-dmg-smoke:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tauri
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            tauri
+            scripts/tauri
+
+      - name: Stage synthetic MT-1304 MAME runtime
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture=.mt1304-fixture
+          rm -rf "$fixture" tauri/src-tauri/bundle-resources/mame-runtime
+          mkdir -p \
+            "$fixture/source/hash" \
+            "$fixture/source/bgfx/chains" \
+            "$fixture/source/docs/legal"
+          printf '<softwarelist name="fixture"/>\n' > "$fixture/source/hash/fixture.xml"
+          printf 'bgfx fixture\n' > "$fixture/source/bgfx/chains/fixture.json"
+          printf 'MAME COPYING fixture\n' > "$fixture/source/COPYING"
+          printf 'GPL fixture\n' > "$fixture/source/docs/legal/GPL-2.0"
+          printf '#!/usr/bin/env sh\necho MT-1304 synthetic payload\n' > "$fixture/mame"
+          chmod 0755 "$fixture/mame"
+          ./scripts/tauri/stage-mame-runtime.sh \
+            "$fixture/source" \
+            "$fixture/mame" \
+            tauri/src-tauri/bundle-resources/mame-runtime
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies and macOS release build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/debug
+            tauri/src-tauri/target/release
+          key: ${{ runner.os }}-${{ runner.arch }}-tauri-macos-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-tauri-macos-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Install frontend dependencies from lockfile
+        run: npm ci
+
+      - name: Validate bundled runtime paths on macOS
+        working-directory: tauri/src-tauri
+        run: cargo test --locked bundled_runtime
+
+      - name: Prove release path rejects absent Apple credentials
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ./scripts/tauri/build-macos-release.sh >release-without-credentials.log 2>&1; then
+            echo "release script unexpectedly accepted missing Apple credentials" >&2
+            exit 1
+          fi
+          grep -F "APPLE_SIGNING_IDENTITY is required" release-without-credentials.log
+          if APPLE_SIGNING_IDENTITY=- ./scripts/tauri/build-macos-release.sh >release-adhoc.log 2>&1; then
+            echo "release script unexpectedly accepted ad-hoc signing" >&2
+            exit 1
+          fi
+          grep -F "ad-hoc identity '-' is CI-smoke-only" release-adhoc.log
+
+      - name: Build ad-hoc signed app bundle and DMG
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+        run: npm run tauri -- build --bundles app,dmg
+
+      - name: Clean-runner app, DMG, resource, relocation, and signature smoke
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_bundle=$(find tauri/src-tauri/target/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)
+          dmg=$(find tauri/src-tauri/target/release/bundle/dmg -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          [[ -n "$app_bundle" ]] || { echo "macOS app bundle was not produced" >&2; exit 1; }
+          [[ -n "$dmg" ]] || { echo "macOS DMG was not produced" >&2; exit 1; }
+          ./scripts/tauri/test-macos-bundle.sh "$app_bundle" "$dmg"
+
+      - name: Verify lockfiles remain unchanged
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
