@@ -90,10 +90,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
-          $installer = Get-ChildItem \
-            "tauri/src-tauri/target/release/bundle/nsis" \
-            -Filter "*-setup.exe" \
-            -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $installer = Get-ChildItem "tauri/src-tauri/target/release/bundle/nsis" -Filter "*-setup.exe" -File |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
           if ($null -eq $installer) {
             throw "NSIS installer was not produced"
           }
