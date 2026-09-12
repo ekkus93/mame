@@ -3,7 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getMameSession, stopMame } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
-import type { SessionLifecycleEventV1, SessionSnapshot, SessionState } from "../backend/types";
+import type {
+  SessionLifecycleEventV1,
+  SessionSnapshot,
+  SessionState,
+} from "../backend/types";
 
 type SessionPanelState =
   | { status: "loading" }
@@ -15,7 +19,12 @@ type SessionPanelState =
 const TERMINAL_EVENTS = ["session.exited", "session.crashed", "session.failed"] as const;
 
 function isActiveSessionState(state: SessionState): boolean {
-  return state === "created" || state === "starting" || state === "running" || state === "stopping";
+  return (
+    state === "created" ||
+    state === "starting" ||
+    state === "running" ||
+    state === "stopping"
+  );
 }
 
 export function ActiveSessionPanel({ onSessionEnded }: { onSessionEnded: () => void }) {
@@ -31,10 +40,7 @@ export function ActiveSessionPanel({ onSessionEnded }: { onSessionEnded: () => v
 
   const finishSession = useCallback(
     (sessionId: string) => {
-      if (
-        activeSessionIdRef.current !== null &&
-        activeSessionIdRef.current !== sessionId
-      ) {
+      if (activeSessionIdRef.current !== null && activeSessionIdRef.current !== sessionId) {
         return;
       }
       if (endedSessionIdRef.current === sessionId) {
@@ -69,11 +75,14 @@ export function ActiveSessionPanel({ onSessionEnded }: { onSessionEnded: () => v
       unlistenFns.push(startedUnlisten);
 
       for (const eventName of TERMINAL_EVENTS) {
-        const terminalUnlisten = await listen<SessionLifecycleEventV1>(eventName, ({ payload }) => {
-          if (!disposed) {
-            finishSession(payload.session.sessionId);
-          }
-        });
+        const terminalUnlisten = await listen<SessionLifecycleEventV1>(
+          eventName,
+          ({ payload }) => {
+            if (!disposed) {
+              finishSession(payload.session.sessionId);
+            }
+          },
+        );
         if (disposed) {
           terminalUnlisten();
           return;
