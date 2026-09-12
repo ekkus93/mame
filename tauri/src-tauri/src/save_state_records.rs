@@ -19,8 +19,8 @@ use crate::{
     errors::{AppError, AppResult},
     mame::{validate_short_identifier, validate_software_identifier},
     sessions::{
-        self, LoadMameStateRequest, LoadMameStateResult, SaveMameStateRequest,
-        SaveMameStateResult, SessionSnapshot, SessionState, SessionSupervisor,
+        self, LoadMameStateRequest, LoadMameStateResult, SaveMameStateRequest, SaveMameStateResult,
+        SessionSnapshot, SessionState, SessionSupervisor,
     },
 };
 
@@ -335,7 +335,10 @@ fn current_running_session(
     Ok(session)
 }
 
-fn ensure_record_matches_session(record: &SaveStateRecordV1, session: &SessionSnapshot) -> AppResult<()> {
+fn ensure_record_matches_session(
+    record: &SaveStateRecordV1,
+    session: &SessionSnapshot,
+) -> AppResult<()> {
     if record.machine != session.machine || record.software != session.software {
         return Err(AppError::new(
             "SAVE_STATE_RECORD_CONTEXT_MISMATCH",
@@ -387,9 +390,8 @@ fn open_store(path: &Path) -> AppResult<Connection> {
             .with_details(serde_json::json!({ "cause": error.to_string() }))
         })?;
     }
-    let mut connection = Connection::open(path).map_err(|error| {
-        database_error("SAVE_STATE_STORE_OPEN_FAILED", error)
-    })?;
+    let mut connection = Connection::open(path)
+        .map_err(|error| database_error("SAVE_STATE_STORE_OPEN_FAILED", error))?;
     connection
         .busy_timeout(SQLITE_BUSY_TIMEOUT)
         .map_err(|error| database_error("SAVE_STATE_STORE_CONFIG_FAILED", error))?;
@@ -445,7 +447,8 @@ fn upsert_record(connection: &mut Connection, record: &SaveStateRecordV1) -> App
             )
             .with_details(serde_json::json!({ "cause": error.to_string() }))
         })?;
-    let saved_at = i64::try_from(record.saved_at_epoch_ms).map_err(|error| numeric_error("timestamp", error))?;
+    let saved_at = i64::try_from(record.saved_at_epoch_ms)
+        .map_err(|error| numeric_error("timestamp", error))?;
     let bytes = i64::try_from(record.bytes).map_err(|error| numeric_error("bytes", error))?;
 
     connection
@@ -491,7 +494,9 @@ fn list_records(
     offset: u32,
 ) -> AppResult<(u64, Vec<(i64, SaveStateRecordV1)>)> {
     let total_i64: i64 = connection
-        .query_row("SELECT COUNT(*) FROM save_state_records", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM save_state_records", [], |row| {
+            row.get(0)
+        })
         .map_err(|error| database_error("SAVE_STATE_RECORD_LIST_FAILED", error))?;
     let total = u64::try_from(total_i64).map_err(|error| numeric_error("total", error))?;
 
@@ -966,7 +971,10 @@ mod tests {
     fn record_lookup_and_delete_are_id_scoped() {
         let mut connection = store();
         let id = upsert_record(&mut connection, &record()).expect("insert record");
-        assert_eq!(load_record(&mut connection, id).expect("load record"), record());
+        assert_eq!(
+            load_record(&mut connection, id).expect("load record"),
+            record()
+        );
         delete_record(&mut connection, id).expect("delete record");
         assert_eq!(
             load_record(&mut connection, id)
