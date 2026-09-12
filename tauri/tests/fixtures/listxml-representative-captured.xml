@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mame build="0.264 (unknown)" debug="no" mameconfig="10">
+  <machine name="galaxian" sourcefile="galaxian/galaxian.cpp" isbios="no" isdevice="no" ismechanical="no" runnable="yes">
+    <description>Galaxian (Namco set 1)</description>
+    <year>1979</year>
+    <manufacturer>Namco</manufacturer>
+    <chip type="cpu" tag="maincpu" name="Zilog Z80" clock="3072000" />
+    <chip type="audio" tag="speaker" name="Speaker" />
+    <chip type="audio" tag="cust:discrete" name="Discrete Sound" />
+    <display tag="screen" type="raster" rotate="90" width="768" height="224" refresh="60.606061" pixclock="18432000" />
+    <driver status="good" emulation="good" savestate="supported" requiresartwork="no" unofficial="no" nosoundhardware="no" incomplete="no" />
+  </machine>
+  <machine name="galaxiana" sourcefile="galaxian/galaxian.cpp" cloneof="galaxian" romof="galaxian" isbios="no" isdevice="no" ismechanical="no" runnable="yes">
+    <description>Galaxian (Namco set 2)</description>
+    <year>1979</year>
+    <manufacturer>Namco</manufacturer>
+    <chip type="cpu" tag="maincpu" name="Zilog Z80" clock="3072000" />
+    <chip type="audio" tag="speaker" name="Speaker" />
+    <chip type="audio" tag="cust:discrete" name="Discrete Sound" />
+    <display tag="screen" type="raster" rotate="90" width="768" height="224" refresh="60.606061" pixclock="18432000" />
+    <driver status="good" emulation="good" savestate="supported" requiresartwork="no" unofficial="no" nosoundhardware="no" incomplete="no" />
+  </machine>
+  <machine name="apple2e" sourcefile="apple/apple2e.cpp" isbios="no" isdevice="no" ismechanical="no" runnable="yes">
+    <description>Apple //e</description>
+    <year>1983</year>
+    <manufacturer>Apple Computer</manufacturer>
+    <chip type="cpu" tag="maincpu" name="MOS Technology 6502" clock="1021800" />
+    <chip type="audio" tag="mono" name="Speaker" />
+    <chip type="audio" tag="speaker" name="Filtered DAC" />
+    <chip type="audio" tag="sl4:mockingboard:lspeaker" name="Speaker" />
+    <chip type="audio" tag="sl4:mockingboard:rspeaker" name="Speaker" />
+    <chip type="audio" tag="sl4:mockingboard:ay1" name="AY-3-8913 PSG" clock="1022727" />
+    <chip type="audio" tag="sl4:mockingboard:ay2" name="AY-3-8913 PSG" clock="1022727" />
+    <chip type="audio" tag="sl4:mockingboard:sc01" name="Votrax SC-01-A" clock="1022727" />
+    <chip type="audio" tag="sl6:diskiing:0:525:flopsndout" name="Speaker" />
+    <chip type="audio" tag="sl6:diskiing:0:525:floppysound" name="Floppy sound" clock="44100" />
+    <chip type="audio" tag="sl6:diskiing:1:525:flopsndout" name="Speaker" />
+    <chip type="audio" tag="sl6:diskiing:1:525:floppysound" name="Floppy sound" clock="44100" />
+    <chip type="audio" tag="tape" name="Cassette" />
+    <display tag="screen" type="raster" rotate="0" width="560" height="192" refresh="60.000000" pixclock="14305200" />
+    <driver status="good" emulation="good" savestate="supported" requiresartwork="no" unofficial="no" nosoundhardware="no" incomplete="no" />
+    <device type="floppydisk" tag="sl6:diskiing:0:525" interface="floppy_5_25">
+      <instance name="floppydisk1" briefname="flop1" />
+      <extension name="mfi" />
+      <extension name="dfi" />
+      <extension name="dsk" />
+      <extension name="do" />
+      <extension name="po" />
+      <extension name="rti" />
+      <extension name="edd" />
+      <extension name="woz" />
+      <extension name="nib" />
+    </device>
+    <device type="floppydisk" tag="sl6:diskiing:1:525" interface="floppy_5_25">
+      <instance name="floppydisk2" briefname="flop2" />
+      <extension name="mfi" />
+      <extension name="dfi" />
+      <extension name="dsk" />
+      <extension name="do" />
+      <extension name="po" />
+      <extension name="rti" />
+      <extension name="edd" />
+      <extension name="woz" />
+      <extension name="nib" />
+    </device>
+    <device type="cassette" tag="tape">
+      <instance name="cassette" briefname="cass" />
+      <extension name="wav" />
+      <extension name="flac" />
+    </device>
+    <softwarelist tag="flop_a2_clean" name="apple2_flop_clcracked" status="original" />
+    <softwarelist tag="flop_a2_orig" name="apple2_flop_orig" status="compatible" filter="A2E" />
+    <softwarelist tag="flop_a2_misc" name="apple2_flop_misc" status="compatible" />
+  </machine>
+  <machine name="z80" sourcefile="devices/cpu/z80/z80.cpp" isdevice="yes" runnable="no" isbios="no" ismechanical="no">
+    <description>Zilog Z80</description>
+  </machine>
+</mame>

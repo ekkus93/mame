@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "fixturePath": "tauri/tests/fixtures/listxml-representative-captured.xml",
   "capturedAtUtc": "2026-09-12T10:19:50Z",
   "captureWorkflow": ".github/workflows/mt301-fixture-capture.yml",
   "captureWorkflowSourceSha": "470986579112c6acd658e87c80d0659bff680839",

@@ -14,6 +14,8 @@ mod model;
 mod parser;
 #[cfg(test)]
 mod performance;
+#[cfg(test)]
+mod provenance_fixture;
 mod software;
 
 use serde::{Deserialize, Serialize};
