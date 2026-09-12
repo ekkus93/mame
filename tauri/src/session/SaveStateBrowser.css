@@ -1,0 +1,63 @@
+.save-state-browser {
+  margin-top: 1rem;
+}
+
+.save-state-policy,
+.save-state-count,
+.save-state-meta,
+.save-state-compatibility {
+  color: var(--muted-text, #6b7280);
+}
+
+.save-state-create-row,
+.save-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.save-state-create-row label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.save-state-create-row input {
+  min-width: 12rem;
+}
+
+.save-state-list {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0;
+  list-style: none;
+}
+
+.save-state-item {
+  padding: 0.9rem;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 0.65rem;
+}
+
+.save-state-meta {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.save-state-compatibility {
+  margin: 0.55rem 0;
+}
+
+.save-state-compatibility.warning,
+.save-state-delete-warning {
+  font-weight: 600;
+}
+
+.save-state-compatibility.error,
+.save-state-delete-warning {
+  color: var(--error-text, #b42318);
+}
+
+.save-state-notice {
+  font-weight: 600;
+}

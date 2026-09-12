@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getMameSession, stopMame } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { SessionLifecycleEventV1, SessionSnapshot } from "../backend/types";
+import { SaveStateBrowser } from "./SaveStateBrowser";
 
 function isActiveSession(session: SessionSnapshot | null): session is SessionSnapshot {
   return session !== null && ["created", "starting", "running", "stopping"].includes(session.state);
@@ -103,34 +104,37 @@ export function SessionControlPanel() {
   };
 
   return (
-    <section className="status-card" aria-labelledby="session-control-heading" aria-live="polite">
-      <p className="eyebrow">MAME session</p>
-      <h2 id="session-control-heading">Session control</h2>
-      {loading ? (
-        <p>Checking supervised MAME session…</p>
-      ) : session ? (
-        <>
-          <p>
-            <strong>{session.machine}</strong>
-            {session.software ? ` · ${session.software}` : ""} · {session.state}
-            {session.pid ? ` · PID ${session.pid}` : ""}
+    <>
+      <section className="status-card" aria-labelledby="session-control-heading" aria-live="polite">
+        <p className="eyebrow">MAME session</p>
+        <h2 id="session-control-heading">Session control</h2>
+        {loading ? (
+          <p>Checking supervised MAME session…</p>
+        ) : session ? (
+          <>
+            <p>
+              <strong>{session.machine}</strong>
+              {session.software ? ` · ${session.software}` : ""} · {session.state}
+              {session.pid ? ` · PID ${session.pid}` : ""}
+            </p>
+            <button
+              type="button"
+              disabled={session.state !== "running" || stopping}
+              onClick={requestStop}
+            >
+              {stopping ? "Stopping MAME…" : "Stop MAME"}
+            </button>
+          </>
+        ) : (
+          <p>No active MAME session.</p>
+        )}
+        {failure && (
+          <p className="error-message" role="alert">
+            {failure}
           </p>
-          <button
-            type="button"
-            disabled={session.state !== "running" || stopping}
-            onClick={requestStop}
-          >
-            {stopping ? "Stopping MAME…" : "Stop MAME"}
-          </button>
-        </>
-      ) : (
-        <p>No active MAME session.</p>
-      )}
-      {failure && (
-        <p className="error-message" role="alert">
-          {failure}
-        </p>
-      )}
-    </section>
+        )}
+      </section>
+      <SaveStateBrowser session={session} />
+    </>
   );
 }
