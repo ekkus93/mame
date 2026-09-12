@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           git rm .github/workflows/mt1303-safe-rng-fix.yml
-          git add tauri/src-tauri/Cargo.toml tauri/src-tauri/Cargo.lock tauri/src-tauri/src/sessions/control.rs
+          git add -f tauri/src-tauri/Cargo.toml tauri/src-tauri/Cargo.lock tauri/src-tauri/src/sessions/control.rs
           git diff --cached --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
