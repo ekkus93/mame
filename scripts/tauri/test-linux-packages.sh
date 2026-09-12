@@ -24,37 +24,74 @@ if ! grep -Eq 'libgtk-3' <<<"$depends"; then
   exit 1
 fi
 
-listing=$(mktemp)
+payload=$(mktemp)
 smoke_tmp=$(mktemp -d)
-trap 'rm -f "$listing"; rm -rf "$smoke_tmp"' EXIT
+trap 'rm -f "$payload"; rm -rf "$smoke_tmp"' EXIT
 
-dpkg-deb --contents "$DEB" >"$listing"
-grep -Eq '/usr/bin/[^/]+$' "$listing"
-grep -Fq '/usr/lib/mame-tauri-frontend/mame-runtime/bin/mame' "$listing"
-grep -Fq '/usr/lib/mame-tauri-frontend/mame-runtime/hash/fixture.xml' "$listing"
-grep -Fq '/usr/lib/mame-tauri-frontend/mame-runtime/bgfx/chains/fixture.json' "$listing"
-grep -Fq '/usr/lib/mame-tauri-frontend/mame-runtime/licenses/COPYING' "$listing"
-grep -Fq '/usr/lib/mame-tauri-frontend/mame-runtime/licenses/legal/GPL-2.0' "$listing"
-grep -Eq '/usr/share/applications/.*\.desktop$' "$listing"
+dpkg-deb --fsys-tarfile "$DEB" | tar -tf - >"$payload"
+
+dump_payload() {
+  echo "--- Debian package payload ($DEB) ---" >&2
+  cat "$payload" >&2
+  echo "--- end Debian package payload ---" >&2
+}
+
+require_payload_match() {
+  local pattern=$1
+  local description=$2
+  local match
+  match=$(grep -Em1 "$pattern" "$payload" || true)
+  if [[ -z "$match" ]]; then
+    echo "Debian package is missing $description (pattern: $pattern)" >&2
+    dump_payload
+    exit 1
+  fi
+  printf '%s\n' "$match"
+}
+
+frontend_rel=$(require_payload_match '^\./usr/bin/[^/]+$' 'frontend executable')
+runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME executable')
+desktop_rel=$(require_payload_match '^\./usr/share/applications/.*\.desktop$' 'desktop entry')
+runtime_root_rel=${runtime_rel%/bin/mame}
+
+for required in \
+  "$runtime_root_rel/hash/fixture.xml" \
+  "$runtime_root_rel/bgfx/chains/fixture.json" \
+  "$runtime_root_rel/licenses/COPYING" \
+  "$runtime_root_rel/licenses/legal/GPL-2.0"; do
+  if ! grep -Fxq "$required" "$payload"; then
+    echo "Debian package is missing packaged runtime resource: $required" >&2
+    dump_payload
+    exit 1
+  fi
+done
+
+printf 'MT-1305 Debian payload root: %s\n' "${runtime_root_rel#./}"
+printf 'MT-1305 Debian package dependencies: %s\n' "$depends"
 
 sudo apt-get install -y "$DEB"
 
-binary=$(dpkg -L "$package" | grep '^/usr/bin/' | head -n 1)
-runtime_bin=$(dpkg -L "$package" | grep '/mame-runtime/bin/mame$' | head -n 1)
-desktop_file=$(dpkg -L "$package" | grep '^/usr/share/applications/.*\.desktop$' | head -n 1)
+installed=$(dpkg -L "$package")
+binary=$(grep -m1 '^/usr/bin/[^/]*$' <<<"$installed" || true)
+runtime_bin=$(grep -m1 '/mame-runtime/bin/mame$' <<<"$installed" || true)
+desktop_file=$(grep -m1 '^/usr/share/applications/.*\.desktop$' <<<"$installed" || true)
 
-[[ -x "$binary" ]] || { echo "installed frontend executable is missing: $binary" >&2; exit 1; }
-[[ -x "$runtime_bin" ]] || { echo "installed MAME executable is missing or non-executable: $runtime_bin" >&2; exit 1; }
-[[ -f "$desktop_file" ]] || { echo "installed desktop entry is missing: $desktop_file" >&2; exit 1; }
+[[ -n "$binary" && -x "$binary" ]] || { echo "installed frontend executable is missing or non-executable: ${binary:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
+[[ -n "$runtime_bin" && -x "$runtime_bin" ]] || { echo "installed MAME executable is missing or non-executable: ${runtime_bin:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
+[[ -n "$desktop_file" && -f "$desktop_file" ]] || { echo "installed desktop entry is missing: ${desktop_file:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
 
-grep -Fq 'Name=MAME Tauri Frontend' "$desktop_file"
-grep -Eq '^Exec=.*mame-tauri' "$desktop_file"
+grep -Fq 'Name=MAME Tauri Frontend' "$desktop_file" || { echo "desktop entry has unexpected Name:" >&2; cat "$desktop_file" >&2; exit 1; }
+frontend_name=$(basename "$binary")
+grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry does not launch $frontend_name:" >&2; cat "$desktop_file" >&2; exit 1; }
 
 runtime_root=${runtime_bin%/bin/mame}
-[[ -f "$runtime_root/hash/fixture.xml" ]]
-[[ -f "$runtime_root/bgfx/chains/fixture.json" ]]
-[[ -f "$runtime_root/licenses/COPYING" ]]
-[[ -f "$runtime_root/licenses/legal/GPL-2.0" ]]
+for required in \
+  "$runtime_root/hash/fixture.xml" \
+  "$runtime_root/bgfx/chains/fixture.json" \
+  "$runtime_root/licenses/COPYING" \
+  "$runtime_root/licenses/legal/GPL-2.0"; do
+  [[ -f "$required" ]] || { echo "installed runtime resource is missing: $required" >&2; exit 1; }
+done
 
 x11_smoke() {
   local log_path=$1
@@ -73,11 +110,13 @@ x11_smoke() {
         exit 0
       fi
       if ! kill -0 "$pid" 2>/dev/null; then
+        echo "application exited before exposing the expected window" >&2
         cat "$log_path" >&2
         exit 1
       fi
       sleep 0.25
     done
+    echo "application did not expose the expected window before timeout" >&2
     cat "$log_path" >&2
     exit 1
   ' bash "$log_path" "$@"
@@ -102,14 +141,17 @@ mkdir -p "$extract_dir"
 app_root="$extract_dir/squashfs-root"
 [[ -x "$app_root/AppRun" ]] || { echo "AppImage did not contain an executable AppRun" >&2; exit 1; }
 app_runtime_bin=$(find "$app_root" -path '*/mame-runtime/bin/mame' -type f -print -quit)
-[[ -n "$app_runtime_bin" && -x "$app_runtime_bin" ]] || { echo "AppImage bundled MAME executable is missing or non-executable" >&2; exit 1; }
+[[ -n "$app_runtime_bin" && -x "$app_runtime_bin" ]] || { echo "AppImage bundled MAME executable is missing or non-executable" >&2; find "$app_root" -maxdepth 5 -type f -print >&2; exit 1; }
 app_runtime_root=${app_runtime_bin%/bin/mame}
-[[ -f "$app_runtime_root/hash/fixture.xml" ]]
-[[ -f "$app_runtime_root/bgfx/chains/fixture.json" ]]
-[[ -f "$app_runtime_root/licenses/COPYING" ]]
-[[ -f "$app_runtime_root/licenses/legal/GPL-2.0" ]]
+for required in \
+  "$app_runtime_root/hash/fixture.xml" \
+  "$app_runtime_root/bgfx/chains/fixture.json" \
+  "$app_runtime_root/licenses/COPYING" \
+  "$app_runtime_root/licenses/legal/GPL-2.0"; do
+  [[ -f "$required" ]] || { echo "AppImage runtime resource is missing: $required" >&2; exit 1; }
+done
 app_desktop=$(find "$app_root" -name '*.desktop' -type f -print -quit)
 [[ -n "$app_desktop" ]] || { echo "AppImage desktop entry is missing" >&2; exit 1; }
-grep -Fq 'Name=MAME Tauri Frontend' "$app_desktop"
+grep -Fq 'Name=MAME Tauri Frontend' "$app_desktop" || { echo "AppImage desktop entry has unexpected Name:" >&2; cat "$app_desktop" >&2; exit 1; }
 
 printf 'MT-1305 Debian install/uninstall, X11 launch, desktop integration, and AppImage extraction/launch smoke passed\n'
