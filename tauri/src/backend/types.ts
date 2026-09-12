@@ -259,6 +259,11 @@ export type SessionSnapshot = {
   pid: number | null;
 };
 
+export type SessionLifecycleEventV1 = {
+  schemaVersion: 1;
+  session: SessionSnapshot;
+};
+
 export type StopMameRequest = {
   sessionId: string;
 };

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getMameSession, stopMame } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
-import type { SessionSnapshot } from "../backend/types";
+import type { SessionLifecycleEventV1, SessionSnapshot } from "../backend/types";
 import { isGameplaySessionState } from "./keyboardNavigation";
 
 type SessionPanelState =
@@ -16,8 +17,15 @@ function activeSession(session: SessionSnapshot | null): SessionSnapshot | null 
   return session && isGameplaySessionState(session.state) ? session : null;
 }
 
+function retainedSession(state: SessionPanelState): SessionSnapshot | null {
+  return state.status === "active" || state.status === "stopping" || state.status === "error"
+    ? state.session
+    : null;
+}
+
 export function SessionControlPanel({ onStopped }: { onStopped: () => void }) {
   const [state, setState] = useState<SessionPanelState>({ status: "loading" });
+  const stoppingSessionId = useRef<string | null>(null);
 
   const refresh = useCallback(() => {
     void getMameSession()
@@ -35,9 +43,11 @@ export function SessionControlPanel({ onStopped }: { onStopped: () => void }) {
           if (current.status === "stopping") {
             return current;
           }
-          const session =
-            current.status === "active" || current.status === "error" ? current.session : null;
-          return { status: "error", message: errorMessage(error), session };
+          return {
+            status: "error",
+            message: errorMessage(error),
+            session: retainedSession(current),
+          };
         });
       });
   }, []);
@@ -48,7 +58,70 @@ export function SessionControlPanel({ onStopped }: { onStopped: () => void }) {
     return () => window.removeEventListener("focus", refresh);
   }, [refresh]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: Array<() => void> = [];
+    const eventNames = [
+      "session.started",
+      "session.exited",
+      "session.crashed",
+      "session.failed",
+    ] as const;
+
+    void Promise.all(
+      eventNames.map((eventName) =>
+        listen<SessionLifecycleEventV1>(eventName, (event) => {
+          if (cancelled) {
+            return;
+          }
+          const session = event.payload.session;
+          if (stoppingSessionId.current === session.sessionId) {
+            return;
+          }
+          if (isGameplaySessionState(session.state)) {
+            setState({ status: "active", session });
+            return;
+          }
+
+          onStopped();
+          setState({
+            status: "idle",
+            message:
+              session.state === "crashed"
+                ? "MAME session ended after an abnormal exit."
+                : session.state === "failed"
+                  ? "MAME session supervision failed."
+                  : "MAME session exited.",
+            warning: session.state === "crashed" || session.state === "failed",
+          });
+        }),
+      ),
+    )
+      .then((registered) => {
+        if (cancelled) {
+          registered.forEach((dispose) => dispose());
+        } else {
+          unlisten = registered;
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setState((current) => ({
+            status: "error",
+            message: `MAME session event subscription failed: ${errorMessage(error)}`,
+            session: retainedSession(current),
+          }));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      unlisten.forEach((dispose) => dispose());
+    };
+  }, [onStopped]);
+
   function requestStop(session: SessionSnapshot) {
+    stoppingSessionId.current = session.sessionId;
     setState({ status: "stopping", session });
     void stopMame({ sessionId: session.sessionId })
       .then((result) => {
@@ -72,6 +145,9 @@ export function SessionControlPanel({ onStopped }: { onStopped: () => void }) {
       })
       .catch((error: unknown) => {
         setState({ status: "error", message: errorMessage(error), session });
+      })
+      .finally(() => {
+        stoppingSessionId.current = null;
       });
   }
 
