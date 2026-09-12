@@ -218,7 +218,10 @@ pub fn list_save_state_records(
     request: ListSaveStateRecordsRequest,
     app: AppHandle,
 ) -> AppResult<SaveStateRecordPageV1> {
-    let limit = request.limit.unwrap_or(DEFAULT_PAGE_LIMIT).clamp(1, MAX_PAGE_LIMIT);
+    let limit = request
+        .limit
+        .unwrap_or(DEFAULT_PAGE_LIMIT)
+        .clamp(1, MAX_PAGE_LIMIT);
     let offset = request.offset.unwrap_or(0);
     let mut connection = open_store(&save_state_store_path(&app)?)?;
     let (total, records) = list_records(&mut connection, limit, offset)?;
@@ -951,7 +954,10 @@ mod tests {
         replacement.saved_at_epoch_ms = 300;
         replacement.bytes = 8192;
         let replacement_id = upsert_record(&mut connection, &replacement).expect("replace slot");
-        assert_eq!(replacement_id, first_id, "same state path must update one record");
+        assert_eq!(
+            replacement_id, first_id,
+            "same state path must update one record"
+        );
 
         let mut second = first.clone();
         second.slot = "auto".to_owned();
