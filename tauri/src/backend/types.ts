@@ -248,7 +248,13 @@ export type SetLibraryFavoriteRequest = {
 };
 
 export type SessionState =
-  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
+  | "created"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "exited"
+  | "failed"
+  | "crashed";
 
 export type SessionSnapshot = {
   schemaVersion: 1;
@@ -257,6 +263,17 @@ export type SessionSnapshot = {
   machine: string;
   software: string | null;
   pid: number | null;
+};
+
+export type StopMameRequest = {
+  sessionId: string;
+};
+
+export type StopMameResult = {
+  schemaVersion: 1;
+  softStopRequested: boolean;
+  forcedTermination: boolean;
+  session: SessionSnapshot;
 };
 
 export type PauseMameRequest = {
@@ -339,21 +356,6 @@ export type SetMameMuteRequest = {
 export type SetMameMuteResult = {
   schemaVersion: 1;
   sessionId: string;
-  uiMuted: boolean;
-  effectiveMuted: boolean;
-};
-
-export type QueryMameRuntimeStateRequest = {
-  sessionId: string;
-};
-
-export type QueryMameRuntimeStateResult = {
-  schemaVersion: 1;
-  sessionId: string;
-  running: boolean;
-  paused: boolean;
-  machine: string;
-  software: string | null;
   uiMuted: boolean;
   effectiveMuted: boolean;
 };

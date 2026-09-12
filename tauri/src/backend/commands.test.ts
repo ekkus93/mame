@@ -7,12 +7,12 @@ import {
   loadMameState,
   pauseMame,
   queryMameLibrary,
-  queryMameRuntimeState,
   refreshMameMetadata,
   resetMame,
   resumeMame,
   saveMameState,
   setMameMute,
+  stopMame,
 } from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -76,6 +76,27 @@ describe("typed backend commands", () => {
     });
   });
 
+  it("uses the typed supervised stop command", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      softStopRequested: true,
+      forcedTermination: false,
+      session: {
+        schemaVersion: 1,
+        sessionId: "mame-1-1",
+        state: "exited",
+        machine: "pacman",
+        software: null,
+        pid: 123,
+      },
+    });
+
+    await stopMame({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("stop_mame", {
+      request: { sessionId: "mame-1-1" },
+    });
+  });
+
   it("uses typed save/load-state commands with logical slots", async () => {
     vi.mocked(invoke).mockResolvedValue({
       schemaVersion: 1,
@@ -121,24 +142,6 @@ describe("typed backend commands", () => {
     await setMameMute({ sessionId: "mame-1-1", muted: true });
     expect(invoke).toHaveBeenLastCalledWith("set_mame_mute", {
       request: { sessionId: "mame-1-1", muted: true },
-    });
-  });
-
-  it("uses the typed bounded runtime-state query", async () => {
-    vi.mocked(invoke).mockResolvedValue({
-      schemaVersion: 1,
-      sessionId: "mame-1-1",
-      running: true,
-      paused: false,
-      machine: "pacman",
-      software: null,
-      uiMuted: false,
-      effectiveMuted: false,
-    });
-
-    await queryMameRuntimeState({ sessionId: "mame-1-1" });
-    expect(invoke).toHaveBeenLastCalledWith("query_mame_runtime_state", {
-      request: { sessionId: "mame-1-1" },
     });
   });
 
