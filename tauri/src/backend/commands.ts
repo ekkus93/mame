@@ -33,6 +33,8 @@ import {
   type SetMameMuteResult,
   type SoftwareListPage,
   type SoftwareListQueryRequest,
+  type StopMameRequest,
+  type StopMameResult,
 } from "./types";
 
 export async function getAppInfo(): Promise<AppInfoResponse> {
@@ -83,6 +85,10 @@ export async function launchLibrarySoftware(
 
 export async function getMameSession(): Promise<SessionSnapshot | null> {
   return invoke<SessionSnapshot | null>("get_mame_session");
+}
+
+export async function stopMame(request: StopMameRequest): Promise<StopMameResult> {
+  return invoke<StopMameResult>("stop_mame", { request });
 }
 
 export async function pauseMame(request: PauseMameRequest): Promise<PauseMameResult> {
