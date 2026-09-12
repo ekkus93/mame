@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod artwork;
+pub mod artwork_assets;
 pub mod bulk_audit;
 pub mod collections;
 pub mod config;
@@ -77,6 +78,7 @@ pub fn run() -> Result<(), tauri::Error> {
             artwork::set_artwork_configuration,
             artwork::pick_artwork_directory,
             artwork::discover_machine_artwork,
+            artwork_assets::read_artwork_asset,
             machine_settings::get_machine_launch_settings,
             machine_settings::set_machine_launch_settings,
             machine_settings::reset_machine_launch_settings,
