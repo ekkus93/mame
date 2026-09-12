@@ -5,6 +5,7 @@ import {
   discoverMachineArtwork,
   getArtworkConfiguration,
   pickArtworkDirectory,
+  readArtworkAsset,
   setArtworkConfiguration,
 } from "./artwork";
 
@@ -43,5 +44,20 @@ describe("artwork backend commands", () => {
     vi.mocked(invoke).mockResolvedValue({ schemaVersion: 1, machine: "pacman", slots: [] });
     await discoverMachineArtwork("pacman");
     expect(invoke).toHaveBeenCalledWith("discover_machine_artwork", { machine: "pacman" });
+  });
+
+  it("reads artwork through an opaque asset identifier without sending a host path", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      assetId: "local:0:pacman:screenshot:png",
+      mimeType: "image/png",
+      bytes: 3,
+      dataUrl: "data:image/png;base64,Zm9v",
+    });
+
+    await readArtworkAsset("local:0:pacman:screenshot:png");
+    expect(invoke).toHaveBeenCalledWith("read_artwork_asset", {
+      assetId: "local:0:pacman:screenshot:png",
+    });
   });
 });
