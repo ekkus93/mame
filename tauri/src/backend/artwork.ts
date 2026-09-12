@@ -36,6 +36,14 @@ export type ArtworkConfiguration = {
   validations: PathValidation[];
 };
 
+export type ArtworkAssetPayload = {
+  schemaVersion: number;
+  assetId: string;
+  mimeType: string;
+  bytes: number;
+  dataUrl: string;
+};
+
 export async function getArtworkConfiguration(): Promise<ArtworkConfiguration> {
   return invoke<ArtworkConfiguration>("get_artwork_configuration");
 }
@@ -54,4 +62,8 @@ export async function pickArtworkDirectory(): Promise<PlatformPath | null> {
 
 export async function discoverMachineArtwork(machine: string): Promise<MachineArtwork> {
   return invoke<MachineArtwork>("discover_machine_artwork", { machine });
+}
+
+export async function readArtworkAsset(assetId: string): Promise<ArtworkAssetPayload> {
+  return invoke<ArtworkAssetPayload>("read_artwork_asset", { assetId });
 }
