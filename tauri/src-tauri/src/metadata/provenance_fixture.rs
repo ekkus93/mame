@@ -11,7 +11,8 @@ const PROVENANCE: &str =
 
 #[test]
 fn captured_fixture_matches_recorded_mame_identity_and_representative_shape() {
-    let provenance: Value = serde_json::from_str(PROVENANCE).expect("valid fixture provenance JSON");
+    let provenance: Value =
+        serde_json::from_str(PROVENANCE).expect("valid fixture provenance JSON");
     assert_eq!(provenance["schemaVersion"], 1);
     assert_eq!(provenance["mameVersionLine"], "0.264 (unknown)");
     assert_eq!(provenance["packageVersion"], "0.264+dfsg.1-1");
