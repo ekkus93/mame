@@ -13,6 +13,7 @@ import {
   resumeMame,
   saveMameState,
   setMameMute,
+  stopMame,
 } from "./commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -51,6 +52,27 @@ describe("typed backend commands", () => {
 
     await getMameMetadataStatus(request);
     expect(invoke).toHaveBeenLastCalledWith("get_mame_metadata_status", { request });
+  });
+
+  it("uses the typed clean-stop command", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      softStopRequested: false,
+      forcedTermination: false,
+      session: {
+        schemaVersion: 1,
+        sessionId: "mame-1-1",
+        state: "exited",
+        machine: "pacman",
+        software: null,
+        pid: 123,
+      },
+    });
+
+    await stopMame({ sessionId: "mame-1-1" });
+    expect(invoke).toHaveBeenLastCalledWith("stop_mame", {
+      request: { sessionId: "mame-1-1" },
+    });
   });
 
   it("uses dedicated typed pause, resume, and reset commands", async () => {

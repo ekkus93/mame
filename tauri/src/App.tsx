@@ -6,6 +6,7 @@ import { BulkAuditPanel } from "./library/BulkAuditPanel";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
+import { SessionControlPanel } from "./session/SessionControlPanel";
 import { GeneralSettingsPanel } from "./settings/GeneralSettingsPanel";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
@@ -67,6 +68,7 @@ export default function App() {
       {state.status === "ready" ? (
         <>
           <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+          <SessionControlPanel />
           <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
           <LibraryBrowser
             availabilityRevision={availabilityRevision}
