@@ -27,7 +27,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: tauri
+          sparse-checkout: |
+            tauri
+            scripts/tauri
+
+      - name: MT-1302 bundled runtime staging contract
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/tauri/test-stage-mame-runtime.sh
 
       - name: Install Tauri Linux build prerequisites
         run: |
@@ -114,7 +120,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: tauri
+          sparse-checkout: |
+            tauri
+            scripts/tauri
 
       - name: Install Tauri Linux runtime prerequisites
         run: |
