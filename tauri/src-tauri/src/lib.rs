@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 
 pub mod app;
+pub mod artwork;
 pub mod bulk_audit;
 pub mod collections;
 pub mod config;
@@ -37,6 +38,9 @@ pub fn run() -> Result<(), tauri::Error> {
         })
         .invoke_handler(tauri::generate_handler![
             app::get_app_info,
+            artwork::get_artwork_configuration,
+            artwork::set_artwork_configuration,
+            artwork::get_machine_artwork,
             sessions::inspect_mame_executable,
             sessions::launch_mame,
             sessions::get_mame_session,
