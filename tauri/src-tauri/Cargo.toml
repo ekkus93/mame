@@ -13,6 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Runtime-control frame tokens require an OS CSPRNG on every desktop target.
 getrandom = "=0.3.4"
 quick-xml = "=0.41.0"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
