@@ -6,6 +6,7 @@ import { BulkAuditPanel } from "./library/BulkAuditPanel";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
+import { ActiveSessionPanel } from "./sessions/ActiveSessionPanel";
 import { GeneralSettingsPanel } from "./settings/GeneralSettingsPanel";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
@@ -16,6 +17,7 @@ export default function App() {
     (value: number) => value + 1,
     0,
   );
+  const [sessionRevision, bumpSessionRevision] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,8 +69,10 @@ export default function App() {
       {state.status === "ready" ? (
         <>
           <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+          <ActiveSessionPanel onSessionEnded={bumpSessionRevision} />
           <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
           <LibraryBrowser
+            key={sessionRevision}
             availabilityRevision={availabilityRevision}
             onAuditResultsChanged={bumpAvailabilityRevision}
           />
