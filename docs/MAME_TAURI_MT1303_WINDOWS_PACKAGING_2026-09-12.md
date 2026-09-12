@@ -2,7 +2,16 @@
 
 **Date:** 2026-09-12  
 **Task:** MT-1303 — Windows packaging  
-**Status:** Implementation complete; CI qualification pending
+**Status:** Qualified and complete
+
+## Qualification evidence
+
+MT-1303 is qualified against the implementation lineage ending at Windows packaging head `f4d5490b63fcbdd3a89e9d36e81e80b73cfe3e6e`.
+
+- Linux project quality: GitHub Actions run `34713797307` on code head `80cd58849ce012fdd749b17e1f114ec360265356` — **passed**. This covered frontend format/lint/typecheck/tests/build, Rust formatting/tests, library UX performance qualification, Clippy, the MT-1302 staging contract, and lockfile integrity. The subsequent `f4d5490b...` commit changes only the Windows workflow wrapper and does not modify Linux application code.
+- Windows NSIS qualification: GitHub Actions run `34714360316` on exact Windows packaging head `f4d5490b63fcbdd3a89e9d36e81e80b73cfe3e6e` — **passed**. This covered synthetic runtime staging, Windows bundled-runtime Rust tests, NSIS package creation, unattended clean install, installed resource-path verification, unattended clean uninstall, and lockfile integrity.
+
+The Windows qualification also exercised and closed portability issues exposed only by the Windows runner: LF-stable runtime-control Lua composition anchors, a native Windows ICO resource, and safe cross-platform runtime-control token generation through `getrandom` while retaining the crate-wide `#![deny(unsafe_code)]` policy.
 
 ## Package choice
 
