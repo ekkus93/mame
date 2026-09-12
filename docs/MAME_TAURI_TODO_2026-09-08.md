@@ -954,22 +954,22 @@ Conceptual operations:
 
 ## MT-1301 — Define developer executable modes
 
-- [ ] external MAME path.
-- [ ] in-tree development build.
-- [ ] bundled sidecar build where supported.
+- [x] external MAME path.
+- [x] in-tree development build.
+- [x] bundled sidecar build where supported.
 
 ## MT-1302 — Bundle required MAME resources correctly
 
-- [ ] identify runtime files.
-- [ ] preserve licenses.
-- [ ] verify paths after installation.
+- [x] identify runtime files.
+- [x] preserve licenses.
+- [x] verify paths after installation.
 
 ## MT-1303 — Windows packaging
 
-- [ ] installer/package choice.
-- [ ] sidecar path validation.
-- [ ] clean install smoke test.
-- [ ] clean uninstall behavior.
+- [x] installer/package choice.
+- [x] sidecar path validation.
+- [x] clean install smoke test.
+- [x] clean uninstall behavior.
 
 ## MT-1304 — macOS packaging
 
