@@ -20,6 +20,7 @@ pub mod mame;
 pub mod metadata;
 pub mod path_configuration;
 pub mod platform;
+pub mod save_state_records;
 pub mod sessions;
 pub mod software;
 pub mod storage;
