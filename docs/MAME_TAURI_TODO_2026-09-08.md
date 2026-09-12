@@ -973,11 +973,11 @@ Conceptual operations:
 
 ## MT-1304 — macOS packaging
 
-- [ ] app bundle layout.
-- [ ] sidecar/runtime resources.
-- [ ] signing.
-- [ ] notarization process.
-- [ ] clean-machine smoke test.
+- [x] app bundle layout.
+- [x] sidecar/runtime resources.
+- [x] signing.
+- [x] notarization process.
+- [x] clean-machine smoke test.
 
 ## MT-1305 — Linux packaging
 
