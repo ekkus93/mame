@@ -8,12 +8,7 @@ import {
 } from "../backend/artwork";
 import { errorMessage } from "../backend/errors";
 import type { PathValidationStatus, PlatformPath } from "../backend/pathConfiguration";
-import {
-  addUniquePath,
-  displayPlatformPath,
-  movePath,
-  removePath,
-} from "./pathConfigurationModel";
+import { addUniquePath, displayPlatformPath, movePath, removePath } from "./pathConfigurationModel";
 import "./pathConfiguration.css";
 
 const STATUS_LABELS: Record<PathValidationStatus, string> = {

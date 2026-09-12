@@ -2,13 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { PathValidation, PlatformPath } from "./pathConfiguration";
 
-export type ArtworkKind =
-  | "screenshot"
-  | "cabinet"
-  | "marquee"
-  | "flyer"
-  | "icon"
-  | "systemImage";
+export type ArtworkKind = "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
 
 export type ArtworkProvenance = {
   kind: "localFile";

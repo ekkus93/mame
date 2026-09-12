@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "format:check": "prettier --write src/backend/artwork.ts src/settings/ArtworkConfigurationPanel.tsx && git diff -- src/backend/artwork.ts src/settings/ArtworkConfigurationPanel.tsx && exit 1",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "tauri": "tauri"
   },
