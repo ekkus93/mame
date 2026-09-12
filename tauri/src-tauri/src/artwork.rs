@@ -166,7 +166,9 @@ fn artwork_settings_path(app: &AppHandle) -> AppResult<PathBuf> {
 fn load_artwork_settings(path: &Path) -> AppResult<ArtworkSettingsV1> {
     let contents = match fs::read_to_string(path) {
         Ok(contents) => contents,
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(ArtworkSettingsV1::default()),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            return Ok(ArtworkSettingsV1::default())
+        }
         Err(error) => {
             return Err(AppError::new(
                 "ARTWORK_CONFIG_READ_FAILED",
@@ -261,7 +263,9 @@ fn persist_artwork_settings(path: &Path, settings: &ArtworkSettingsV1) -> AppRes
         .map_err(artwork_write_error)?;
     temp.write_all(&encoded).map_err(artwork_write_error)?;
     temp.as_file().sync_all().map_err(artwork_write_error)?;
-    let persisted = temp.persist(path).map_err(|error| artwork_write_error(error.error))?;
+    let persisted = temp
+        .persist(path)
+        .map_err(|error| artwork_write_error(error.error))?;
     persisted.sync_all().map_err(artwork_write_error)?;
 
     #[cfg(unix)]
@@ -666,11 +670,9 @@ mod tests {
         fs::write(outside.join("pacman.png"), b"outside").expect("write outside artwork");
         symlink(&outside, artwork_root.join("snap")).expect("create category symlink");
 
-        let discovered = discover_machine_artwork_from_roots(
-            "pacman",
-            &[PlatformPath::new(&artwork_root)],
-        )
-        .expect("discover local artwork");
+        let discovered =
+            discover_machine_artwork_from_roots("pacman", &[PlatformPath::new(&artwork_root)])
+                .expect("discover local artwork");
         let screenshot = discovered
             .slots
             .iter()
