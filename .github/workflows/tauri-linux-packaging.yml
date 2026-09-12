@@ -1,0 +1,119 @@
+name: Tauri Linux packaging
+
+on:
+  push:
+    paths:
+      - ".gitattributes"
+      - ".github/workflows/tauri-linux-packaging.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+  pull_request:
+    paths:
+      - ".gitattributes"
+      - ".github/workflows/tauri-linux-packaging.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-deb-appimage-smoke:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tauri
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            tauri
+            scripts/tauri
+
+      - name: Stage synthetic MT-1305 MAME runtime
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture=.mt1305-fixture
+          rm -rf "$fixture" tauri/src-tauri/bundle-resources/mame-runtime
+          mkdir -p \
+            "$fixture/source/hash" \
+            "$fixture/source/bgfx/chains" \
+            "$fixture/source/docs/legal"
+          printf '<softwarelist name="fixture"/>\n' > "$fixture/source/hash/fixture.xml"
+          printf 'bgfx fixture\n' > "$fixture/source/bgfx/chains/fixture.json"
+          printf 'MAME COPYING fixture\n' > "$fixture/source/COPYING"
+          printf 'GPL fixture\n' > "$fixture/source/docs/legal/GPL-2.0"
+          printf '#!/usr/bin/env sh\necho MT-1305 synthetic payload\n' > "$fixture/mame"
+          chmod 0755 "$fixture/mame"
+          ./scripts/tauri/stage-mame-runtime.sh \
+            "$fixture/source" \
+            "$fixture/mame" \
+            tauri/src-tauri/bundle-resources/mame-runtime
+
+      - name: Install Linux build and smoke prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            libfuse2 \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            wget \
+            xdotool \
+            xvfb
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies and Linux release build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/debug
+            tauri/src-tauri/target/release
+          key: ${{ runner.os }}-tauri-linux-package-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-linux-package-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Install frontend dependencies from lockfile
+        run: npm ci
+
+      - name: Validate bundled runtime paths on Linux
+        working-directory: tauri/src-tauri
+        run: cargo test --locked bundled_runtime
+
+      - name: Build Debian package and AppImage
+        run: npm run tauri -- build --bundles deb,appimage
+
+      - name: Debian install/uninstall and AppImage package smoke
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          appimage=$(find tauri/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -type f -print -quit)
+          [[ -n "$deb" ]] || { echo "Debian package was not produced" >&2; exit 1; }
+          [[ -n "$appimage" ]] || { echo "AppImage was not produced" >&2; exit 1; }
+          ./scripts/tauri/test-linux-packages.sh "$deb" "$appimage"
+
+      - name: Verify lockfiles remain unchanged
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock

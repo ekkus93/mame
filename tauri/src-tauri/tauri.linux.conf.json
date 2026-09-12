@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "icon": ["icons/icon.png"],
+    "category": "Game",
+    "shortDescription": "Desktop frontend for MAME",
+    "longDescription": "A Tauri desktop frontend for browsing, configuring, and launching MAME machines and software.",
+    "resources": {
+      "bundle-resources/mame-runtime": "mame-runtime"
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  }
+}
