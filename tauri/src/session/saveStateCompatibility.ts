@@ -33,10 +33,7 @@ export function saveStateCompatibility(
       message: "Start the matching machine before loading this state.",
     };
   }
-  if (
-    item.record.machine !== session.machine ||
-    item.record.software !== session.software
-  ) {
+  if (item.record.machine !== session.machine || item.record.software !== session.software) {
     return {
       loadable: false,
       tone: "error",
@@ -45,10 +42,7 @@ export function saveStateCompatibility(
   }
 
   const executable = (session as SessionWithExecutable).executable;
-  if (
-    executable?.rawVersionLine &&
-    executable.rawVersionLine !== item.record.mame.rawVersionLine
-  ) {
+  if (executable?.rawVersionLine && executable.rawVersionLine !== item.record.mame.rawVersionLine) {
     return {
       loadable: true,
       tone: "warning",

@@ -41,12 +41,8 @@ describe("saveStateCompatibility", () => {
   });
 
   it("blocks missing files and context mismatches", () => {
-    expect(
-      saveStateCompatibility({ ...record, filePresent: false }, session).loadable,
-    ).toBe(false);
-    expect(
-      saveStateCompatibility(record, { ...session, machine: "galaga" }).loadable,
-    ).toBe(false);
+    expect(saveStateCompatibility({ ...record, filePresent: false }, session).loadable).toBe(false);
+    expect(saveStateCompatibility(record, { ...session, machine: "galaga" }).loadable).toBe(false);
   });
 
   it("warns about an observed different MAME build but still defers to the probe", () => {

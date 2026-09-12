@@ -14,11 +14,7 @@ import "./SaveStateBrowser.css";
 
 const PAGE_LIMIT = 100;
 
-export function SaveStateBrowser({
-  session,
-}: {
-  session: SessionSnapshot | null;
-}) {
+export function SaveStateBrowser({ session }: { session: SessionSnapshot | null }) {
   const [items, setItems] = useState<StoredSaveStateRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [slot, setSlot] = useState("quick");
@@ -105,9 +101,8 @@ export function SaveStateBrowser({
       <p className="eyebrow">Save states</p>
       <h2 id="save-state-browser-heading">State browser</h2>
       <p className="save-state-policy">
-        A matching MAME version is not treated as proof of compatibility. Every
-        load performs the runtime structural compatibility check before
-        restoration.
+        A matching MAME version is not treated as proof of compatibility. Every load performs the
+        runtime structural compatibility check before restoration.
       </p>
 
       <div className="save-state-create-row">
@@ -155,9 +150,7 @@ export function SaveStateBrowser({
             {items.map((item) => {
               const compatibility = saveStateCompatibility(item, session);
               const deleting = confirmDeleteId === item.id;
-              const itemBusy =
-                operation === `load-${item.id}` ||
-                operation === `delete-${item.id}`;
+              const itemBusy = operation === `load-${item.id}` || operation === `delete-${item.id}`;
               return (
                 <li key={item.id} className="save-state-item">
                   <div>
@@ -168,13 +161,9 @@ export function SaveStateBrowser({
                   <div className="save-state-meta">
                     {new Date(item.record.savedAtEpochMs).toLocaleString()} ·{" "}
                     {formatBytes(item.record.bytes)} · MAME {item.record.mame.version}
-                    {item.record.mame.build
-                      ? ` (${item.record.mame.build})`
-                      : ""}
+                    {item.record.mame.build ? ` (${item.record.mame.build})` : ""}
                   </div>
-                  <p
-                    className={`save-state-compatibility ${compatibility.tone}`}
-                  >
+                  <p className={`save-state-compatibility ${compatibility.tone}`}>
                     {compatibility.message}
                   </p>
                   <div className="save-state-actions">
@@ -190,14 +179,8 @@ export function SaveStateBrowser({
                         <span className="save-state-delete-warning">
                           Delete this state file permanently?
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => confirmDelete(item)}
-                          disabled={busy}
-                        >
-                          {operation === `delete-${item.id}`
-                            ? "Deleting…"
-                            : "Confirm delete"}
+                        <button type="button" onClick={() => confirmDelete(item)} disabled={busy}>
+                          {operation === `delete-${item.id}` ? "Deleting…" : "Confirm delete"}
                         </button>
                         <button
                           type="button"
