@@ -20,7 +20,7 @@ use tempfile::Builder;
 use crate::{
     config::{PathValidation, PathValidationStatus, PlatformPath},
     errors::{AppError, AppResult},
-    mame::argv::validate_short_identifier,
+    mame::validate_short_identifier,
 };
 
 const ARTWORK_SCHEMA_VERSION: u32 = 1;
