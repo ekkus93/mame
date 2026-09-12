@@ -9,16 +9,20 @@ on:
 permissions:
   contents: read
 
+env:
+  MT301_EXPECTED_MAME_VERSION: "0.264 (unknown)"
+  MT301_EXPECTED_PACKAGE_VERSION: "0.264+dfsg.1-1"
+
 jobs:
   capture:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install known packaged MAME
+      - name: Install pinned fixture-source MAME package
         run: |
           sudo apt-get update
-          sudo apt-get install -y mame
+          sudo apt-get install -y "mame=${MT301_EXPECTED_PACKAGE_VERSION}"
 
       - name: Capture bounded representative listxml fixture
         shell: bash
@@ -27,6 +31,8 @@ jobs:
           MAME_BIN="$(command -v mame)"
           MAME_VERSION="$($MAME_BIN -noreadconfig -version | head -n 1)"
           PACKAGE_VERSION="$(dpkg-query -W -f='${Version}' mame)"
+          test "$MAME_VERSION" = "$MT301_EXPECTED_MAME_VERSION"
+          test "$PACKAGE_VERSION" = "$MT301_EXPECTED_PACKAGE_VERSION"
           export MAME_BIN MAME_VERSION PACKAGE_VERSION
 
           python3 - <<'PY'

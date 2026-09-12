@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-09-12T10:19:50Z",
+  "captureWorkflow": ".github/workflows/mt301-fixture-capture.yml",
+  "captureWorkflowSourceSha": "470986579112c6acd658e87c80d0659bff680839",
+  "githubActionsRunId": 34688122578,
+  "runnerImage": "ubuntu-24.04",
+  "packageManager": "apt",
+  "packageName": "mame",
+  "packageVersion": "0.264+dfsg.1-1",
+  "mameVersionLine": "0.264 (unknown)",
+  "fixtureSha256": "85a4bfa0f881389afcf897f1c5a2c7c90ca4bec6f58af3b8441e6e7ea9cf336a",
+  "machines": ["galaxian", "galaxiana", "apple2e", "z80"],
+  "projection": {
+    "description": "Bounded projection of actual -listxml output; retains the machine identity, descriptive fields, chips, displays, driver status, image devices and software-list associations exercised by the parser regression suite while excluding ROM/input/slot noise.",
+    "sourceCommand": "mame -noreadconfig -listxml <machine>"
+  }
+}
