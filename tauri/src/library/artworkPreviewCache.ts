@@ -54,9 +54,7 @@ export class ArtworkPreviewCache {
 
   private evictToLimits(): void {
     while (this.entries.size > this.maxEntries || this.totalBytes > this.maxBytes) {
-      const oldest = this.entries.entries().next().value as
-        | [string, ArtworkAssetPayload]
-        | undefined;
+      const oldest = this.entries.entries().next().value;
       if (!oldest) {
         this.totalBytes = 0;
         return;
