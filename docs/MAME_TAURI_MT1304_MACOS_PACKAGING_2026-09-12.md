@@ -2,7 +2,19 @@
 
 **Date:** 2026-09-12  
 **Task:** MT-1304 — macOS packaging  
-**Status:** Implementation complete; CI qualification pending
+**Status:** Qualified and complete
+
+## Qualification evidence
+
+MT-1304 is qualified against exact code head `c8cef0adf1e3a929f7de0df00eb4ffb01b94aa96`.
+
+- Linux project quality: GitHub Actions run `34720644367` — **passed**. Frontend format/lint/typecheck/tests/build, Rust formatting/tests, library UX performance, Clippy, MT-1302 staging, and lockfile integrity all passed.
+- macOS app/DMG qualification: GitHub Actions run `34720644386` — **passed**. This exercised macOS bundled-runtime tests, fail-closed release credential checks, ad-hoc `.app` and DMG creation, packaged MAME resources, `codesign --verify --deep --strict`, mounted-DMG validation, relocation into a clean temporary Applications-style directory, and lockfile integrity.
+- Windows packaging regression: GitHub Actions run `34720644389` — **passed**. Windows native runtime validation, NSIS creation, clean install/resource verification, clean uninstall, and lockfile integrity remained green after the shared icon repair.
+
+The first macOS package attempt exposed that the repository PNG icon had a malformed IDAT CRC. The icon was replaced with a freshly encoded, CRC-valid 256×256 PNG before final qualification.
+
+The canonical implementation ledger now marks all MT-1304 acceptance bullets complete.
 
 ## Package model
 
@@ -66,4 +78,4 @@ For CI/CD release signing, the Apple certificate must also be imported into the 
 
 A public direct-download macOS package must not be described as release-qualified merely because the ad-hoc CI smoke passes. Publication requires a real Developer ID signing identity and successful Apple notarization/stapling using private credentials supplied by the release environment.
 
-MT-1304 therefore qualifies the deterministic packaging mechanics, app/DMG layout, bundled runtime placement, ad-hoc signing mechanics, and fail-closed notarization process without fabricating evidence that private Apple release credentials were exercised.
+MT-1304 qualifies the deterministic packaging mechanics, app/DMG layout, bundled runtime placement, ad-hoc signing mechanics, and fail-closed notarization process without fabricating evidence that private Apple release credentials were exercised.
