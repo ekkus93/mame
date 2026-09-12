@@ -374,8 +374,7 @@ export type QueryMameRuntimeStateResult = {
   effectiveMuted: boolean;
 };
 
-export type ArtworkKind =
-  "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
+export type ArtworkKind = "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
 
 export type ArtworkProvenance = {
   kind: "localFile";
