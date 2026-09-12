@@ -18,7 +18,13 @@ describe("save-state record backend commands", () => {
   });
 
   it("lists records with a bounded page request", async () => {
-    vi.mocked(invoke).mockResolvedValue({ schemaVersion: 1, total: 0, offset: 0, limit: 100, items: [] });
+    vi.mocked(invoke).mockResolvedValue({
+      schemaVersion: 1,
+      total: 0,
+      offset: 0,
+      limit: 100,
+      items: [],
+    });
     await listSaveStateRecords({ limit: 100, offset: 0 });
     expect(invoke).toHaveBeenCalledWith("list_save_state_records", {
       request: { limit: 100, offset: 0 },

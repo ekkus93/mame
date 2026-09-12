@@ -60,7 +60,9 @@ export async function listSaveStateRecords(
   return invoke<SaveStateRecordPage>("list_save_state_records", { request });
 }
 
-export async function saveKnownState(request: SaveMameStateRequest): Promise<StoredSaveStateRecord> {
+export async function saveKnownState(
+  request: SaveMameStateRequest,
+): Promise<StoredSaveStateRecord> {
   return invoke<StoredSaveStateRecord>("save_known_state", { request });
 }
 
@@ -73,5 +75,7 @@ export async function loadKnownSaveState(
 export async function deleteSaveStateRecord(
   request: DeleteSaveStateRecordRequest,
 ): Promise<DeleteSaveStateRecordResult> {
-  return invoke<DeleteSaveStateRecordResult>("delete_save_state_record", { request });
+  return invoke<DeleteSaveStateRecordResult>("delete_save_state_record", {
+    request,
+  });
 }

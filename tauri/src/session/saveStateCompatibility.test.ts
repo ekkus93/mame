@@ -11,7 +11,11 @@ const record: StoredSaveStateRecord = {
     schemaVersion: 1,
     machine: "pacman",
     software: null,
-    mame: { version: "0.281", build: "mame0281", rawVersionLine: "MAME v0.281" },
+    mame: {
+      version: "0.281",
+      build: "mame0281",
+      rawVersionLine: "MAME v0.281",
+    },
     savedAtEpochMs: 1,
     slot: "quick",
     path: "/application-owned/quick.sta",
@@ -37,7 +41,9 @@ describe("saveStateCompatibility", () => {
   });
 
   it("blocks missing files and context mismatches", () => {
-    expect(saveStateCompatibility({ ...record, filePresent: false }, session).loadable).toBe(false);
+    expect(
+      saveStateCompatibility({ ...record, filePresent: false }, session).loadable,
+    ).toBe(false);
     expect(
       saveStateCompatibility(record, { ...session, machine: "galaga" }).loadable,
     ).toBe(false);
@@ -46,7 +52,11 @@ describe("saveStateCompatibility", () => {
   it("warns about an observed different MAME build but still defers to the probe", () => {
     const current = {
       ...session,
-      executable: { rawVersionLine: "MAME v0.282", version: "0.282", build: "mame0282" },
+      executable: {
+        rawVersionLine: "MAME v0.282",
+        version: "0.282",
+        build: "mame0282",
+      },
     } as SessionSnapshot;
     const result = saveStateCompatibility(record, current);
     expect(result.loadable).toBe(true);

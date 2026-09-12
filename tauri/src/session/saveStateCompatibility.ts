@@ -33,7 +33,10 @@ export function saveStateCompatibility(
       message: "Start the matching machine before loading this state.",
     };
   }
-  if (item.record.machine !== session.machine || item.record.software !== session.software) {
+  if (
+    item.record.machine !== session.machine ||
+    item.record.software !== session.software
+  ) {
     return {
       loadable: false,
       tone: "error",

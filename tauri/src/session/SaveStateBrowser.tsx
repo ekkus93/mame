@@ -14,7 +14,11 @@ import "./SaveStateBrowser.css";
 
 const PAGE_LIMIT = 100;
 
-export function SaveStateBrowser({ session }: { session: SessionSnapshot | null }) {
+export function SaveStateBrowser({
+  session,
+}: {
+  session: SessionSnapshot | null;
+}) {
   const [items, setItems] = useState<StoredSaveStateRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [slot, setSlot] = useState("quick");
@@ -62,7 +66,10 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
   const save = () => {
     if (!session || session.state !== "running") return;
     void run("save", async () => {
-      const saved = await saveKnownState({ sessionId: session.sessionId, slot });
+      const saved = await saveKnownState({
+        sessionId: session.sessionId,
+        slot,
+      });
       return `Saved ${saved.record.machine} to slot ${saved.record.slot}.`;
     });
   };
@@ -70,7 +77,10 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
   const load = (item: StoredSaveStateRecord) => {
     if (!session || !saveStateCompatibility(item, session).loadable) return;
     void run(`load-${item.id}`, async () => {
-      await loadKnownSaveState({ sessionId: session.sessionId, recordId: item.id });
+      await loadKnownSaveState({
+        sessionId: session.sessionId,
+        recordId: item.id,
+      });
       return `Loaded slot ${item.record.slot} after runtime compatibility validation.`;
     });
   };
@@ -88,12 +98,16 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
   const busy = operation !== null;
 
   return (
-    <section className="status-card save-state-browser" aria-labelledby="save-state-browser-heading">
+    <section
+      className="status-card save-state-browser"
+      aria-labelledby="save-state-browser-heading"
+    >
       <p className="eyebrow">Save states</p>
       <h2 id="save-state-browser-heading">State browser</h2>
       <p className="save-state-policy">
-        A matching MAME version is not treated as proof of compatibility. Every load performs the
-        runtime structural compatibility check before restoration.
+        A matching MAME version is not treated as proof of compatibility. Every
+        load performs the runtime structural compatibility check before
+        restoration.
       </p>
 
       <div className="save-state-create-row">
@@ -107,7 +121,11 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
             aria-label="Save-state slot"
           />
         </label>
-        <button type="button" onClick={save} disabled={!session || session.state !== "running" || busy}>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!session || session.state !== "running" || busy}
+        >
           {operation === "save" ? "Saving…" : "Save current state"}
         </button>
       </div>
@@ -117,7 +135,11 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
           {failure}
         </p>
       )}
-      {notice && <p className="save-state-notice" aria-live="polite">{notice}</p>}
+      {notice && (
+        <p className="save-state-notice" aria-live="polite">
+          {notice}
+        </p>
+      )}
 
       {loading ? (
         <p>Loading known save states…</p>
@@ -126,13 +148,16 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
       ) : (
         <>
           <p className="save-state-count">
-            Showing {items.length} of {total} known state{total === 1 ? "" : "s"}.
+            Showing {items.length} of {total} known state
+            {total === 1 ? "" : "s"}.
           </p>
           <ul className="save-state-list">
             {items.map((item) => {
               const compatibility = saveStateCompatibility(item, session);
               const deleting = confirmDeleteId === item.id;
-              const itemBusy = operation === `load-${item.id}` || operation === `delete-${item.id}`;
+              const itemBusy =
+                operation === `load-${item.id}` ||
+                operation === `delete-${item.id}`;
               return (
                 <li key={item.id} className="save-state-item">
                   <div>
@@ -141,28 +166,53 @@ export function SaveStateBrowser({ session }: { session: SessionSnapshot | null 
                     <span> · slot {item.record.slot}</span>
                   </div>
                   <div className="save-state-meta">
-                    {new Date(item.record.savedAtEpochMs).toLocaleString()} · {formatBytes(item.record.bytes)} · MAME {item.record.mame.version}
-                    {item.record.mame.build ? ` (${item.record.mame.build})` : ""}
+                    {new Date(item.record.savedAtEpochMs).toLocaleString()} ·{" "}
+                    {formatBytes(item.record.bytes)} · MAME {item.record.mame.version}
+                    {item.record.mame.build
+                      ? ` (${item.record.mame.build})`
+                      : ""}
                   </div>
-                  <p className={`save-state-compatibility ${compatibility.tone}`}>
+                  <p
+                    className={`save-state-compatibility ${compatibility.tone}`}
+                  >
                     {compatibility.message}
                   </p>
                   <div className="save-state-actions">
-                    <button type="button" onClick={() => load(item)} disabled={!compatibility.loadable || busy}>
+                    <button
+                      type="button"
+                      onClick={() => load(item)}
+                      disabled={!compatibility.loadable || busy}
+                    >
                       {operation === `load-${item.id}` ? "Loading…" : "Load"}
                     </button>
                     {deleting ? (
                       <>
-                        <span className="save-state-delete-warning">Delete this state file permanently?</span>
-                        <button type="button" onClick={() => confirmDelete(item)} disabled={busy}>
-                          {operation === `delete-${item.id}` ? "Deleting…" : "Confirm delete"}
+                        <span className="save-state-delete-warning">
+                          Delete this state file permanently?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => confirmDelete(item)}
+                          disabled={busy}
+                        >
+                          {operation === `delete-${item.id}`
+                            ? "Deleting…"
+                            : "Confirm delete"}
                         </button>
-                        <button type="button" onClick={() => setConfirmDeleteId(null)} disabled={busy}>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          disabled={busy}
+                        >
                           Cancel
                         </button>
                       </>
                     ) : (
-                      <button type="button" onClick={() => setConfirmDeleteId(item.id)} disabled={busy || itemBusy}>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(item.id)}
+                        disabled={busy || itemBusy}
+                      >
                         Delete
                       </button>
                     )}
