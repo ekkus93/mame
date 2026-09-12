@@ -1,11 +1,17 @@
-# MT-300 listxml fixtures
+# MT-300 / MT-301 listxml fixtures
 
-`listxml-representative.xml` is a reduced schema fixture used to exercise the MT-300 parser and database importer while the implementation is bootstrapped. Its element and attribute shapes are derived directly from `src/frontend/mame/infoxml.cpp` at the MT-300 base SHA.
+`listxml-representative.xml` is the original reduced bootstrap fixture used to exercise the MT-300 parser and database importer. Its element and attribute shapes were derived directly from `src/frontend/mame/infoxml.cpp` at the MT-300 base SHA. It is retained as a compact schema-focused regression fixture and is not represented as captured catalog output.
 
-Before MT-301 is closed, this bootstrap fixture must be replaced by (or accompanied by) a reduced capture generated from a pinned, known MAME executable. The capture command is provided by `scripts/tauri/capture-listxml-fixture.sh`, and the producing executable's `-version` identity must be recorded here with the final fixture.
+MT-301 fixture provenance is complete through a separate captured fixture:
 
-## Current validation state
+- captured fixture: `listxml-representative-captured.xml`;
+- provenance manifest: `listxml-representative.provenance.json`;
+- capture workflow: `.github/workflows/mt301-fixture-capture.yml`;
+- successful capture run: GitHub Actions `34688122578`;
+- pinned package: Ubuntu `mame=0.264+dfsg.1-1`;
+- executable identity reported by the capture: `0.264 (unknown)`;
+- captured fixture SHA-256: `85a4bfa0f881389afcf897f1c5a2c7c90ca4bec6f58af3b8441e6e7ea9cf336a`.
 
-The MT-300 implementation branch is based on MAME/Tauri integration commit `52b145c77b5f5af72b85ac01cf31ca4fab6b23d8`. The reduced bootstrap fixture is intentionally not represented as an authoritative captured MAME catalog; its provenance remains explicit until a pinned executable capture is recorded. Parser/import regression tests consume this fixture, while `capture-listxml-fixture.sh` is the required path for producing the final MT-301 capture without hand-editing generated XML.
+The captured file is a bounded projection of actual `-listxml` output rather than hand-authored XML. It retains the representative machine identities and parser fields needed by the regression suite while excluding catalog noise that is irrelevant to the exercised schema. `tauri/src-tauri/src/metadata/provenance_fixture.rs` locks the recorded MAME/package identity and representative captured shape into the Rust test suite.
 
-The generator integration test verifies the imported fixture through the canonical MAME short name `apple2e`. It intentionally does not invent a display-name alias for the fixture's authoritative `Apple //e` description.
+The generator integration test verifies imported metadata through the canonical MAME short name `apple2e`; it intentionally does not invent a display-name alias for the authoritative `Apple //e` description.
