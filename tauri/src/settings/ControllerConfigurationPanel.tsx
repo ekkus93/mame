@@ -9,6 +9,7 @@ import {
   type ControllerProfileScope,
 } from "../backend/controllerProfiles";
 import { errorMessage } from "../backend/errors";
+import { MachineArtworkPanel } from "../library/MachineArtworkPanel";
 import "./controllerConfiguration.css";
 
 type DetectedGamepad = {
@@ -337,6 +338,8 @@ export function ControllerConfigurationPanel({
           </div>
         </section>
       )}
+
+      {shortName && <MachineArtworkPanel machine={shortName} />}
     </section>
   );
 }
