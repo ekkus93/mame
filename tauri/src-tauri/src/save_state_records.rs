@@ -456,16 +456,23 @@ fn upsert_record(connection: &mut Connection, record: &SaveStateRecordV1) -> App
 
     connection
         .execute(
-            "INSERT INTO save_state_records(\
-                schema_version, machine, software, mame_version, mame_build, mame_raw_version_line, \
-                saved_at_epoch_ms, slot, state_path, bytes, screenshot_json\
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)\
-             ON CONFLICT(state_path) DO UPDATE SET\
-                schema_version=excluded.schema_version, machine=excluded.machine, software=excluded.software,\
-                mame_version=excluded.mame_version, mame_build=excluded.mame_build,\
-                mame_raw_version_line=excluded.mame_raw_version_line,\
-                saved_at_epoch_ms=excluded.saved_at_epoch_ms, slot=excluded.slot, bytes=excluded.bytes,\
-                screenshot_json=excluded.screenshot_json",
+            r#"
+INSERT INTO save_state_records(
+    schema_version, machine, software, mame_version, mame_build, mame_raw_version_line,
+    saved_at_epoch_ms, slot, state_path, bytes, screenshot_json
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+ON CONFLICT(state_path) DO UPDATE SET
+    schema_version = excluded.schema_version,
+    machine = excluded.machine,
+    software = excluded.software,
+    mame_version = excluded.mame_version,
+    mame_build = excluded.mame_build,
+    mame_raw_version_line = excluded.mame_raw_version_line,
+    saved_at_epoch_ms = excluded.saved_at_epoch_ms,
+    slot = excluded.slot,
+    bytes = excluded.bytes,
+    screenshot_json = excluded.screenshot_json
+"#,
             params![
                 i64::from(record.schema_version),
                 record.machine,
