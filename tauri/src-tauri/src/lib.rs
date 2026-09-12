@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 
 pub mod app;
+pub mod artwork;
 pub mod bulk_audit;
 pub mod collections;
 pub mod config;

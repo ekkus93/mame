@@ -373,3 +373,26 @@ export type QueryMameRuntimeStateResult = {
   uiMuted: boolean;
   effectiveMuted: boolean;
 };
+
+export type ArtworkKind =
+  | "screenshot"
+  | "cabinet"
+  | "marquee"
+  | "flyer"
+  | "icon"
+  | "systemImage";
+
+export type ArtworkProvenance = {
+  kind: "localFile";
+  rootIndex: number;
+};
+
+export type ArtworkDescriptor = {
+  schemaVersion: 1;
+  assetId: string;
+  machine: string;
+  kind: ArtworkKind;
+  mimeType: string;
+  bytes: number;
+  provenance: ArtworkProvenance;
+};
