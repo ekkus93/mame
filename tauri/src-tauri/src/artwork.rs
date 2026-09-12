@@ -17,39 +17,6 @@ pub enum ArtworkKind {
     SystemImage,
 }
 
-impl ArtworkKind {
-    pub(crate) const ALL: [Self; 6] = [
-        Self::Screenshot,
-        Self::Cabinet,
-        Self::Marquee,
-        Self::Flyer,
-        Self::Icon,
-        Self::SystemImage,
-    ];
-
-    pub(crate) fn directory_name(self) -> &'static str {
-        match self {
-            Self::Screenshot => "snap",
-            Self::Cabinet => "cabinets",
-            Self::Marquee => "marquees",
-            Self::Flyer => "flyers",
-            Self::Icon => "icons",
-            Self::SystemImage => "systems",
-        }
-    }
-
-    pub(crate) fn asset_token(self) -> &'static str {
-        match self {
-            Self::Screenshot => "screenshot",
-            Self::Cabinet => "cabinet",
-            Self::Marquee => "marquee",
-            Self::Flyer => "flyer",
-            Self::Icon => "icon",
-            Self::SystemImage => "systemImage",
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ArtworkProvenanceKind {
@@ -77,44 +44,44 @@ pub struct ArtworkDescriptor {
     pub provenance: ArtworkProvenance,
 }
 
-pub(crate) fn local_asset_id(machine: &str, kind: ArtworkKind, root_index: u32) -> String {
-    format!("local:{root_index}:{machine}:{}", kind.asset_token())
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{local_asset_id, ArtworkKind};
+    use super::{ArtworkKind, ArtworkProvenance, ArtworkProvenanceKind};
 
     #[test]
-    fn artwork_model_covers_all_required_mt801_categories() {
+    fn artwork_model_serializes_all_required_mt801_categories() {
+        let kinds = [
+            ArtworkKind::Screenshot,
+            ArtworkKind::Cabinet,
+            ArtworkKind::Marquee,
+            ArtworkKind::Flyer,
+            ArtworkKind::Icon,
+            ArtworkKind::SystemImage,
+        ];
+
         assert_eq!(
-            ArtworkKind::ALL.map(ArtworkKind::asset_token),
-            [
+            serde_json::to_value(kinds).expect("serialize artwork kinds"),
+            serde_json::json!([
                 "screenshot",
                 "cabinet",
                 "marquee",
                 "flyer",
                 "icon",
                 "systemImage"
-            ]
+            ])
         );
     }
 
     #[test]
-    fn local_asset_identity_contains_no_filesystem_path() {
-        let id = local_asset_id("pacman", ArtworkKind::Screenshot, 2);
-        assert_eq!(id, "local:2:pacman:screenshot");
-        assert!(!id.contains('/'));
-        assert!(!id.contains('\\'));
-    }
+    fn local_provenance_exposes_root_ordinal_without_a_host_path() {
+        let provenance = ArtworkProvenance {
+            kind: ArtworkProvenanceKind::LocalFile,
+            root_index: 2,
+        };
 
-    #[test]
-    fn conventional_local_directory_names_are_explicit() {
-        assert_eq!(ArtworkKind::Screenshot.directory_name(), "snap");
-        assert_eq!(ArtworkKind::Cabinet.directory_name(), "cabinets");
-        assert_eq!(ArtworkKind::Marquee.directory_name(), "marquees");
-        assert_eq!(ArtworkKind::Flyer.directory_name(), "flyers");
-        assert_eq!(ArtworkKind::Icon.directory_name(), "icons");
-        assert_eq!(ArtworkKind::SystemImage.directory_name(), "systems");
+        assert_eq!(
+            serde_json::to_value(provenance).expect("serialize artwork provenance"),
+            serde_json::json!({ "kind": "localFile", "rootIndex": 2 })
+        );
     }
 }
