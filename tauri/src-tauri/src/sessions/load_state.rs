@@ -158,18 +158,7 @@ fn load_state_for_session(
         }))
     })?;
 
-    if target.signature != probe.signature {
-        return Err(AppError::new(
-            "LOAD_STATE_INCOMPATIBLE",
-            "The saved state is structurally incompatible with the currently running machine configuration.",
-        )
-        .with_details(serde_json::json!({
-            "machine": session.machine,
-            "slot": slot,
-            "savedSignature": format!("{:08x}", target.signature),
-            "currentSignature": format!("{:08x}", probe.signature)
-        })));
-    }
+    ensure_structural_compatibility(target, probe, &session.machine, slot)?;
 
     let target_utf8 = path_to_protocol(&paths.final_path, "saved state")?;
     let completion_utf8 = path_to_protocol(&paths.completion, "load completion marker")?;
@@ -198,6 +187,29 @@ struct LoadStatePaths {
 struct StateHeader {
     bytes: u64,
     signature: u32,
+}
+
+fn ensure_structural_compatibility(
+    target: StateHeader,
+    probe: StateHeader,
+    machine: &str,
+    slot: &str,
+) -> AppResult<()> {
+    if target.signature == probe.signature {
+        return Ok(());
+    }
+
+    Err(AppError::new(
+        "LOAD_STATE_INCOMPATIBLE",
+        "The saved state is structurally incompatible with the currently running machine configuration.",
+    )
+    .with_details(serde_json::json!({
+        "machine": machine,
+        "slot": slot,
+        "savedSignature": format!("{:08x}", target.signature),
+        "currentSignature": format!("{:08x}", probe.signature),
+        "stateFilePreserved": true
+    })))
 }
 
 fn load_state_paths(
@@ -521,8 +533,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        encode_component, inspect_target_state, validate_slot, STATE_FORMAT_VERSION,
-        STATE_HEADER_BYTES,
+        encode_component, ensure_structural_compatibility, inspect_target_state, validate_slot,
+        StateHeader, STATE_FORMAT_VERSION, STATE_HEADER_BYTES,
     };
 
     #[test]
@@ -542,6 +554,38 @@ mod tests {
     fn context_components_match_save_state_encoding() {
         assert_eq!(encode_component("pacman"), "7061636d616e");
         assert_eq!(encode_component("list:item"), "6c6973743a6974656d");
+    }
+
+    #[test]
+    fn incompatible_structural_probe_preserves_target_state_bytes() {
+        let root = tempdir().expect("tempdir");
+        let path = root.path().join("quick.sta");
+        let original = b"known saved state bytes that must survive a failed compatibility check";
+        fs::write(&path, original).expect("state fixture");
+
+        let error = ensure_structural_compatibility(
+            StateHeader {
+                bytes: original.len() as u64,
+                signature: 0x1122_3344,
+            },
+            StateHeader {
+                bytes: original.len() as u64,
+                signature: 0x5566_7788,
+            },
+            "pacman",
+            "quick",
+        )
+        .expect_err("mismatched structural signatures must fail");
+
+        assert_eq!(error.code, "LOAD_STATE_INCOMPATIBLE");
+        assert_eq!(
+            error
+                .details
+                .get("stateFilePreserved")
+                .and_then(serde_json::Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(fs::read(&path).expect("preserved target"), original);
     }
 
     #[test]
@@ -566,11 +610,16 @@ mod tests {
         file.write_all(&[1, 2, 3, 4]).expect("payload");
         file.sync_all().expect("sync fixture");
 
+        let before_wrong_machine = fs::read(&path).expect("snapshot target");
         assert_eq!(
             inspect_target_state(&path, "galaga")
                 .expect_err("wrong machine")
                 .code,
             "LOAD_STATE_CONTEXT_MISMATCH"
+        );
+        assert_eq!(
+            fs::read(&path).expect("target after wrong-machine preflight"),
+            before_wrong_machine
         );
 
         header[8] = STATE_FORMAT_VERSION + 1;
@@ -578,11 +627,16 @@ mod tests {
         file.write_all(&header).expect("header");
         file.write_all(&[1, 2, 3, 4]).expect("payload");
         file.sync_all().expect("sync fixture");
+        let before_wrong_format = fs::read(&path).expect("snapshot incompatible target");
         assert_eq!(
             inspect_target_state(&path, "pacman")
                 .expect_err("wrong version")
                 .code,
             "LOAD_STATE_INCOMPATIBLE"
+        );
+        assert_eq!(
+            fs::read(&path).expect("target after wrong-format preflight"),
+            before_wrong_format
         );
     }
 }
