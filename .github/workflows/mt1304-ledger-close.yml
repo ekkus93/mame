@@ -1,0 +1,39 @@
+name: MT-1304 ledger close
+
+on:
+  push:
+    branches: [ralph/mt-1304-macos-packaging]
+    paths: [.github/workflows/mt1304-ledger-close.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Mark MT-1304 complete
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/MAME_TAURI_TODO_2026-09-08.md')
+          s = p.read_text()
+          start = '## MT-1304 — macOS packaging'
+          end = '## MT-1305 — Linux packaging'
+          a = s.index(start)
+          b = s.index(end, a)
+          section = s[a:b].replace('- [ ]', '- [x]')
+          s = s[:a] + section + s[b:]
+          p.write_text(s)
+          PY
+      - name: Commit completion ledger
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/mt1304-ledger-close.yml
+          git add docs/MAME_TAURI_TODO_2026-09-08.md
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: mark MT-1304 complete'
+          git push origin HEAD:ralph/mt-1304-macos-packaging
