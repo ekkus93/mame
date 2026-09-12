@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -51,11 +50,7 @@ impl BundledRuntimeLayout {
             "resourceDir",
             "MAME_BUNDLED_RESOURCE_DIR_INVALID",
         )?;
-        let root = canonical_directory(
-            &self.root,
-            "runtimeRoot",
-            "MAME_BUNDLED_RUNTIME_MISSING",
-        )?;
+        let root = canonical_directory(&self.root, "runtimeRoot", "MAME_BUNDLED_RUNTIME_MISSING")?;
         ensure_contained(&resource_dir, &root, "runtimeRoot")?;
 
         let executable = canonical_regular_file(
@@ -66,11 +61,7 @@ impl BundledRuntimeLayout {
         ensure_contained(&root, &executable, "executable")?;
         ensure_executable(&executable)?;
 
-        let hash_dir = canonical_directory(
-            &self.hash_dir,
-            "hash",
-            "MAME_BUNDLED_HASH_MISSING",
-        )?;
+        let hash_dir = canonical_directory(&self.hash_dir, "hash", "MAME_BUNDLED_HASH_MISSING")?;
         ensure_contained(&root, &hash_dir, "hash")?;
         if !directory_has_extension(&hash_dir, "xml").map_err(|error| {
             invalid_component(
@@ -90,11 +81,7 @@ impl BundledRuntimeLayout {
             ));
         }
 
-        let bgfx_dir = canonical_directory(
-            &self.bgfx_dir,
-            "bgfx",
-            "MAME_BUNDLED_BGFX_MISSING",
-        )?;
+        let bgfx_dir = canonical_directory(&self.bgfx_dir, "bgfx", "MAME_BUNDLED_BGFX_MISSING")?;
         ensure_contained(&root, &bgfx_dir, "bgfx")?;
         if !directory_has_regular_file_recursive(&bgfx_dir).map_err(|error| {
             invalid_component(
@@ -114,18 +101,12 @@ impl BundledRuntimeLayout {
             ));
         }
 
-        let copying = canonical_regular_file(
-            &self.copying,
-            "COPYING",
-            "MAME_BUNDLED_COPYING_MISSING",
-        )?;
+        let copying =
+            canonical_regular_file(&self.copying, "COPYING", "MAME_BUNDLED_COPYING_MISSING")?;
         ensure_contained(&root, &copying, "COPYING")?;
 
-        let legal_dir = canonical_directory(
-            &self.legal_dir,
-            "legal",
-            "MAME_BUNDLED_LEGAL_MISSING",
-        )?;
+        let legal_dir =
+            canonical_directory(&self.legal_dir, "legal", "MAME_BUNDLED_LEGAL_MISSING")?;
         ensure_contained(&root, &legal_dir, "legal")?;
         if !directory_has_regular_file_recursive(&legal_dir).map_err(|error| {
             invalid_component(
@@ -341,10 +322,12 @@ mod tests {
             permissions.set_mode(0o755);
             fs::set_permissions(&layout.executable, permissions).expect("permissions");
         }
-        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>")
-            .expect("hash fixture");
-        fs::write(layout.bgfx_dir.join("shaders").join("fixture.bin"), b"shader")
-            .expect("bgfx fixture");
+        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>").expect("hash fixture");
+        fs::write(
+            layout.bgfx_dir.join("shaders").join("fixture.bin"),
+            b"shader",
+        )
+        .expect("bgfx fixture");
         fs::write(&layout.copying, b"MAME license summary").expect("COPYING");
         fs::write(layout.legal_dir.join("GPL-2.0"), b"GPL-2.0").expect("legal fixture");
         (temp, layout)
@@ -359,7 +342,10 @@ mod tests {
         assert_eq!(source.trust(), MameExecutableTrust::QualifiedBundled);
         assert_eq!(source.path(), layout.executable.as_path());
         assert_eq!(
-            layout.executable.file_name().and_then(|value| value.to_str()),
+            layout
+                .executable
+                .file_name()
+                .and_then(|value| value.to_str()),
             Some(BUNDLED_MAME_EXECUTABLE)
         );
     }
