@@ -2,9 +2,15 @@
 
 **Date:** 2026-09-12  
 **Task:** MT-1302 — Bundle required MAME resources correctly  
-**Status:** Implementation complete; CI qualification pending
+**Status:** Qualified
 
 MT-1302 defines and validates the package-owned runtime layout used by later platform-specific installers. It does not enable bundling by itself and does not check a MAME executable into Git.
+
+## Qualification evidence
+
+The exact implementation head `2977fe8e2b4a9841dd980bee21db109f3dd548b5` passed GitHub Actions Tauri project run `34712104197` on 2026-09-12. The green gate set included the MT-1302 synthetic staging contract, frontend format/lint/typecheck/tests/production build, Rust format/tests, the library UX performance qualification, Clippy with warnings denied, and lockfile-integrity verification.
+
+The synthetic staging contract proves both a successful complete runtime stage and the failure-safety rule that an invalid source tree is rejected during preflight without destroying an already staged destination.
 
 ## Required staged layout
 
