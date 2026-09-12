@@ -4,6 +4,7 @@ pub mod app;
 pub mod artwork;
 pub mod artwork_assets;
 pub mod bulk_audit;
+pub mod bundled_runtime;
 pub mod collections;
 pub mod config;
 pub mod config_persistence;

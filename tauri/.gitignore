@@ -4,3 +4,4 @@ dist/
 coverage/
 *.log
 src-tauri/target/
+src-tauri/bundle-resources/mame-runtime/
