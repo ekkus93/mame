@@ -1,0 +1,90 @@
+name: MT-301 listxml fixture capture
+
+on:
+  push:
+    paths:
+      - ".github/workflows/mt301-fixture-capture.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install known packaged MAME
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mame
+
+      - name: Capture bounded representative listxml fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAME_BIN="$(command -v mame)"
+          MAME_VERSION="$($MAME_BIN -noreadconfig -version | head -n 1)"
+          PACKAGE_VERSION="$(dpkg-query -W -f='${Version}' mame)"
+          export MAME_BIN MAME_VERSION PACKAGE_VERSION
+
+          python3 - <<'PY'
+          import copy
+          import os
+          import subprocess
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          names = ["galaxian", "galaxiana", "apple2e", "z80"]
+          mame = os.environ["MAME_BIN"]
+          captured = []
+          root_attrs = None
+
+          for name in names:
+              result = subprocess.run(
+                  [mame, "-noreadconfig", "-listxml", name],
+                  check=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+              )
+              root = ET.fromstring(result.stdout)
+              if root_attrs is None:
+                  root_attrs = dict(root.attrib)
+              machine = next(
+                  (entry for entry in root.findall("machine") if entry.get("name") == name),
+                  None,
+              )
+              if machine is None:
+                  raise SystemExit(f"MAME listxml did not return requested machine {name!r}")
+              captured.append(copy.deepcopy(machine))
+
+          output_root = ET.Element("mame", root_attrs or {})
+          for machine in captured:
+              output_root.append(machine)
+          ET.indent(output_root, space="  ")
+
+          out = Path("/tmp/listxml-representative.xml")
+          ET.ElementTree(output_root).write(out, encoding="utf-8", xml_declaration=True)
+          parsed = ET.parse(out).getroot()
+          observed = [node.get("name") for node in parsed.findall("machine")]
+          if observed != names:
+              raise SystemExit(f"unexpected bounded fixture machines: {observed!r}")
+          if out.stat().st_size > 256 * 1024:
+              raise SystemExit("bounded representative fixture unexpectedly exceeds 256 KiB")
+          PY
+
+          printf 'MT301_MAME_VERSION=%s\n' "$MAME_VERSION"
+          printf 'MT301_PACKAGE_VERSION=%s\n' "$PACKAGE_VERSION"
+          printf 'MT301_RUNNER_IMAGE=%s\n' "ubuntu-24.04"
+          printf 'MT301_FIXTURE_SHA256=%s\n' "$(sha256sum /tmp/listxml-representative.xml | awk '{print $1}')"
+          printf 'MT301_FIXTURE_BASE64_BEGIN\n'
+          base64 -w 76 /tmp/listxml-representative.xml
+          printf '\nMT301_FIXTURE_BASE64_END\n'
+
+      - name: Upload captured fixture
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt301-listxml-representative
+          path: /tmp/listxml-representative.xml
+          if-no-files-found: error
