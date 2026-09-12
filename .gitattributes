@@ -8,6 +8,8 @@
 *.rc    eol=crlf
 *.sh    eol=lf
 
+tauri/src-tauri/src/sessions/*.lua eol=lf
+
 *.gif   -text
 *.ico   -text
 *.jpg   -text
