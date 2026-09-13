@@ -57,6 +57,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-mt2004-release-candidate.py
 
+      - name: MT-2100 final quality closure ledger regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-mt2100-final-quality-closure.py
+
       - name: Install Tauri Linux build prerequisites
         run: |
           sudo apt-get update
@@ -178,6 +182,22 @@ jobs:
         with:
           name: mame-tauri-mt2004-external-window-rc-${{ github.sha }}
           path: artifacts/release/
+          if-no-files-found: error
+
+      - name: Generate MT-2100 final quality closure ledger
+        working-directory: ${{ github.workspace }}
+        run: >-
+          python3 scripts/tauri/mt2100_final_quality_closure.py
+          --sha ${{ github.sha }}
+          --previous-qualified-sha 6aa453eb10ace2eaf06e0a284167e68538f0fb48
+          --pretty
+          --write artifacts/final-quality/mt2100-final-quality-closure.json
+
+      - name: Upload MT-2100 final quality closure ledger
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-mt2100-final-quality-closure-${{ github.sha }}
+          path: artifacts/final-quality/
           if-no-files-found: error
 
       - name: Rust clippy
