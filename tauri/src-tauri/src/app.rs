@@ -29,7 +29,9 @@ pub struct BuildIdentity {
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum MameVersionReport {
     NotConfigured,
-    Available { identity: MameExecutableIdentity },
+    Available {
+        identity: MameExecutableIdentity,
+    },
     Unavailable {
         path: Option<String>,
         error_code: String,
