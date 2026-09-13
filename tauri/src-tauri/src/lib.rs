@@ -12,6 +12,7 @@ pub mod configuration_explainability;
 pub mod configuration_precedence;
 pub mod controller_profiles;
 pub mod controller_settings;
+pub mod diagnostics;
 pub mod errors;
 pub mod general_settings;
 pub mod history;
@@ -31,16 +32,35 @@ pub fn run() -> Result<(), tauri::Error> {
         .plugin(tauri_plugin_dialog::init())
         .manage(sessions::SessionSupervisor::default())
         .manage(bulk_audit::BulkAuditSupervisor::default())
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                diagnostics::record(
+                    "info",
+                    "app.lifecycle",
+                    "Main application window destroyed.",
+                    serde_json::json!({ "window": "main" }),
+                );
+            }
+        })
         .setup(|app| {
+            diagnostics::initialize(app.handle())?;
             let settings_path = config::settings_path(app.handle())?;
             if let Some(parent) = settings_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
             app::emit_ready(app.handle())?;
+            diagnostics::record(
+                "info",
+                "app.lifecycle",
+                "Application backend ready.",
+                serde_json::json!({ "appVersion": env!("CARGO_PKG_VERSION") }),
+            );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             app::get_app_info,
+            diagnostics::get_diagnostics,
+            diagnostics::export_diagnostics_bundle,
             sessions::inspect_mame_executable,
             sessions::launch_mame,
             sessions::get_mame_session,

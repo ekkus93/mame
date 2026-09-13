@@ -16,6 +16,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::{
     config::{load_settings, settings_path, LaunchPreferencesV1},
+    diagnostics,
     errors::AppResult,
     history, machine_settings,
     mame::{
@@ -194,6 +195,15 @@ pub(crate) fn launch_mame_with_source(
     // Validate identifiers and project-controlled paths before persisting an
     // attempt, so invalid frontend input never becomes durable user history.
     build_launch_argv(&target)?;
+    diagnostics::record(
+        "info",
+        "mame.lifecycle",
+        "MAME launch requested.",
+        serde_json::json!({
+            "machine": &target.machine,
+            "software": &target.software
+        }),
+    );
     let catalog_path = storage::catalog_path(&app)?;
     let launch_preferences = machine_settings::effective_launch_preferences(
         &catalog_path,
@@ -206,6 +216,19 @@ pub(crate) fn launch_mame_with_source(
 
     let app_for_events = app.clone();
     let event_sink: EventSink = Arc::new(move |name, event| {
+        diagnostics::record(
+            "info",
+            "mame.lifecycle",
+            name,
+            serde_json::json!({
+                "sessionId": &event.session.session_id,
+                "machine": &event.session.machine,
+                "software": &event.session.software,
+                "state": event.session.state,
+                "exitCode": event.session.exit_code,
+                "forcedTermination": event.session.forced_termination
+            }),
+        );
         app_for_events
             .emit(name, event)
             .map_err(|error| error.to_string())
@@ -227,6 +250,15 @@ pub(crate) fn launch_mame_with_source(
                 } else {
                     "session.resumed"
                 };
+                diagnostics::record(
+                    "info",
+                    "mame.lifecycle",
+                    event_name,
+                    serde_json::json!({
+                        "sessionId": &pause_session_id,
+                        "paused": paused
+                    }),
+                );
                 let _ = app_for_pause_events.emit(
                     event_name,
                     SessionPauseEventV1 {
@@ -330,6 +362,12 @@ pub fn stop_mame(
     request: StopMameRequest,
     supervisor: State<'_, SessionSupervisor>,
 ) -> AppResult<StopSessionResult> {
+    diagnostics::record(
+        "info",
+        "mame.lifecycle",
+        "MAME stop requested.",
+        serde_json::json!({ "sessionId": &request.session_id }),
+    );
     supervisor.stop_with_protocol_exit(&request.session_id)
 }
 

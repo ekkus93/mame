@@ -15,9 +15,12 @@ pub struct AppError {
 
 impl AppError {
     pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        let code = code.into();
+        let message = message.into();
+        crate::diagnostics::record_error(&code, &message);
         Self {
-            code: code.into(),
-            message: message.into(),
+            code,
+            message,
             details: serde_json::Value::Object(serde_json::Map::new()),
             retryable: false,
         }

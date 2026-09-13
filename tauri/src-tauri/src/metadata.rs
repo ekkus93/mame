@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 use crate::{
+    diagnostics,
     errors::{AppError, AppResult},
     mame::MameExecutableSource,
     sessions::{MameExecutableRequest, MameExecutableSelectionKind},
@@ -66,10 +67,24 @@ pub async fn refresh_mame_metadata(
 ) -> AppResult<MetadataRefreshResult> {
     let source = executable_source(&request.executable);
     let catalog_path = storage::catalog_path(&app)?;
+    diagnostics::record(
+        "info",
+        "metadata.refresh",
+        "MAME metadata refresh requested.",
+        serde_json::json!({ "source": format!("{:?}", request.executable.source) }),
+    );
 
-    tauri::async_runtime::spawn_blocking(move || generator::refresh_catalog(source, &catalog_path))
-        .await
-        .map_err(metadata_worker_error)?
+    let result =
+        tauri::async_runtime::spawn_blocking(move || generator::refresh_catalog(source, &catalog_path))
+            .await
+            .map_err(metadata_worker_error)??;
+    diagnostics::record(
+        "info",
+        "metadata.refresh",
+        "MAME metadata refresh completed.",
+        serde_json::json!({ "status": "completed" }),
+    );
+    Ok(result)
 }
 
 #[tauri::command]
