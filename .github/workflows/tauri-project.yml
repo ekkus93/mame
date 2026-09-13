@@ -34,6 +34,8 @@ jobs:
             /COPYING
             /3rdparty/README.md
             /docs/legal/
+            /docs/MAME_TAURI_TODO_2026-09-08.md
+            /docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md
             /tauri/
             /scripts/tauri/
 
@@ -41,7 +43,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./scripts/tauri/test-stage-mame-runtime.sh
 
-      - name: MT-1407 exact-head evidence helper regression tests
+      - name: MT-1407 exact-head CI evidence helper regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-report-ci-evidence.py
 
@@ -60,6 +62,10 @@ jobs:
       - name: MT-2100 final quality closure ledger regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-mt2100-final-quality-closure.py
+
+      - name: MT-2200 TODO reconciliation regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-mt2200-todo-reconciliation.py
 
       - name: Install Tauri Linux build prerequisites
         run: |
