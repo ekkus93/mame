@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Generate and validate the MT-1700 performance qualification artifact."""
 
+# Imported by test-performance-qualification.py and executed by CI artifact steps.
+
 from __future__ import annotations
 
 import argparse

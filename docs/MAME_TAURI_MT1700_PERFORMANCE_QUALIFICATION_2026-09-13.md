@@ -37,6 +37,10 @@ Those measurements are represented in the same artifact schema so release notes 
 
 MT-1705 remains conditional by design. The current architecture launches MAME as a sidecar/native window instead of embedding the renderer. The MT-1700 artifact therefore marks embedded-render metrics as `deferred_until_mt1000` rather than pretending that frame pacing, input latency, GPU overhead, or A/V sync have been qualified for an embedded renderer that is not active.
 
+## Exact-head trigger note
+
+The closure branch intentionally keeps a script-path change and a docs-path change together in the final implementation head. That makes both the Tauri project workflow and the documentation workflow run against the same commit before promotion.
+
 ## Files
 
 - `.github/workflows/tauri-project.yml`
