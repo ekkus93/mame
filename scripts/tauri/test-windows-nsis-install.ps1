@@ -40,6 +40,30 @@ function Assert-Path {
     }
 }
 
+function Get-RemainingInstallEntries {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path $Path)) {
+        return @()
+    }
+
+    return @(Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue)
+}
+
+function Test-UninstallComplete {
+    param(
+        [string]$Path,
+        [string]$Name
+    )
+
+    if ($null -ne (Get-InstalledProduct -Name $Name)) {
+        return $false
+    }
+
+    $remaining = Get-RemainingInstallEntries -Path $Path
+    return $remaining.Count -eq 0
+}
+
 $installer = (Resolve-Path $InstallerPath).Path
 $installEntry = $null
 $installDir = $null
@@ -98,17 +122,24 @@ finally {
 }
 
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
-    if (($null -eq $installDir -or -not (Test-Path $installDir)) -and
-        ($null -eq (Get-InstalledProduct -Name $ProductName))) {
+    if (Test-UninstallComplete -Path $installDir -Name $ProductName) {
+        if ($null -ne $installDir -and (Test-Path $installDir)) {
+            Write-Host "MT-1303 uninstall removed all payload files; empty install root remains at $installDir"
+        }
         Write-Host "MT-1303 clean uninstall passed"
         exit 0
     }
     Start-Sleep -Seconds 1
 }
 
-if ($null -ne $installDir -and (Test-Path $installDir)) {
-    throw "Install directory remains after uninstall: $installDir"
-}
 if ($null -ne (Get-InstalledProduct -Name $ProductName)) {
     throw "Uninstall registry entry remains after uninstall for $ProductName"
 }
+
+$remainingEntries = Get-RemainingInstallEntries -Path $installDir
+if ($remainingEntries.Count -gt 0) {
+    $remainingList = ($remainingEntries | Select-Object -ExpandProperty FullName) -join "; "
+    throw "Install directory contains residual payload after uninstall: $remainingList"
+}
+
+Write-Host "MT-1303 clean uninstall passed"
