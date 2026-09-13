@@ -19,6 +19,12 @@ Exact-head CI qualification:
 
 This four-way exact-head matrix is the MT-1305 acceptance gate.
 
+Canonical task-ledger reconciliation:
+
+`b13f4ea23cdedc4881eb37eac9e9f405696679df` — `docs: close MT-1305 Linux packaging`
+
+The canonical TODO marks all MT-1305 acceptance bullets complete, and the one-shot reconciliation workflow removed itself from the resulting tree.
+
 ## Initial package formats
 
 The first Linux distribution targets are:
