@@ -2,7 +2,22 @@
 
 **Date:** 2026-09-12  
 **Task:** MT-1305 — Linux packaging  
-**Status:** Implementation complete; CI qualification pending
+**Status:** Qualified and complete
+
+## Qualification evidence
+
+Executable/package head:
+
+`177cbc635800a4ee22344452b50a220d59697585` — `fix: recognize AppImage X11 window title`
+
+Exact-head CI qualification:
+
+- Tauri project / Linux quality — run `34735317170`: **success**. Frontend format/lint/typecheck/tests/build, Rust format/tests, library UX performance qualification, clippy, and lockfile checks all passed.
+- Tauri Linux packaging — run `34735317172`: **success**. Ubuntu 22.04 built both `.deb` and AppImage, validated the bundled runtime, installed and removed the Debian package, launched both package forms under X11/Xvfb, validated desktop integration and package-owned MAME resources, and preserved lockfiles.
+- Tauri Windows packaging — run `34735317181`: **success**. NSIS build plus clean install, packaged-resource validation, clean uninstall, and lockfile checks passed.
+- Tauri macOS packaging — run `34735317250`: **success**. App/DMG build, package-owned runtime validation, relocation/signature smoke, and lockfile checks passed.
+
+This four-way exact-head matrix is the MT-1305 acceptance gate.
 
 ## Initial package formats
 
@@ -40,7 +55,7 @@ Linux packages are built on GitHub's Ubuntu 22.04 image rather than the newest a
 
 ### X11
 
-X11 is executable-qualified in CI. The Debian-installed frontend and the AppImage are both launched under `Xvfb`; `xdotool` must observe a visible window named `MAME Tauri Frontend`. A process that exits before showing the window or never exposes the window fails qualification.
+X11 is executable-qualified in CI. The Debian-installed frontend and the AppImage are both launched under `Xvfb`; `xdotool` must observe a real application window associated with the launched process or one of the known Tauri package window identities. The Debian install is normally correlated by PID/title; AppImage extract-and-run may insert a wrapper process, so the verifier also accepts the observed `mame-tauri` X11 window title. A process that exits before showing a window or never exposes an expected window fails qualification and emits the complete X11 window inventory.
 
 ### Wayland
 
@@ -66,6 +81,6 @@ A later desktop matrix may add compositor-specific Wayland runtime testing witho
 12. extracts the AppImage and validates its `AppRun`, desktop entry, executable bundled MAME, resources, and licenses;
 13. verifies npm and Cargo lockfiles are unchanged.
 
-The verifier is `scripts/tauri/test-linux-packages.sh`. Every package-layout assertion emits an explicit error, and Debian layout failures dump the actual payload inventory so CI failures remain diagnosable.
+The verifier is `scripts/tauri/test-linux-packages.sh`. Every package-layout assertion emits an explicit error, Debian layout failures dump the actual payload inventory, and X11 failures dump discovered windows/PIDs/titles so CI failures remain diagnosable.
 
 The synthetic MAME executable exists only to prove package topology and executable preservation. It is not a release MAME payload and no CI package from this workflow is published.
