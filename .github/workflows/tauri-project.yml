@@ -120,6 +120,24 @@ jobs:
           cargo test --locked full_catalog_library_queries_meet_interactive_budgets
           -- --ignored --nocapture
 
+      - name: MT-1700 performance artifact schema regression
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-performance-qualification.py
+
+      - name: Generate MT-1700 performance baseline artifact
+        working-directory: ${{ github.workspace }}
+        run: >-
+          python3 scripts/tauri/performance_qualification.py
+          --write artifacts/performance/mt1700-performance-baseline.json
+          --format pretty
+
+      - name: Upload MT-1700 performance baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-mt1700-performance-baseline-${{ github.sha }}
+          path: artifacts/performance/
+          if-no-files-found: error
+
       - name: Rust clippy
         working-directory: tauri/src-tauri
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
