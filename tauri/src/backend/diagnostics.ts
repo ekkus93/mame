@@ -13,7 +13,13 @@ export type DiagnosticLogEntry = {
 export type CatalogSchemaDiagnostics = {
   supportedVersion: number;
   currentVersion: number | null;
-  migrationState: "notInitialized" | "current" | "migrationRequired" | "newerThanSupported" | "invalid" | "unavailable";
+  migrationState:
+    | "notInitialized"
+    | "current"
+    | "migrationRequired"
+    | "newerThanSupported"
+    | "invalid"
+    | "unavailable";
   errorCode: string | null;
 };
 
