@@ -59,6 +59,9 @@ def main() -> int:
     assert EXPECTED_REQUIREMENTS <= requirements
     coverages = {item["coverage"] for item in report["items"]}
     assert EXPECTED_COVERAGE <= coverages
+    assert report["summary"]["byCoverage"]["automated-ci"] >= 1
+    assert report["summary"]["byCoverage"]["delegated-runtime-boundary"] >= 1
+    assert report["summary"]["byCoverage"]["documented-boundary"] >= 1
     ids = [item["id"] for item in report["items"]]
     assert len(ids) == len(set(ids))
     for item in report["items"]:
