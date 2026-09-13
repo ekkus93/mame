@@ -108,17 +108,38 @@ The merge is intentionally **not** promoted to `master` by this document.  It is
 a rehearsal artifact that proves the current fork can integrate the sampled
 upstream head cleanly and identifies the CI surface triggered by such a sync.
 
-Observed rehearsal workflow runs on `603770bbd12036fd2cc7d7c3bf40bf21775396bb`:
+Observed rehearsal workflow results on `603770bbd12036fd2cc7d7c3bf40bf21775396bb`:
 
-- `34772403450` — Check `#include` guards
-- `34772403427` — CI (Linux)
-- `34772403422` — CI (macOS)
-- `34772403428` — CI (Windows)
-- `34772403430` — Build documentation
-- `34772403447` — XML/JSON validation
+- `34772403450` — Check `#include` guards — **success**
+- `34772403447` — XML/JSON validation — **success**
+- `34772403430` — Build documentation — **success**
+- `34772403422` — CI (macOS) — **success**
+- `34772403428` — CI (Windows) — **success**
+- `34772403427` — CI (Linux) — **success**
 
-The final pass/fail state of these rehearsal runs must be recorded before a
-production upstream-sync PR is promoted.
+The Linux rehearsal run completed successfully after building and validating both
+`build-linux (gcc)` and `build-linux (clang)`.  The macOS and Windows rehearsal
+runs completed their representative tiny-target build and validation jobs.
+
+Conclusion: the fork can cleanly integrate the sampled upstream head into a
+throwaway rehearsal branch, and the native MAME validation surface triggered by
+that rehearsal passed.  This is sync-readiness evidence only; the upstream merge
+commit remains on the rehearsal branch and is not promoted to `master` here.
+
+## Production MT-1900 branch evidence
+
+The production MT-1900 branch `ralph/mt-1900-upstream-sustainability` contains
+only project-owned upstream-sustainability tooling, regression wiring, and this
+documentation.  It does not promote the upstream rehearsal merge.
+
+Observed production-branch gates before this evidence-closing documentation
+update:
+
+- `34772322124` — Tauri project — **success** at `337a56e53b4643e4cecd32d96a48b628cb19c0bf`
+- `34772511111` — Build documentation — **success** at `337a56e53b4643e4cecd32d96a48b628cb19c0bf`
+
+Because this commit is documentation-only, promotion requires the documentation
+workflow for the evidence-closing head to pass before fast-forwarding `master`.
 
 ## MT-1904 — Recurring cadence
 
@@ -134,11 +155,13 @@ Recommended cadence:
 
 ## Acceptance status
 
-- MT-1901: procedure documented.
-- MT-1902: inventory helper added and wired into Tauri linux-quality CI.
-- MT-1903: real upstream rehearsal branch created and cleanly merged; CI is
-  being monitored on the rehearsal merge SHA.
-- MT-1904: cadence documented.
+- MT-1901: complete — upstream remote and sync procedure documented.
+- MT-1902: complete — inventory helper added and wired into Tauri linux-quality
+  CI.
+- MT-1903: complete — real upstream rehearsal branch created, cleanly merged,
+  and validated across include guards, XML/JSON, docs, Linux, macOS, and
+  Windows workflows.
+- MT-1904: complete — recurring cadence documented.
 
-The MT-1900 production branch may be promoted after its own exact-head Tauri and
-documentation gates pass and the rehearsal CI outcome is recorded.
+MT-1900 is complete after the evidence-closing documentation workflow passes on
+this branch head and `master` is fast-forwarded to that exact production head.
