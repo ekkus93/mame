@@ -3,6 +3,7 @@
 **Date:** 2026-09-13  
 **Repository:** `ekkus93/mame`  
 **Previous qualified RC:** `6aa453eb10ace2eaf06e0a284167e68538f0fb48`  
+**MT-2100 implementation candidate:** `891ed68b3e6171859dfdd88a82e8efefd0a5fc08`  
 **Branch:** `ralph/mt-2100-final-quality-closure`
 
 ## Scope
@@ -21,7 +22,7 @@ in-process MAME hosting remain outside the claim.
 
 ## MT-2101 — Cross-cutting unsafe-fallback audit
 
-Status: **complete after exact-head MT-2100 ledger CI passes**.
+Status: **complete**.
 
 The MT-2100 ledger enumerates every required fallback class:
 
@@ -40,7 +41,7 @@ intentional, not a hidden fallback from an embedded renderer.
 
 ## MT-2102 — Cross-cutting silent-failure audit
 
-Status: **complete after exact-head MT-2100 ledger CI passes**.
+Status: **complete**.
 
 The ledger requires explicit handling for:
 
@@ -102,7 +103,7 @@ MT-2004.
 
 ## MT-2106 — Documentation closure
 
-Status: **complete after docs workflow passes on this closure branch**.
+Status: **complete on branch gate**.
 
 Required documentation areas are explicitly accounted for:
 
@@ -120,36 +121,56 @@ upstream sustainability note, and MT-2004 release-candidate note.
 
 ## MT-2107 — Final exact-head CI
 
-Status: **pending final exact-head branch CI at initial publication**.
+Status: **complete for implementation candidate `891ed68b3e6171859dfdd88a82e8efefd0a5fc08`**.
 
-Required workflows for the MT-2100 candidate are:
+Required workflows for the MT-2100 implementation candidate passed on the exact
+candidate SHA:
 
-- `Build documentation`
-- `Tauri project`
-- `Tauri Linux packaging`
-- `Tauri Windows packaging`
-- `Tauri macOS packaging`
+| Workflow | Run | Required job/status |
+| --- | ---: | --- |
+| `Tauri project` | `34786414747` | `linux-quality` **success**; `linux-release-qualification` **skipped** on branch push as designed |
+| `Build documentation` | `34786414770` | `build-docs` **success** |
+| `Tauri Linux packaging` | `34786414699` | `linux-deb-appimage-smoke` **success** |
+| `Tauri Windows packaging` | `34786414744` | `windows-nsis-smoke` **success** |
+| `Tauri macOS packaging` | `34786414708` | `macos-app-dmg-smoke` **success** |
 
-The `Tauri project` workflow now generates a machine-checkable artifact named
-`mame-tauri-mt2100-final-quality-closure-${{ github.sha }}`.  That artifact
-records the candidate SHA, all MT-2100 acceptance categories, explicit statuses,
-rationales, evidence pointers, required workflows, and final decision rule.
+The branch `Tauri project` workflow generated the machine-checkable final-quality
+ledger artifact:
+
+- Artifact: `mame-tauri-mt2100-final-quality-closure-891ed68b3e6171859dfdd88a82e8efefd0a5fc08`
+- Artifact ID: `10326434232`
+- Digest: `sha256:aa836e897218339825239ac8e93c46e2bd3710dda6bc87e46cc2e7448bec0c2c`
+
+The same branch run also produced the expected supporting artifacts:
+
+- `mame-tauri-license-inventory-891ed68b3e6171859dfdd88a82e8efefd0a5fc08`
+- `mame-tauri-mt1700-performance-baseline-891ed68b3e6171859dfdd88a82e8efefd0a5fc08`
+- `mame-tauri-mt1800-cross-platform-qualification-891ed68b3e6171859dfdd88a82e8efefd0a5fc08`
+- `mame-tauri-mt2004-external-window-rc-891ed68b3e6171859dfdd88a82e8efefd0a5fc08`
+
+Because this evidence update is documentation-only, it must pass `Build
+documentation` before promotion.  After that, `master` may be fast-forwarded to
+the evidence-closing branch head.  The MT-2100 implementation itself is already
+qualified at `891ed68b3e6171859dfdd88a82e8efefd0a5fc08`.
 
 ## Acceptance status
 
-Initial MT-2100 implementation is complete when the branch head containing this
-document, `scripts/tauri/mt2100_final_quality_closure.py`, its regression test,
-and the workflow artifact wiring passes all required exact-head workflows.
+- MT-2101: complete — every unsafe fallback class is explicit in the ledger.
+- MT-2102: complete — every silent-failure class is explicit in the ledger.
+- MT-2103: complete — security closure is rolled up and kept within the current
+  Tauri/project security surface.
+- MT-2104: complete — performance closure is tied to MT-1700 and the exact-head
+  library performance gate; embedded-renderer performance is correctly marked
+  not applicable for this external-window candidate.
+- MT-2105: complete — Linux, Windows, macOS, and packaging acceptance are tied to
+  exact-head package smoke workflows.
+- MT-2106: complete — documentation areas are accounted for and this document
+  is gated by the docs workflow.
+- MT-2107: complete for implementation candidate — all required branch workflows
+  passed on `891ed68b3e6171859dfdd88a82e8efefd0a5fc08`; final production closure
+  requires the evidence-closing docs-only head to pass `Build documentation` and
+  then be fast-forwarded to `master`.
 
-Promotion to `master` requires:
-
-1. `linux-quality` success, including the MT-2100 ledger regression and artifact
-   generation/upload;
-2. platform packaging success on Linux, Windows, and macOS;
-3. documentation success;
-4. master fast-forward without force;
-5. post-promotion master exact-head workflow success.
-
-After the branch gate passes, an evidence-closing documentation update may record
-the exact candidate SHA and run IDs.  That evidence-only update must pass the
-documentation workflow before it is promoted.
+MT-2100 may be considered complete after this evidence-closing documentation
+workflow passes and `master` is fast-forwarded without force to the resulting
+branch head.
