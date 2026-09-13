@@ -215,4 +215,17 @@ MT-2200 is complete when this closure branch has:
 - a regression test preventing reintroduction of ambiguous TODO state;
 - green applicable branch CI, followed by promotion to `master` and post-promotion verification.
 
-Final exact-head run IDs and promoted SHA are appended after branch qualification.
+### Branch qualification evidence
+
+Exact qualified candidate SHA `bc15412af971fff0a6fd4bb05e40a1471dc20c05` passed the complete PR qualification matrix:
+
+- Tauri project (PR): `34789510447` — success;
+- Build documentation: `34789510456` — success;
+- Tauri Windows packaging: `34789510459` — success;
+- Tauri macOS packaging: `34789510444` — success;
+- Tauri Linux packaging: `34789510435` — success;
+- Tauri security: `34789510457` — success.
+
+The same candidate also passed pre-PR Tauri project push run `34789386447`. This evidence-record update is documentation-only; because PR path filtering evaluates the complete branch diff, its successor head must pass the same applicable PR matrix before merge.
+
+The eventual merge/promotion SHA is created by GitHub after this document is committed, so it cannot be self-recorded in this commit. PR #9 plus post-promotion `master` CI are the authoritative promotion evidence.
