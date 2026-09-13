@@ -3,14 +3,54 @@ name: CI (macOS)
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     tags:
       - '*'
+    paths:
+      - '.github/workflows/ci-macos.yml'
+      - '3rdparty/**'
+      - 'hash/**'
+      - 'scripts/**'
+      - '!scripts/tauri/**'
+      - 'src/**'
+      - 'COPYING'
+      - 'makefile'
+  pull_request:
+    paths:
+      - '.github/workflows/ci-macos.yml'
+      - '3rdparty/**'
+      - 'hash/**'
+      - 'scripts/**'
+      - '!scripts/tauri/**'
+      - 'src/**'
+      - 'COPYING'
+      - 'makefile'
 
 permissions:
   contents: read
 
 jobs:
+  smoke-macos-tiny:
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+    - name: Install dependencies
+      run: brew install python3 sdl3
+    - name: Build representative tiny target
+      env:
+        SUBTARGET: tiny
+        USE_LIBSDL: 1
+        TOOLS: 0
+      run: make -j2
+    - name: Execute representative validation
+      run: ./mametiny -validate
+
   build-macos:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@main
