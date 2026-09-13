@@ -74,10 +74,11 @@ pub async fn refresh_mame_metadata(
         serde_json::json!({ "source": format!("{:?}", request.executable.source) }),
     );
 
-    let result =
-        tauri::async_runtime::spawn_blocking(move || generator::refresh_catalog(source, &catalog_path))
-            .await
-            .map_err(metadata_worker_error)??;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        generator::refresh_catalog(source, &catalog_path)
+    })
+    .await
+    .map_err(metadata_worker_error)??;
     diagnostics::record(
         "info",
         "metadata.refresh",
