@@ -45,6 +45,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-report-ci-evidence.py
 
+      - name: MT-1800 cross-platform qualification ledger regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-mt1800-qualification.py
+
       - name: Install Tauri Linux build prerequisites
         run: |
           sudo apt-get update
@@ -136,6 +140,21 @@ jobs:
         with:
           name: mame-tauri-mt1700-performance-baseline-${{ github.sha }}
           path: artifacts/performance/
+          if-no-files-found: error
+
+      - name: Generate MT-1800 cross-platform qualification artifact
+        working-directory: ${{ github.workspace }}
+        run: >-
+          python3 scripts/tauri/mt1800_qualification.py
+          --sha ${{ github.sha }}
+          --json
+          --write artifacts/cross-platform/mt1800-cross-platform-qualification.json
+
+      - name: Upload MT-1800 cross-platform qualification
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-mt1800-cross-platform-qualification-${{ github.sha }}
+          path: artifacts/cross-platform/
           if-no-files-found: error
 
       - name: Rust clippy
