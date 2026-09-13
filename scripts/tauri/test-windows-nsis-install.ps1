@@ -50,6 +50,8 @@ function Get-RemainingInstallEntries {
     return @(Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue)
 }
 
+# NSIS may leave the top-level install directory behind on GitHub's Windows runner.
+# Treat registry entries or residual payload files as failures; tolerate only an empty root.
 function Test-UninstallComplete {
     param(
         [string]$Path,
