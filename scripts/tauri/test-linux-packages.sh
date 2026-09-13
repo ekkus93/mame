@@ -109,6 +109,9 @@ x11_smoke() {
       if [[ -z "$window_id" ]]; then
         window_id=$(xdotool search --name "^MAME Tauri Frontend$" 2>/dev/null | head -n 1 || true)
       fi
+      if [[ -z "$window_id" ]]; then
+        window_id=$(xdotool search --name "^mame-tauri$" 2>/dev/null | head -n 1 || true)
+      fi
       if [[ -n "$window_id" ]]; then
         window_pid=$(xdotool getwindowpid "$window_id" 2>/dev/null || true)
         window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || true)
