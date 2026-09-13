@@ -39,7 +39,7 @@ MT-1705 remains conditional by design. The current architecture launches MAME as
 
 ## Exact-head trigger note
 
-The closure branch intentionally keeps a script-path change and a docs-path change together in the final implementation head. That makes both the Tauri project workflow and the documentation workflow run against the same commit before promotion.
+The branch records Tauri evidence on `e2955db96c15cc9eb260fb6fcd5a6c6a2891cc66`, where the workflow file and performance scripts changed together and the Tauri project workflow passed. The final branch head is a documentation-qualification head so the docs workflow also verifies the full MT-1700 documentation set before promotion.
 
 ## Files
 
