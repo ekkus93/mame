@@ -20,27 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("docs/MAME_TAURI_TODO_2026-09-08.md")
-          text = path.read_text()
-          old = """## MT-1305 — Linux packaging
-
-- [ ] choose initial package formats.
-- [ ] runtime dependency strategy.
-- [ ] X11/Wayland qualification notes.
-"""
-          new = """## MT-1305 — Linux packaging
-
-- [x] choose initial package formats.
-- [x] runtime dependency strategy.
-- [x] X11/Wayland qualification notes.
-"""
-          if old not in text:
-              raise SystemExit("MT-1305 ledger block did not match expected open state")
-          path.write_text(text.replace(old, new, 1))
-          PY
+          python3 -c 'from pathlib import Path; p=Path("docs/MAME_TAURI_TODO_2026-09-08.md"); t=p.read_text(); old="## MT-1305 — Linux packaging\n\n- [ ] choose initial package formats.\n- [ ] runtime dependency strategy.\n- [ ] X11/Wayland qualification notes.\n"; new="## MT-1305 — Linux packaging\n\n- [x] choose initial package formats.\n- [x] runtime dependency strategy.\n- [x] X11/Wayland qualification notes.\n"; assert old in t, "MT-1305 ledger block did not match expected open state"; p.write_text(t.replace(old,new,1))'
           rm .github/workflows/mt1305-close-ledger.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
