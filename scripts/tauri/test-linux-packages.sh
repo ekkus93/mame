@@ -103,20 +103,38 @@ x11_smoke() {
     "$@" >"$log_path" 2>&1 &
     pid=$!
     trap "kill $pid 2>/dev/null || true" EXIT
-    for _ in $(seq 1 60); do
-      if xdotool search --onlyvisible --name "MAME Tauri Frontend" >/dev/null 2>&1; then
+
+    for _ in $(seq 1 80); do
+      window_id=$(xdotool search --pid "$pid" 2>/dev/null | head -n 1 || true)
+      if [[ -z "$window_id" ]]; then
+        window_id=$(xdotool search --name "^MAME Tauri Frontend$" 2>/dev/null | head -n 1 || true)
+      fi
+      if [[ -n "$window_id" ]]; then
+        window_pid=$(xdotool getwindowpid "$window_id" 2>/dev/null || true)
+        window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || true)
+        printf "MT-1305 X11 window created: id=%s pid=%s name=%s\n" \
+          "$window_id" "${window_pid:-unknown}" "${window_name:-<unnamed>}"
         kill "$pid" 2>/dev/null || true
         wait "$pid" 2>/dev/null || true
         exit 0
       fi
       if ! kill -0 "$pid" 2>/dev/null; then
-        echo "application exited before exposing the expected window" >&2
+        echo "application exited before creating an X11 window" >&2
         cat "$log_path" >&2
         exit 1
       fi
       sleep 0.25
     done
-    echo "application did not expose the expected window before timeout" >&2
+
+    echo "application did not create the expected X11 window before timeout" >&2
+    echo "--- X11 windows ---" >&2
+    for window_id in $(xdotool search --name ".*" 2>/dev/null || true); do
+      window_pid=$(xdotool getwindowpid "$window_id" 2>/dev/null || true)
+      window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || true)
+      printf "id=%s pid=%s name=%s\n" \
+        "$window_id" "${window_pid:-unknown}" "${window_name:-<unnamed>}" >&2
+    done
+    echo "--- application log ---" >&2
     cat "$log_path" >&2
     exit 1
   ' bash "$log_path" "$@"
