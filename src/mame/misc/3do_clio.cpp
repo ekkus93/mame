@@ -288,6 +288,7 @@ void clio_device::map(address_map &map)
 			LOG("audout: %08x & %08x\n", data, mem_mask);
 			// c0020f0f is written here during boot
 			COMBINE_DATA(&m_audout);
+			// TODO: latch to DSPP
 		})
 	);
 	/*
@@ -714,7 +715,14 @@ void clio_device::map(address_map &map)
 			m_dspp->host_tick_reset(true);
 		})
 	);
-//  map(0x17f0, 0x17f3) Read noise value (Red only?)
+	// Read noise value (Red only? Nope: definitely wants RNG from here)
+	// - conandl Patapata randomness
+	// - tokimjps would hang on Tsumo/Ron
+	// - oyajihmj background color changes and tile distribution,
+	//   must read as 16-bit value to work properly
+	map(0x17f0, 0x17f3).lr32(NAME([this] () {
+		return m_dspp->noise_r();
+	}));
 //  map(0x17f4, 0x17f7) Read DSPP PC (bits 15:0 only)
 //  map(0x17f8, 0x17fb) Read DSPP NR (bits 15:0 only)
 	/*

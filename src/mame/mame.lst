@@ -1328,6 +1328,10 @@ pmac7200_90
 pmac7200_100
 pmac7200_120
 
+@source:apple/maccordyceps.cpp
+pmac6200
+pmac5200
+
 @source:apple/macii.cpp
 mac2fdhd
 macii
@@ -1362,6 +1366,12 @@ maclc550
 
 @source:apple/macpdm.cpp
 pmac6100
+pmac6100_66
+pmac7100
+pmac7100_80
+pmac8100
+pmac8100_100
+pmac8100_110
 
 @source:apple/macprtb.cpp
 macpb100
@@ -1379,6 +1389,7 @@ macpb180
 macpb180c
 
 @source:apple/macpwrbkmsc.cpp
+macpb150
 macpd210
 macpd230
 macpd250
@@ -19295,6 +19306,7 @@ jolyjokrs
 jolyjokrt
 lluck3x3
 lluck4x1
+lluckasd
 lunapark
 lunaparkb
 lunaparkc
@@ -19577,7 +19589,10 @@ goldartuk
 lotoplay
 lotoplaya
 lotoplayb
+lotoplayc
 lotoplayp
+
+@source:gaelco/lotoplay_prog.cpp
 lotoplayz
 lotoplayza
 lotoplayzb
@@ -19934,6 +19949,7 @@ pisces
 piscesb
 porter
 portera
+porterb
 quaak
 redufo
 redufob
@@ -20208,6 +20224,7 @@ ragc153
 retro150
 retro150a
 rhhc152
+rocoball
 supreme
 table108
 tchib158
@@ -20592,6 +20609,7 @@ nummunch
 nupogodi
 okhota
 rkosmosa
+supkubik
 taddams
 taltbeast
 tapollo13
@@ -29153,6 +29171,11 @@ mtchxlti
 pubtimed
 pubtimeda
 
+@source:metro/blzntrnd.cpp
+blzntrnd
+gstrik2
+gstrik2j
+
 @source:metro/hyprduel.cpp
 hyprduel
 hyprduel2
@@ -29163,7 +29186,6 @@ magerror
 balcube
 bangball
 batlbubl
-blzntrnd
 daitorid
 daitorida
 dharma
@@ -29175,8 +29197,6 @@ dokyusp
 gakusai
 gakusai2
 gakusaia
-gstrik2
-gstrik2j
 gunmast
 karatour
 karatourj
@@ -29500,6 +29520,7 @@ rodent
 3do_hc21
 3do_try
 alg3do
+crime3do
 md23do
 orbatak
 sht3do
@@ -31835,6 +31856,7 @@ rbspm
 sball2k1
 sc2in1
 sglc
+sjms
 smatch03
 smwc
 ssanguoj
@@ -32380,6 +32402,7 @@ bigdeal0
 dallaspk
 hotslots
 kajotcrd
+libertyc
 lucky7i
 lucky7x
 magicard
@@ -34990,6 +35013,9 @@ mini5sx
 @source:nec/ews4800.cpp
 ews4800_310
 
+@source:nec/mobilepro.cpp
+mbpro450
+
 @source:nec/pc_h98.cpp
 pc_h98s
 
@@ -36547,6 +36573,7 @@ ob8
 obsx
 
 @source:oberheim/xpander.cpp
+matrix12
 xpander
 
 @source:olivetti/att6300p.cpp
@@ -36852,6 +36879,7 @@ pacmanpe
 pacmanso
 pacmansp
 pacmanug
+pacmanvcc
 pacmanvg
 pacmod
 pacplus
@@ -37640,6 +37668,9 @@ pm5644p00
 
 @source:philips/philipsbo.cpp
 pbo
+
+@source:philips/velo.cpp
+pvelo1
 
 @source:philips/vg5k.cpp
 vg5k
@@ -40323,6 +40354,9 @@ s50
 s550
 w30
 
+@source:roland/roland_sb55.cpp
+sb55
+
 @source:roland/roland_sc55.cpp
 sc55
 sc155
@@ -40331,10 +40365,15 @@ cm300
 @source:roland/roland_sc55mk2.cpp
 sc55mk2
 
+@source:roland/roland_sc8850.cpp
+sc8850
+sc8820
+
 @source:roland/roland_sc88.cpp
 sc88
 sc88vl
 sc88pro
+vegspro
 
 @source:roland/roland_tb303.cpp
 tb303
@@ -49286,6 +49325,7 @@ vsmilebfp
 
 @source:vtech/vsmilepro.cpp
 vsmilpro
+vsmilprof
 
 @source:vtech/vtech1.cpp
 fellow
