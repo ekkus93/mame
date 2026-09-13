@@ -53,6 +53,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-mt1900-upstream-inventory.py
 
+      - name: MT-2004 release-candidate manifest regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-mt2004-release-candidate.py
+
       - name: Install Tauri Linux build prerequisites
         run: |
           sudo apt-get update
@@ -159,6 +163,21 @@ jobs:
         with:
           name: mame-tauri-mt1800-cross-platform-qualification-${{ github.sha }}
           path: artifacts/cross-platform/
+          if-no-files-found: error
+
+      - name: Generate MT-2004 release-candidate manifest
+        working-directory: ${{ github.workspace }}
+        run: >-
+          python3 scripts/tauri/mt2004_release_candidate.py
+          --sha ${{ github.sha }}
+          --pretty
+          --write artifacts/release/mt2004-external-window-rc.json
+
+      - name: Upload MT-2004 release-candidate manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-mt2004-external-window-rc-${{ github.sha }}
+          path: artifacts/release/
           if-no-files-found: error
 
       - name: Rust clippy
