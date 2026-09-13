@@ -49,9 +49,9 @@ require_payload_match() {
   printf '%s\n' "$match"
 }
 
-frontend_rel=$(require_payload_match '^\./usr/bin/[^/]+$' 'frontend executable')
+frontend_rel=$(require_payload_match '^(\./)?usr/bin/[^/]+$' 'frontend executable')
 runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME executable')
-desktop_rel=$(require_payload_match '^\./usr/share/applications/.*\.desktop$' 'desktop entry')
+desktop_rel=$(require_payload_match '^(\./)?usr/share/applications/.*\.desktop$' 'desktop entry')
 runtime_root_rel=${runtime_rel%/bin/mame}
 
 for required in \
