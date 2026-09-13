@@ -95,6 +95,19 @@ The repository now enforces the following process:
 
 A vulnerability may be temporarily accepted only by an explicit documented decision identifying the advisory, affected component/path, impact analysis, mitigation, owner, and removal/review condition. Silent advisory suppression is not an accepted policy.
 
+### Initial RustSec warning disposition
+
+The first MT-1500 RustSec qualification attempt reported **zero vulnerability-class advisories**. It also reported informational warnings that remain visible rather than being suppressed:
+
+- `RUSTSEC-2024-0429` affects transitive `glib 0.18.5` and is classified as an unsoundness warning; the advisory is fixed in `glib >=0.20.0`;
+- six additional transitive crates are reported as unmaintained.
+
+These packages enter through the current Tauri/GTK dependency closure rather than through a direct application dependency. The application does not rely on `glib::VariantStrIter` directly, but the unsoundness warning is still treated as tracked dependency risk rather than as a clean result. The removal condition is an upstream Tauri/GTK dependency update that moves the resolved closure to a non-affected `glib` line without regressing the qualified desktop targets. Dependabot and the scheduled RustSec workflow provide the recurring review mechanism.
+
+The audit gate continues to reject vulnerability-class advisories. Informational warnings remain reported in CI and must be re-evaluated during dependency updates and release qualification; they are not silently ignored or hidden by an audit ignore-list.
+
+The security workflow grants `checks: write` only so `rustsec/audit-check` can publish its GitHub check result. Repository contents remain read-only in that job.
+
 ## Qualification requirements
 
 Before closure/promotion, the exact executable head must pass:
