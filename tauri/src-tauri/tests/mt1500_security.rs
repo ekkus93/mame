@@ -7,16 +7,8 @@ use mame_tauri_lib::mame::{
 #[test]
 fn shell_metacharacters_never_become_machine_identifiers() {
     for value in [
-        "pac;man",
-        "pac&&man",
-        "pac|man",
-        "pac$(id)",
-        "pac`id`",
-        "pac\"man",
-        "pac'man",
-        "pac\\man",
-        "pac man",
-        "-help",
+        "pac;man", "pac&&man", "pac|man", "pac$(id)", "pac`id`", "pac\"man", "pac'man", "pac\\man",
+        "pac man", "-help",
     ] {
         let error = validate_short_identifier("machine", value)
             .expect_err("shell-like machine identifier must fail closed");
