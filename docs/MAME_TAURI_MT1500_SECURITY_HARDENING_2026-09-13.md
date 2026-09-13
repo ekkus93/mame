@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-13  
 **Branch:** `ralph/mt-1500-security-hardening`  
-**Status:** implementation complete; exact-head qualification pending
+**Status:** qualified and ready for promotion
 
 ## Scope
 
@@ -108,13 +108,21 @@ The audit gate continues to reject vulnerability-class advisories. Informational
 
 The security workflow grants `checks: write` only so `rustsec/audit-check` can publish its GitHub check result. Repository contents remain read-only in that job.
 
-## Qualification requirements
+## Exact-head qualification
 
-Before closure/promotion, the exact executable head must pass:
+Qualified executable head:
 
-1. `Tauri project`, including the MT-1503 Rust integration tests;
-2. `Tauri security`, including static policy, npm advisory audit, and RustSec audit;
-3. affected packaging workflows required by the exact-head CI policy;
-4. documentation build for the final evidence-only closure commit.
+`c0eaff14d38b0b0a5ac9cb6ddcf06d0352494090`
 
-Exact run IDs and SHAs are appended when those gates complete.
+All exact-head checks completed successfully:
+
+- Tauri project — run `34746596552`
+  - `linux-quality` — success
+  - `linux-release-qualification` — success
+- Tauri security — run `34746596565` — success
+- Linux `.deb` + AppImage packaging — run `34746596524` — success
+- Windows NSIS packaging — run `34746596525` — success
+- macOS app + DMG packaging — run `34746596537` — success
+- Documentation — run `34746596557` — success
+
+The same SHA had eight completed successful GitHub check runs and no failed or in-progress checks when closure was recorded. MT-1501 through MT-1506 are therefore qualified for promotion.
