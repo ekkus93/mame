@@ -981,9 +981,9 @@ Conceptual operations:
 
 ## MT-1305 — Linux packaging
 
-- [ ] choose initial package formats.
-- [ ] runtime dependency strategy.
-- [ ] X11/Wayland qualification notes.
+- [x] choose initial package formats.
+- [x] runtime dependency strategy.
+- [x] X11/Wayland qualification notes.
 
 ## MT-1306 — Version reporting
 
