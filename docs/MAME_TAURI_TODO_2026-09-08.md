@@ -4,7 +4,7 @@
 **Repository:** `ekkus93/mame`  
 **Architecture spec:** `docs/MAME_TAURI_ARCHITECTURE_SPEC_2026-09-08.md`  
 **Original planning baseline:** `7cc3033a50b00801240f020b7098e22ffffdcd44`  
-**Status:** Active implementation backlog — MT-000 and MT-100 closed
+**Status:** Engineering-phase closure reconciled; optional MT-1000/1100/1200 and MT-1705 research deferred
 
 ---
 
@@ -17,6 +17,18 @@ The backlog is designed for incremental/Ralph-loop execution. Each task should b
 The central sequencing rule is:
 
 > **Deliver a useful Tauri frontend around a supervised native MAME process before attempting embedded rendering, a dedicated Tauri OSD, or in-process MAME hosting.**
+
+## MT-2200 reconciliation status convention
+
+As of the MT-2200 engineering-phase closure, this file is an authoritative status ledger rather than a historical unchecked planning list:
+
+- `[x]` means the requirement is **closed** by implementation, qualification evidence, an explicit policy decision, or a documented runtime/platform boundary.
+- `[ ] **Deferred — optional research:**` means the requirement is intentionally **not complete** and is outside the external-window product completion claim.
+- No bare unchecked checkbox is permitted after MT-2201 reconciliation.
+
+Cross-platform qualification items may be closed by automated CI, delegated native-runtime ownership, or a documented unsupported boundary as defined in `MAME_TAURI_MT1800_CROSS_PLATFORM_QUALIFICATION_2026-09-13.md`. A checked item therefore does not imply synthetic CI coverage where the qualification record explicitly says coverage is delegated or documented.
+
+The optional native-window, dedicated-OSD, and in-process tracks remain open research even though the useful external-window frontend is engineering-complete. See `MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md`.
 
 The project must not block useful frontend functionality on speculative deep-integration work.
 
@@ -184,43 +196,43 @@ Support concepts:
 - explicitly configured external executable;
 - development-tree executable.
 
-- [ ] Model executable identity.
-- [ ] Record version/build information.
-- [ ] Distinguish trusted bundled executable from arbitrary external executable.
+- [x] Model executable identity.
+- [x] Record version/build information.
+- [x] Distinguish trusted bundled executable from arbitrary external executable.
 
 **Decision gate DG-2:** default release executable policy.
 
 ## MT-202 — Implement MAME executable discovery/configuration
 
-- [ ] Configure explicit MAME executable path.
-- [ ] Validate that the path is executable/usable.
-- [ ] Obtain version/build identity.
-- [ ] Return structured errors for missing/invalid executable.
+- [x] Configure explicit MAME executable path.
+- [x] Validate that the path is executable/usable.
+- [x] Obtain version/build identity.
+- [x] Return structured errors for missing/invalid executable.
 
 ## MT-203 — Implement safe argument construction
 
-- [ ] Represent arguments as an argv vector.
-- [ ] No shell-string concatenation.
-- [ ] Validate machine/software identifiers.
-- [ ] Validate project-controlled paths.
-- [ ] Unit-test spaces, Unicode, metacharacters, and malformed values.
+- [x] Represent arguments as an argv vector.
+- [x] No shell-string concatenation.
+- [x] Validate machine/software identifiers.
+- [x] Validate project-controlled paths.
+- [x] Unit-test spaces, Unicode, metacharacters, and malformed values.
 
 ## MT-204 — Implement supervised process launch
 
-- [ ] Spawn MAME.
-- [ ] Create unique session ID.
-- [ ] Record PID/process handle.
-- [ ] Capture launch timestamp.
-- [ ] Record effective argv/config context.
-- [ ] Return launch result.
+- [x] Spawn MAME.
+- [x] Create unique session ID.
+- [x] Record PID/process handle.
+- [x] Capture launch timestamp.
+- [x] Record effective argv/config context.
+- [x] Return launch result.
 
 ## MT-205 — Capture stdout/stderr safely
 
-- [ ] Stream/capture stdout.
-- [ ] Stream/capture stderr.
-- [ ] Prevent unbounded in-memory accumulation.
-- [ ] Preserve recent diagnostic context.
-- [ ] Associate output with session ID.
+- [x] Stream/capture stdout.
+- [x] Stream/capture stderr.
+- [x] Prevent unbounded in-memory accumulation.
+- [x] Preserve recent diagnostic context.
+- [x] Associate output with session ID.
 
 ## MT-206 — Implement session lifecycle state machine
 
@@ -236,39 +248,39 @@ failed
 crashed
 ```
 
-- [ ] Define legal transitions.
-- [ ] Reject impossible transitions.
-- [ ] Test normal and abnormal paths.
+- [x] Define legal transitions.
+- [x] Reject impossible transitions.
+- [x] Test normal and abnormal paths.
 
 ## MT-207 — Implement clean stop
 
-- [ ] Define preferred graceful exit mechanism.
-- [ ] Add bounded shutdown timeout.
-- [ ] Add explicit escalation policy if graceful shutdown fails.
-- [ ] Surface forced termination.
+- [x] Define preferred graceful exit mechanism.
+- [x] Add bounded shutdown timeout.
+- [x] Add explicit escalation policy if graceful shutdown fails.
+- [x] Surface forced termination.
 
 ## MT-208 — Detect child crash/abnormal exit
 
-- [ ] Distinguish normal exit from abnormal exit.
-- [ ] Emit structured crash/exit event.
-- [ ] Preserve diagnostics.
-- [ ] Reset application session state.
+- [x] Distinguish normal exit from abnormal exit.
+- [x] Emit structured crash/exit event.
+- [x] Preserve diagnostics.
+- [x] Reset application session state.
 
 ## MT-209 — Handle duplicate/concurrent sessions
 
-- [ ] Decide whether multiple MAME sessions are supported initially.
-- [ ] If no, reject second launch clearly.
-- [ ] If yes later, isolate session state and resources.
+- [x] Decide whether multiple MAME sessions are supported initially.
+- [x] If no, reject second launch clearly.
+- [x] If yes later, isolate session state and resources.
 
 ## MT-210 — Sidecar process integration tests
 
-- [ ] Successful launch fixture/known machine.
-- [ ] Missing executable.
-- [ ] Invalid machine.
-- [ ] Clean exit.
-- [ ] forced/abnormal exit.
-- [ ] stdout/stderr capture.
-- [ ] argument quoting/path cases.
+- [x] Successful launch fixture/known machine.
+- [x] Missing executable.
+- [x] Invalid machine.
+- [x] Clean exit.
+- [x] forced/abnormal exit.
+- [x] stdout/stderr capture.
+- [x] argument quoting/path cases.
 
 **Milestone:** supervised MAME process exists behind typed Rust commands.
 
@@ -278,22 +290,22 @@ crashed
 
 ## MT-301 — Capture representative `-listxml` fixture
 
-- [ ] Generate fixture from pinned/known MAME build.
-- [ ] Record producing MAME identity.
-- [ ] Keep fixture size appropriate for tests.
-- [ ] Include representative clones/devices/displays/software-list relations.
+- [x] Generate fixture from pinned/known MAME build.
+- [x] Record producing MAME identity.
+- [x] Keep fixture size appropriate for tests.
+- [x] Include representative clones/devices/displays/software-list relations.
 
 ## MT-302 — Implement streaming `-listxml` parser
 
-- [ ] Avoid requiring the entire XML document in memory if unnecessary.
-- [ ] Parse machine short name and description.
-- [ ] Parse year/manufacturer.
-- [ ] Parse clone/parent relationships.
-- [ ] Parse source file.
-- [ ] Parse status metadata.
-- [ ] Parse display/device metadata required by UI.
-- [ ] Parse software-list associations.
-- [ ] Preserve forward compatibility with unknown elements.
+- [x] Avoid requiring the entire XML document in memory if unnecessary.
+- [x] Parse machine short name and description.
+- [x] Parse year/manufacturer.
+- [x] Parse clone/parent relationships.
+- [x] Parse source file.
+- [x] Parse status metadata.
+- [x] Parse display/device metadata required by UI.
+- [x] Parse software-list associations.
+- [x] Preserve forward compatibility with unknown elements.
 
 ## MT-303 — Define SQLite schema
 
@@ -313,56 +325,56 @@ recent_history
 user_tags
 ```
 
-- [ ] Normalize only where query/maintenance value justifies it.
-- [ ] Add indexes for common search/filter paths.
+- [x] Normalize only where query/maintenance value justifies it.
+- [x] Add indexes for common search/filter paths.
 
 ## MT-304 — Add schema migration framework
 
-- [ ] Schema version table.
-- [ ] Forward migrations.
-- [ ] Migration tests.
-- [ ] Failed migration recovery behavior.
+- [x] Schema version table.
+- [x] Forward migrations.
+- [x] Migration tests.
+- [x] Failed migration recovery behavior.
 
 ## MT-305 — Implement metadata generation/import transaction
 
-- [ ] Run MAME metadata command outside UI thread.
-- [ ] Import into staging/transaction.
-- [ ] Do not expose partially imported catalog.
-- [ ] Atomically activate successful generation.
-- [ ] Preserve prior usable generation on failure.
+- [x] Run MAME metadata command outside UI thread.
+- [x] Import into staging/transaction.
+- [x] Do not expose partially imported catalog.
+- [x] Atomically activate successful generation.
+- [x] Preserve prior usable generation on failure.
 
 ## MT-306 — Tie metadata generation to MAME identity
 
-- [ ] Record executable identity/version.
-- [ ] Detect changed MAME build.
-- [ ] Mark metadata stale.
-- [ ] Refresh explicitly or according to documented policy.
+- [x] Record executable identity/version.
+- [x] Detect changed MAME build.
+- [x] Mark metadata stale.
+- [x] Refresh explicitly or according to documented policy.
 
 ## MT-307 — Separate generated metadata from user state
 
-- [ ] Regeneration does not delete favorites.
-- [ ] Regeneration does not delete collections.
-- [ ] Regeneration does not delete play history.
-- [ ] Handle removed/renamed machines gracefully.
+- [x] Regeneration does not delete favorites.
+- [x] Regeneration does not delete collections.
+- [x] Regeneration does not delete play history.
+- [x] Handle removed/renamed machines gracefully.
 
 ## MT-308 — Implement indexed machine search
 
-- [ ] Search short name.
-- [ ] Search description.
-- [ ] Search manufacturer.
-- [ ] Filter by year.
-- [ ] Filter by status.
-- [ ] Parent/clone handling.
-- [ ] Bounded page size.
+- [x] Search short name.
+- [x] Search description.
+- [x] Search manufacturer.
+- [x] Filter by year.
+- [x] Filter by status.
+- [x] Parent/clone handling.
+- [x] Bounded page size.
 
 ## MT-309 — Metadata parser/database regression suite
 
-- [ ] malformed XML.
-- [ ] unexpected element.
-- [ ] Unicode.
-- [ ] duplicate/edge relationship cases.
-- [ ] transaction rollback.
-- [ ] MAME identity change.
+- [x] malformed XML.
+- [x] unexpected element.
+- [x] Unicode.
+- [x] duplicate/edge relationship cases.
+- [x] transaction rollback.
+- [x] MAME identity change.
 
 **Milestone:** frontend can query a durable indexed MAME catalog.
 
@@ -372,12 +384,12 @@ user_tags
 
 ## MT-401 — Build primary library browser
 
-- [ ] Search box.
-- [ ] machine list/grid.
-- [ ] loading state.
-- [ ] empty state.
-- [ ] error state.
-- [ ] bounded rendering/virtualization.
+- [x] Search box.
+- [x] machine list/grid.
+- [x] loading state.
+- [x] empty state.
+- [x] error state.
+- [x] bounded rendering/virtualization.
 
 ## MT-402 — Build machine detail view
 
@@ -636,31 +648,31 @@ transient launch overrides
 
 ## MT-708 — Implement load state
 
-- [ ] command.
-- [ ] incompatible/missing state error handling.
-- [ ] explicit completion result.
+- [x] command.
+- [x] incompatible/missing state error handling.
+- [x] explicit completion result.
 
 ## MT-709 — Implement mute/volume controls where native semantics allow
 
-- [ ] define supported operations.
-- [ ] do not route PCM through Tauri.
+- [x] define supported operations.
+- [x] do not route PCM through Tauri.
 
 ## MT-710 — Implement query-state/status
 
-- [ ] running.
-- [ ] paused.
-- [ ] machine identity.
-- [ ] other safe bounded status required by UI.
+- [x] running.
+- [x] paused.
+- [x] machine identity.
+- [x] other safe bounded status required by UI.
 
 ## MT-711 — Protocol adversarial tests
 
-- [ ] malformed payload.
-- [ ] oversized payload.
-- [ ] unknown command.
-- [ ] wrong version.
-- [ ] stale session.
-- [ ] connection drop mid-command.
-- [ ] timeout.
+- [x] malformed payload.
+- [x] oversized payload.
+- [x] unknown command.
+- [x] wrong version.
+- [x] stale session.
+- [x] connection drop mid-command.
+- [x] timeout.
 
 **Milestone:** modern frontend can control a running MAME session without being in the real-time data path.
 
@@ -670,35 +682,35 @@ transient launch overrides
 
 ## MT-801 — Define artwork data model
 
-- [ ] screenshot.
-- [ ] cabinet.
-- [ ] marquee.
-- [ ] flyer.
-- [ ] icon.
-- [ ] system image.
-- [ ] provenance/source.
+- [x] screenshot.
+- [x] cabinet.
+- [x] marquee.
+- [x] flyer.
+- [x] icon.
+- [x] system image.
+- [x] provenance/source.
 
 ## MT-802 — Implement local artwork discovery
 
-- [ ] configurable roots.
-- [ ] safe filename/path mapping.
-- [ ] missing-art fallback.
-- [ ] cache thumbnails where useful.
+- [x] configurable roots.
+- [x] safe filename/path mapping.
+- [x] missing-art fallback.
+- [x] cache thumbnails where useful.
 
 ## MT-803 — Add artwork to machine detail/library views
 
-- [ ] lazy loading.
-- [ ] bounded cache.
-- [ ] no UI stalls on large artwork sets.
+- [x] lazy loading.
+- [x] bounded cache.
+- [x] no UI stalls on large artwork sets.
 
 ## MT-804 — Define external artwork-provider policy
 
-- [ ] licensing.
-- [ ] attribution.
-- [ ] privacy.
-- [ ] caching.
-- [ ] offline behavior.
-- [ ] rate limiting.
+- [x] licensing.
+- [x] attribution.
+- [x] privacy.
+- [x] caching.
+- [x] offline behavior.
+- [x] rate limiting.
 
 **Decision gate DG-7:** network-backed artwork providers.
 
@@ -708,25 +720,25 @@ transient launch overrides
 
 ## MT-901 — Define save-state record model
 
-- [ ] machine.
-- [ ] software item if applicable.
-- [ ] MAME version/build identity.
-- [ ] timestamp.
-- [ ] slot/path.
-- [ ] optional screenshot metadata if added later.
+- [x] machine.
+- [x] software item if applicable.
+- [x] MAME version/build identity.
+- [x] timestamp.
+- [x] slot/path.
+- [x] optional screenshot metadata if added later.
 
 ## MT-902 — Build save-state browser
 
-- [ ] list known states.
-- [ ] save.
-- [ ] load.
-- [ ] delete with confirmation.
-- [ ] stale/incompatible warning.
+- [x] list known states.
+- [x] save.
+- [x] load.
+- [x] delete with confirmation.
+- [x] stale/incompatible warning.
 
 ## MT-903 — Handle incompatible state explicitly
 
-- [ ] never imply cross-version compatibility without validation.
-- [ ] preserve failed state file unless user deletes it.
+- [x] never imply cross-version compatibility without validation.
+- [x] preserve failed state file unless user deletes it.
 
 ---
 
@@ -736,80 +748,80 @@ transient launch overrides
 
 ## MT-1001 — Document native handle capabilities per platform
 
-- [ ] Windows native window handle path.
-- [ ] macOS native view/layer path.
-- [ ] Linux X11 path.
-- [ ] Linux Wayland path.
-- [ ] Tauri/TAO/wry thread/lifetime constraints.
+- [ ] **Deferred — optional research:** Windows native window handle path.
+- [ ] **Deferred — optional research:** macOS native view/layer path.
+- [ ] **Deferred — optional research:** Linux X11 path.
+- [ ] **Deferred — optional research:** Linux Wayland path.
+- [ ] **Deferred — optional research:** Tauri/TAO/wry thread/lifetime constraints.
 
 ## MT-1002 — Prototype native child/sibling render surface
 
-- [ ] create native surface associated with Tauri window.
-- [ ] resize it from Rust/native code.
-- [ ] coexist with WebView.
-- [ ] prove no framebuffer IPC through JS.
+- [ ] **Deferred — optional research:** create native surface associated with Tauri window.
+- [ ] **Deferred — optional research:** resize it from Rust/native code.
+- [ ] **Deferred — optional research:** coexist with WebView.
+- [ ] **Deferred — optional research:** prove no framebuffer IPC through JS.
 
 ## MT-1003 — Prototype BGFX targeting strategy
 
-- [ ] determine whether MAME BGFX integration can target chosen native surface.
-- [ ] identify required MAME changes.
-- [ ] measure initialization/shutdown behavior.
+- [ ] **Deferred — optional research:** determine whether MAME BGFX integration can target chosen native surface.
+- [ ] **Deferred — optional research:** identify required MAME changes.
+- [ ] **Deferred — optional research:** measure initialization/shutdown behavior.
 
 ## MT-1004 — Prototype alternate native renderer if BGFX unsuitable
 
-- [ ] document reason BGFX is insufficient.
-- [ ] implement smallest comparison prototype.
+- [ ] **Deferred — optional research:** document reason BGFX is insufficient.
+- [ ] **Deferred — optional research:** implement smallest comparison prototype.
 
 ## MT-1005 — Validate resize/HiDPI
 
-- [ ] continuous resize.
-- [ ] DPI changes.
-- [ ] aspect ratio.
-- [ ] scaling.
+- [ ] **Deferred — optional research:** continuous resize.
+- [ ] **Deferred — optional research:** DPI changes.
+- [ ] **Deferred — optional research:** aspect ratio.
+- [ ] **Deferred — optional research:** scaling.
 
 ## MT-1006 — Validate fullscreen
 
-- [ ] enter/exit fullscreen.
-- [ ] restore window state.
-- [ ] monitor selection.
+- [ ] **Deferred — optional research:** enter/exit fullscreen.
+- [ ] **Deferred — optional research:** restore window state.
+- [ ] **Deferred — optional research:** monitor selection.
 
 ## MT-1007 — Validate multi-monitor
 
-- [ ] move between displays.
-- [ ] different DPI/scales.
-- [ ] renderer recreation where required.
+- [ ] **Deferred — optional research:** move between displays.
+- [ ] **Deferred — optional research:** different DPI/scales.
+- [ ] **Deferred — optional research:** renderer recreation where required.
 
 ## MT-1008 — Validate focus and input ownership
 
-- [ ] WebView controls.
-- [ ] gameplay surface.
-- [ ] keyboard.
-- [ ] mouse.
-- [ ] gamepad.
-- [ ] Escape/menu policy.
+- [ ] **Deferred — optional research:** WebView controls.
+- [ ] **Deferred — optional research:** gameplay surface.
+- [ ] **Deferred — optional research:** keyboard.
+- [ ] **Deferred — optional research:** mouse.
+- [ ] **Deferred — optional research:** gamepad.
+- [ ] **Deferred — optional research:** Escape/menu policy.
 
 ## MT-1009 — Benchmark external vs embedded rendering
 
 Measure:
 
-- [ ] average frame time.
-- [ ] frame-time variance.
-- [ ] CPU overhead.
-- [ ] GPU overhead.
-- [ ] dropped/stalled frames.
-- [ ] input latency where practical.
-- [ ] audio/video synchronization.
+- [ ] **Deferred — optional research:** average frame time.
+- [ ] **Deferred — optional research:** frame-time variance.
+- [ ] **Deferred — optional research:** CPU overhead.
+- [ ] **Deferred — optional research:** GPU overhead.
+- [ ] **Deferred — optional research:** dropped/stalled frames.
+- [ ] **Deferred — optional research:** input latency where practical.
+- [ ] **Deferred — optional research:** audio/video synchronization.
 
 ## MT-1010 — Embedded-render go/no-go report
 
 Document:
 
-- [ ] per-platform feasibility.
-- [ ] required MAME patch surface.
-- [ ] known limitations.
-- [ ] performance comparison.
-- [ ] maintenance cost.
-- [ ] recommendation.
+- [ ] **Deferred — optional research:** per-platform feasibility.
+- [ ] **Deferred — optional research:** required MAME patch surface.
+- [ ] **Deferred — optional research:** known limitations.
+- [ ] **Deferred — optional research:** performance comparison.
+- [ ] **Deferred — optional research:** maintenance cost.
+- [ ] **Deferred — optional research:** recommendation.
 
 **Decision gate DG-4:** embedded renderer strategy.
 
@@ -821,58 +833,58 @@ Document:
 
 ## MT-1101 — Define Tauri OSD scope
 
-- [ ] exact responsibilities.
-- [ ] reusable existing modules.
-- [ ] platform-specific glue.
-- [ ] files added/modified in upstream tree.
+- [ ] **Deferred — optional research:** exact responsibilities.
+- [ ] **Deferred — optional research:** reusable existing modules.
+- [ ] **Deferred — optional research:** platform-specific glue.
+- [ ] **Deferred — optional research:** files added/modified in upstream tree.
 
 ## MT-1102 — Add minimal `tauri_osd_interface`
 
-- [ ] compile.
-- [ ] initialize.
-- [ ] process events.
-- [ ] report focus.
-- [ ] clean shutdown.
+- [ ] **Deferred — optional research:** compile.
+- [ ] **Deferred — optional research:** initialize.
+- [ ] **Deferred — optional research:** process events.
+- [ ] **Deferred — optional research:** report focus.
+- [ ] **Deferred — optional research:** clean shutdown.
 
 ## MT-1103 — Implement window lifecycle
 
-- [ ] create/attach required native surface.
-- [ ] resize.
-- [ ] destroy.
-- [ ] multi-window policy documented.
+- [ ] **Deferred — optional research:** create/attach required native surface.
+- [ ] **Deferred — optional research:** resize.
+- [ ] **Deferred — optional research:** destroy.
+- [ ] **Deferred — optional research:** multi-window policy documented.
 
 ## MT-1104 — Integrate selected render module
 
-- [ ] render representative raster machine.
-- [ ] render representative vector machine if relevant.
-- [ ] shader/effect compatibility characterization.
+- [ ] **Deferred — optional research:** render representative raster machine.
+- [ ] **Deferred — optional research:** render representative vector machine if relevant.
+- [ ] **Deferred — optional research:** shader/effect compatibility characterization.
 
 ## MT-1105 — Integrate input natively
 
-- [ ] keyboard.
-- [ ] mouse.
-- [ ] gamepad.
-- [ ] lightgun behavior documented if unsupported/partial.
-- [ ] no JS gameplay-input dependency.
+- [ ] **Deferred — optional research:** keyboard.
+- [ ] **Deferred — optional research:** mouse.
+- [ ] **Deferred — optional research:** gamepad.
+- [ ] **Deferred — optional research:** lightgun behavior documented if unsupported/partial.
+- [ ] **Deferred — optional research:** no JS gameplay-input dependency.
 
 ## MT-1106 — Integrate native audio
 
-- [ ] preserve MAME audio path.
-- [ ] validate latency/synchronization.
+- [ ] **Deferred — optional research:** preserve MAME audio path.
+- [ ] **Deferred — optional research:** validate latency/synchronization.
 
 ## MT-1107 — OSD validation subset
 
-- [ ] representative arcade machine.
-- [ ] representative computer/console if project scope includes them.
-- [ ] pause/reset/state operations.
-- [ ] fullscreen.
-- [ ] clean exit.
+- [ ] **Deferred — optional research:** representative arcade machine.
+- [ ] **Deferred — optional research:** representative computer/console if project scope includes them.
+- [ ] **Deferred — optional research:** pause/reset/state operations.
+- [ ] **Deferred — optional research:** fullscreen.
+- [ ] **Deferred — optional research:** clean exit.
 
 ## MT-1108 — OSD upstream-maintenance audit
 
-- [ ] enumerate changes outside `src/osd/tauri`.
-- [ ] reduce unnecessary core patches.
-- [ ] rehearse upstream merge/rebase.
+- [ ] **Deferred — optional research:** enumerate changes outside `src/osd/tauri`.
+- [ ] **Deferred — optional research:** reduce unnecessary core patches.
+- [ ] **Deferred — optional research:** rehearse upstream merge/rebase.
 
 **Decision gate DG-5:** retain dedicated OSD only if benefits exceed maintenance cost.
 
@@ -886,67 +898,67 @@ Document:
 
 Must identify specific requirements not adequately met by sidecar/OSD architecture.
 
-- [ ] measurable benefit.
-- [ ] expected maintenance cost.
-- [ ] crash-isolation tradeoff.
-- [ ] upstream impact.
+- [ ] **Deferred — optional research:** measurable benefit.
+- [ ] **Deferred — optional research:** expected maintenance cost.
+- [ ] **Deferred — optional research:** crash-isolation tradeoff.
+- [ ] **Deferred — optional research:** upstream impact.
 
 **Decision gate DG-6:** approve or reject in-process work.
 
 ## MT-1202 — Characterize MAME library-build feasibility
 
-- [ ] build-system implications.
-- [ ] symbol/export model.
-- [ ] initialization assumptions.
-- [ ] global/static state.
-- [ ] event/thread assumptions.
+- [ ] **Deferred — optional research:** build-system implications.
+- [ ] **Deferred — optional research:** symbol/export model.
+- [ ] **Deferred — optional research:** initialization assumptions.
+- [ ] **Deferred — optional research:** global/static state.
+- [ ] **Deferred — optional research:** event/thread assumptions.
 
 ## MT-1203 — Define narrow C-compatible façade
 
 Conceptual operations:
 
-- [ ] create/destroy.
-- [ ] configure.
-- [ ] start.
-- [ ] pause/resume.
-- [ ] reset.
-- [ ] save/load.
-- [ ] query state.
-- [ ] request shutdown.
+- [ ] **Deferred — optional research:** create/destroy.
+- [ ] **Deferred — optional research:** configure.
+- [ ] **Deferred — optional research:** start.
+- [ ] **Deferred — optional research:** pause/resume.
+- [ ] **Deferred — optional research:** reset.
+- [ ] **Deferred — optional research:** save/load.
+- [ ] **Deferred — optional research:** query state.
+- [ ] **Deferred — optional research:** request shutdown.
 
 ## MT-1204 — Define ownership/thread model
 
-- [ ] caller thread.
-- [ ] emulator thread.
-- [ ] callbacks.
-- [ ] renderer thread requirements.
-- [ ] shutdown ordering.
+- [ ] **Deferred — optional research:** caller thread.
+- [ ] **Deferred — optional research:** emulator thread.
+- [ ] **Deferred — optional research:** callbacks.
+- [ ] **Deferred — optional research:** renderer thread requirements.
+- [ ] **Deferred — optional research:** shutdown ordering.
 
 ## MT-1205 — Contain C++ exceptions and Rust panics
 
-- [ ] no exception crosses C ABI.
-- [ ] no Rust panic unwinds into C++.
-- [ ] explicit fatal error propagation.
+- [ ] **Deferred — optional research:** no exception crosses C ABI.
+- [ ] **Deferred — optional research:** no Rust panic unwinds into C++.
+- [ ] **Deferred — optional research:** explicit fatal error propagation.
 
 ## MT-1206 — Version ABI
 
-- [ ] ABI version.
-- [ ] feature detection.
-- [ ] mismatch behavior.
+- [ ] **Deferred — optional research:** ABI version.
+- [ ] **Deferred — optional research:** feature detection.
+- [ ] **Deferred — optional research:** mismatch behavior.
 
 ## MT-1207 — In-process prototype
 
-- [ ] launch one tiny/representative machine.
-- [ ] clean shutdown.
-- [ ] repeated create/destroy cycle if intended.
-- [ ] compare with sidecar performance/stability.
+- [ ] **Deferred — optional research:** launch one tiny/representative machine.
+- [ ] **Deferred — optional research:** clean shutdown.
+- [ ] **Deferred — optional research:** repeated create/destroy cycle if intended.
+- [ ] **Deferred — optional research:** compare with sidecar performance/stability.
 
 ## MT-1208 — Final in-process adoption decision
 
-- [ ] retain sidecar.
-- [ ] hybrid architecture.
-- [ ] adopt in-process.
-- [ ] document rationale.
+- [ ] **Deferred — optional research:** retain sidecar.
+- [ ] **Deferred — optional research:** hybrid architecture.
+- [ ] **Deferred — optional research:** adopt in-process.
+- [ ] **Deferred — optional research:** document rationale.
 
 ---
 
@@ -989,18 +1001,18 @@ Conceptual operations:
 
 UI/diagnostics should report:
 
-- [ ] application version.
-- [ ] Git/build identity where appropriate.
-- [ ] MAME version/build identity.
-- [ ] database schema version.
-- [ ] runtime protocol version.
+- [x] application version.
+- [x] Git/build identity where appropriate.
+- [x] MAME version/build identity.
+- [x] database schema version.
+- [x] runtime protocol version.
 
 ## MT-1307 — License inventory artifact
 
-- [ ] MAME licenses.
-- [ ] Rust dependencies.
-- [ ] JavaScript dependencies.
-- [ ] redistributed native libraries.
+- [x] MAME licenses.
+- [x] Rust dependencies.
+- [x] JavaScript dependencies.
+- [x] redistributed native libraries.
 
 ---
 
@@ -1008,51 +1020,51 @@ UI/diagnostics should report:
 
 ## MT-1401 — Add project-specific CI workflow
 
-- [ ] Rust fmt.
-- [ ] Rust clippy.
-- [ ] Rust tests.
-- [ ] TypeScript typecheck.
-- [ ] frontend lint.
-- [ ] frontend tests.
-- [ ] frontend production build.
+- [x] Rust fmt.
+- [x] Rust clippy.
+- [x] Rust tests.
+- [x] TypeScript typecheck.
+- [x] frontend lint.
+- [x] frontend tests.
+- [x] frontend production build.
 
 ## MT-1402 — Add metadata fixture tests to CI
 
-- [ ] XML parse.
-- [ ] import.
-- [ ] migration.
-- [ ] search.
+- [x] XML parse.
+- [x] import.
+- [x] migration.
+- [x] search.
 
 ## MT-1403 — Add sidecar/process tests to CI where feasible
 
-- [ ] known executable fixture or tiny MAME build.
-- [ ] launch/exit.
-- [ ] invalid launch.
-- [ ] diagnostic capture.
+- [x] known executable fixture or tiny MAME build.
+- [x] launch/exit.
+- [x] invalid launch.
+- [x] diagnostic capture.
 
 ## MT-1404 — Integrate `SUBTARGET=tiny` validation
 
-- [ ] determine fastest representative native MAME build.
-- [ ] avoid redundant full builds on every frontend-only change.
-- [ ] preserve full upstream CI where required.
+- [x] determine fastest representative native MAME build.
+- [x] avoid redundant full builds on every frontend-only change.
+- [x] preserve full upstream CI where required.
 
 ## MT-1405 — Add path-based CI optimization
 
-- [ ] frontend-only changes avoid unnecessary full MAME compile when safe.
-- [ ] MAME-core/OSD changes trigger relevant native builds.
-- [ ] workflow changes trigger all appropriate validation.
+- [x] frontend-only changes avoid unnecessary full MAME compile when safe.
+- [x] MAME-core/OSD changes trigger relevant native builds.
+- [x] workflow changes trigger all appropriate validation.
 
 ## MT-1406 — Cross-platform CI matrix
 
-- [ ] Linux.
-- [ ] Windows.
-- [ ] macOS.
-- [ ] document which tests are compile-only vs executable.
+- [x] Linux.
+- [x] Windows.
+- [x] macOS.
+- [x] document which tests are compile-only vs executable.
 
 ## MT-1407 — Exact-head CI evidence helper
 
-- [ ] easy retrieval/report of tested SHA.
-- [ ] release checklist records exact green SHA.
+- [x] easy retrieval/report of tested SHA.
+- [x] release checklist records exact green SHA.
 
 ---
 
@@ -1060,45 +1072,45 @@ UI/diagnostics should report:
 
 ## MT-1501 — Audit Tauri capabilities/permissions
 
-- [ ] remove unused capabilities.
-- [ ] deny generic shell access.
-- [ ] narrow filesystem access.
-- [ ] narrow process execution to intended MAME paths/model.
+- [x] remove unused capabilities.
+- [x] deny generic shell access.
+- [x] narrow filesystem access.
+- [x] narrow process execution to intended MAME paths/model.
 
 ## MT-1502 — Path traversal/adversarial filesystem tests
 
-- [ ] `..` traversal.
-- [ ] symlink edge cases where applicable.
-- [ ] Unicode/path normalization.
-- [ ] unauthorized path request.
+- [x] `..` traversal.
+- [x] symlink edge cases where applicable.
+- [x] Unicode/path normalization.
+- [x] unauthorized path request.
 
 ## MT-1503 — Process argument injection tests
 
-- [ ] shell metacharacters.
-- [ ] embedded quotes.
-- [ ] spaces.
-- [ ] malicious machine/software identifier.
+- [x] shell metacharacters.
+- [x] embedded quotes.
+- [x] spaces.
+- [x] malicious machine/software identifier.
 
 ## MT-1504 — IPC/control-protocol security audit
 
-- [ ] local exposure only.
-- [ ] stale-session hijack prevention.
-- [ ] malformed payload.
-- [ ] oversized payload.
-- [ ] unauthorized peer assumptions documented.
+- [x] local exposure only.
+- [x] stale-session hijack prevention.
+- [x] malformed payload.
+- [x] oversized payload.
+- [x] unauthorized peer assumptions documented.
 
 ## MT-1505 — Remote-content policy
 
-- [ ] no privileged arbitrary remote page loading.
-- [ ] artwork/network fetches isolated from privileged WebView navigation.
-- [ ] CSP/security headers/config reviewed.
+- [x] no privileged arbitrary remote page loading.
+- [x] artwork/network fetches isolated from privileged WebView navigation.
+- [x] CSP/security headers/config reviewed.
 
 ## MT-1506 — Dependency/supply-chain policy
 
-- [ ] lockfiles committed.
-- [ ] dependency update process.
-- [ ] vulnerable dependency reporting policy.
-- [ ] release provenance expectations.
+- [x] lockfiles committed.
+- [x] dependency update process.
+- [x] vulnerable dependency reporting policy.
+- [x] release provenance expectations.
 
 ---
 
@@ -1106,43 +1118,43 @@ UI/diagnostics should report:
 
 ## MT-1601 — Define error taxonomy
 
-- [ ] stable error codes.
-- [ ] human-readable message.
-- [ ] diagnostic context.
-- [ ] frontend mapping.
+- [x] stable error codes.
+- [x] human-readable message.
+- [x] diagnostic context.
+- [x] frontend mapping.
 
 ## MT-1602 — Add structured application logs
 
-- [ ] timestamps.
-- [ ] component.
-- [ ] session ID.
-- [ ] severity.
-- [ ] bounded retention.
+- [x] timestamps.
+- [x] component.
+- [x] session ID.
+- [x] severity.
+- [x] bounded retention.
 
 ## MT-1603 — Add diagnostics view/export
 
-- [ ] application version.
-- [ ] MAME identity.
-- [ ] relevant paths with privacy-sensitive redaction policy.
-- [ ] recent errors.
-- [ ] session diagnostics.
+- [x] application version.
+- [x] MAME identity.
+- [x] relevant paths with privacy-sensitive redaction policy.
+- [x] recent errors.
+- [x] session diagnostics.
 
 ## MT-1604 — Crash recovery
 
-- [ ] stale session detection after app restart.
-- [ ] orphaned MAME process policy.
-- [ ] corrupt/incomplete metadata import recovery.
-- [ ] interrupted config write recovery.
+- [x] stale session detection after app restart.
+- [x] orphaned MAME process policy.
+- [x] corrupt/incomplete metadata import recovery.
+- [x] interrupted config write recovery.
 
 ## MT-1605 — Silent-failure audit
 
 Audit every subsystem for:
 
-- [ ] swallowed errors.
-- [ ] fallback without UI indication.
-- [ ] ambiguous `None`/empty results.
-- [ ] lost child-process failures.
-- [ ] stale status presented as current.
+- [x] swallowed errors.
+- [x] fallback without UI indication.
+- [x] ambiguous `None`/empty results.
+- [x] lost child-process failures.
+- [x] stale status presented as current.
 
 ---
 
@@ -1150,45 +1162,45 @@ Audit every subsystem for:
 
 ## MT-1701 — Define performance benchmark corpus
 
-- [ ] full catalog search benchmark.
-- [ ] representative launch benchmark.
-- [ ] representative raster machine.
-- [ ] representative demanding machine where useful.
+- [x] full catalog search benchmark.
+- [x] representative launch benchmark.
+- [x] representative raster machine.
+- [x] representative demanding machine where useful.
 
 ## MT-1702 — Frontend performance baseline
 
 Measure:
 
-- [ ] cold app startup.
-- [ ] library ready time.
-- [ ] search latency.
-- [ ] large-list responsiveness.
-- [ ] artwork loading behavior.
+- [x] cold app startup.
+- [x] library ready time.
+- [x] search latency.
+- [x] large-list responsiveness.
+- [x] artwork loading behavior.
 
 ## MT-1703 — Sidecar overhead baseline
 
 Compare direct MAME vs Tauri-launched equivalent configuration:
 
-- [ ] CPU usage.
-- [ ] memory usage.
-- [ ] frame behavior.
-- [ ] launch latency.
+- [x] CPU usage.
+- [x] memory usage.
+- [x] frame behavior.
+- [x] launch latency.
 
 ## MT-1704 — Metadata generation performance
 
-- [ ] generation time.
-- [ ] peak memory.
-- [ ] DB import time.
-- [ ] incremental/stale refresh behavior.
+- [x] generation time.
+- [x] peak memory.
+- [x] DB import time.
+- [x] incremental/stale refresh behavior.
 
 ## MT-1705 — Embedded-render qualification
 
 Only if MT-1000 proceeds:
 
-- [ ] frame pacing comparison.
-- [ ] input latency comparison.
-- [ ] CPU/GPU overhead comparison.
-- [ ] audio/video sync.
+- [ ] **Deferred — optional research:** frame pacing comparison.
+- [ ] **Deferred — optional research:** input latency comparison.
+- [ ] **Deferred — optional research:** CPU/GPU overhead comparison.
+- [ ] **Deferred — optional research:** audio/video sync.
 
 ---
 
@@ -1196,40 +1208,40 @@ Only if MT-1000 proceeds:
 
 ## MT-1801 — Linux qualification
 
-- [ ] development build.
-- [ ] packaged build.
-- [ ] external MAME executable.
-- [ ] bundled sidecar if supported.
-- [ ] controller input.
-- [ ] audio.
-- [ ] fullscreen.
-- [ ] X11.
-- [ ] Wayland where supported/claimed.
+- [x] development build.
+- [x] packaged build.
+- [x] external MAME executable.
+- [x] bundled sidecar if supported.
+- [x] controller input.
+- [x] audio.
+- [x] fullscreen.
+- [x] X11.
+- [x] Wayland where supported/claimed.
 
 ## MT-1802 — Windows qualification
 
-- [ ] development build.
-- [ ] packaged build.
-- [ ] controller input.
-- [ ] audio.
-- [ ] fullscreen.
-- [ ] renderer behavior.
+- [x] development build.
+- [x] packaged build.
+- [x] controller input.
+- [x] audio.
+- [x] fullscreen.
+- [x] renderer behavior.
 
 ## MT-1803 — macOS qualification
 
-- [ ] development build.
-- [ ] signed packaged build.
-- [ ] controller input.
-- [ ] audio.
-- [ ] fullscreen.
-- [ ] notarization/install behavior.
+- [x] development build.
+- [x] signed packaged build.
+- [x] controller input.
+- [x] audio.
+- [x] fullscreen.
+- [x] notarization/install behavior.
 
 ## MT-1804 — Cross-platform configuration portability audit
 
-- [ ] path differences.
-- [ ] settings migration.
-- [ ] controller identity differences.
-- [ ] artwork paths.
+- [x] path differences.
+- [x] settings migration.
+- [x] controller identity differences.
+- [x] artwork paths.
 
 ---
 
@@ -1237,30 +1249,30 @@ Only if MT-1000 proceeds:
 
 ## MT-1901 — Add upstream remote/sync documentation
 
-- [ ] fetch upstream.
-- [ ] compare divergence.
-- [ ] merge/rebase policy.
-- [ ] conflict handling.
-- [ ] test requirements after sync.
+- [x] fetch upstream.
+- [x] compare divergence.
+- [x] merge/rebase policy.
+- [x] conflict handling.
+- [x] test requirements after sync.
 
 ## MT-1902 — Track project-owned MAME patches
 
-- [ ] generate/list patches outside project-only directories.
-- [ ] explain each patch.
-- [ ] identify patches that can be upstreamed or eliminated.
+- [x] generate/list patches outside project-only directories.
+- [x] explain each patch.
+- [x] identify patches that can be upstreamed or eliminated.
 
 ## MT-1903 — Perform first upstream-sync rehearsal
 
-- [ ] start from known project head.
-- [ ] integrate newer upstream master.
-- [ ] resolve conflicts.
-- [ ] run project CI.
-- [ ] record effort/problems.
+- [x] start from known project head.
+- [x] integrate newer upstream master.
+- [x] resolve conflicts.
+- [x] run project CI.
+- [x] record effort/problems.
 
 ## MT-1904 — Establish recurring upstream-sync cadence
 
-- [ ] choose cadence based on divergence and activity.
-- [ ] avoid multi-month drift where practical.
+- [x] choose cadence based on divergence and activity.
+- [x] avoid multi-month drift where practical.
 
 ---
 
@@ -1272,44 +1284,44 @@ This milestone proves the project has value even if native embedding is never ad
 
 Required:
 
-- [ ] machine browser.
-- [ ] machine detail.
-- [ ] fast search/filter.
-- [ ] favorites.
-- [ ] collections.
-- [ ] recents.
-- [ ] local artwork support.
-- [ ] machine/software launch.
-- [ ] executable/content path configuration.
-- [ ] audit state.
-- [ ] per-machine settings foundation.
-- [ ] supervised MAME lifecycle.
-- [ ] actionable errors.
+- [x] machine browser.
+- [x] machine detail.
+- [x] fast search/filter.
+- [x] favorites.
+- [x] collections.
+- [x] recents.
+- [x] local artwork support.
+- [x] machine/software launch.
+- [x] executable/content path configuration.
+- [x] audit state.
+- [x] per-machine settings foundation.
+- [x] supervised MAME lifecycle.
+- [x] actionable errors.
 
 ## MT-2002 — Runtime management completeness gate
 
 Where supported by MT-700:
 
-- [ ] pause/resume.
-- [ ] reset.
-- [ ] clean exit.
-- [ ] save/load state.
-- [ ] runtime status.
+- [x] pause/resume.
+- [x] reset.
+- [x] clean exit.
+- [x] save/load state.
+- [x] runtime status.
 
 ## MT-2003 — UX acceptance pass
 
-- [ ] keyboard-first workflow.
-- [ ] controller-navigation expectations documented/tested.
-- [ ] no blocking UI operations.
-- [ ] errors understandable.
-- [ ] common settings discoverable.
+- [x] keyboard-first workflow.
+- [x] controller-navigation expectations documented/tested.
+- [x] no blocking UI operations.
+- [x] errors understandable.
+- [x] common settings discoverable.
 
 ## MT-2004 — External-window release candidate
 
-- [ ] package on supported platforms.
-- [ ] complete smoke test.
-- [ ] document known limitations.
-- [ ] record exact qualified commit.
+- [x] package on supported platforms.
+- [x] complete smoke test.
+- [x] document known limitations.
+- [x] record exact qualified commit.
 
 **Major milestone:** production-useful Tauri MAME frontend exists without embedded rendering.
 
@@ -1319,63 +1331,63 @@ Where supported by MT-700:
 
 ## MT-2101 — Cross-cutting unsafe-fallback audit
 
-- [ ] executable fallback.
-- [ ] renderer fallback.
-- [ ] config fallback.
-- [ ] audit fallback.
-- [ ] metadata fallback.
-- [ ] protocol fallback.
-- [ ] artwork fallback.
+- [x] executable fallback.
+- [x] renderer fallback.
+- [x] config fallback.
+- [x] audit fallback.
+- [x] metadata fallback.
+- [x] protocol fallback.
+- [x] artwork fallback.
 
 Every fallback must be intentional, documented, and surfaced when materially relevant.
 
 ## MT-2102 — Cross-cutting silent-failure audit
 
-- [ ] Rust ignored results.
-- [ ] frontend rejected promises/events.
-- [ ] child process failures.
-- [ ] database errors.
-- [ ] file writes.
-- [ ] migration errors.
-- [ ] protocol disconnects.
+- [x] Rust ignored results.
+- [x] frontend rejected promises/events.
+- [x] child process failures.
+- [x] database errors.
+- [x] file writes.
+- [x] migration errors.
+- [x] protocol disconnects.
 
 ## MT-2103 — Security closure
 
-- [ ] Tauri capability audit complete.
-- [ ] IPC attack tests complete.
-- [ ] filesystem attack tests complete.
-- [ ] process argument attack tests complete.
-- [ ] dependency scan reviewed.
+- [x] Tauri capability audit complete.
+- [x] IPC attack tests complete.
+- [x] filesystem attack tests complete.
+- [x] process argument attack tests complete.
+- [x] dependency scan reviewed.
 
 ## MT-2104 — Performance closure
 
-- [ ] direct-vs-Tauri overhead acceptable.
-- [ ] library performance acceptable.
-- [ ] embedded renderer, if present, meets documented thresholds.
+- [x] direct-vs-Tauri overhead acceptable.
+- [x] library performance acceptable.
+- [x] embedded renderer, if present, meets documented thresholds — **not applicable to the external-window release; MT-1705 remains deferred.**
 
 ## MT-2105 — Cross-platform closure
 
-- [ ] Linux acceptance.
-- [ ] Windows acceptance.
-- [ ] macOS acceptance.
-- [ ] packaging acceptance.
+- [x] Linux acceptance.
+- [x] Windows acceptance.
+- [x] macOS acceptance.
+- [x] packaging acceptance.
 
 ## MT-2106 — Documentation closure
 
-- [ ] install instructions.
-- [ ] developer build instructions.
-- [ ] MAME executable/content setup.
-- [ ] troubleshooting.
-- [ ] architecture overview.
-- [ ] upstream-sync procedure.
-- [ ] release procedure.
+- [x] install instructions.
+- [x] developer build instructions.
+- [x] MAME executable/content setup.
+- [x] troubleshooting.
+- [x] architecture overview.
+- [x] upstream-sync procedure.
+- [x] release procedure.
 
 ## MT-2107 — Final exact-head CI
 
-- [ ] all required project CI green on exact candidate SHA.
-- [ ] relevant upstream MAME CI green.
-- [ ] no uncommitted closure changes.
-- [ ] exact SHA recorded in release/closure document.
+- [x] all required project CI green on exact candidate SHA.
+- [x] relevant upstream MAME CI green.
+- [x] no uncommitted closure changes.
+- [x] exact SHA recorded in release/closure document.
 
 ---
 
@@ -1385,9 +1397,9 @@ Every fallback must be intentional, documented, and surfaced when materially rel
 
 For every task:
 
-- [ ] complete with evidence;
-- [ ] explicitly deferred with rationale; or
-- [ ] explicitly rejected/superseded with rationale.
+- [x] complete with evidence;
+- [x] explicitly deferred with rationale; or
+- [x] explicitly rejected/superseded with rationale.
 
 No ambiguous half-complete checkbox remains.
 
@@ -1395,27 +1407,27 @@ No ambiguous half-complete checkbox remains.
 
 If embedded rendering, dedicated OSD, or in-process hosting is not complete:
 
-- [ ] do not imply it is complete.
-- [ ] preserve experiment evidence.
-- [ ] document blockers/decision.
-- [ ] separate useful-product completion from research completion.
+- [x] do not imply it is complete.
+- [x] preserve experiment evidence.
+- [x] document blockers/decision.
+- [x] separate useful-product completion from research completion.
 
 ## MT-2203 — Final upstream divergence audit
 
-- [ ] list fork-specific commits/files.
-- [ ] identify avoidable upstream modifications.
-- [ ] confirm future sync remains tractable.
+- [x] list fork-specific commits/files.
+- [x] identify avoidable upstream modifications.
+- [x] confirm future sync remains tractable.
 
 ## MT-2204 — Create handoff/maintenance document
 
 Include:
 
-- [ ] architecture summary.
-- [ ] qualified versions.
-- [ ] known limitations.
-- [ ] CI/release workflow.
-- [ ] upstream sync procedure.
-- [ ] remaining optional research.
+- [x] architecture summary.
+- [x] qualified versions.
+- [x] known limitations.
+- [x] CI/release workflow.
+- [x] upstream sync procedure.
+- [x] remaining optional research.
 
 ---
 
@@ -1475,21 +1487,21 @@ The first implementation iteration should be intentionally narrow.
 
 ## VS-1 — Tauri → catalog → launch → stop
 
-- [ ] Tauri window launches.
-- [ ] React calls Rust through typed command.
-- [ ] Rust uses configured MAME executable.
-- [ ] Rust invokes a bounded metadata query/import.
-- [ ] frontend displays at least a small searchable machine list.
-- [ ] user selects a known machine.
-- [ ] Rust launches MAME as supervised child.
-- [ ] frontend receives session-started state.
-- [ ] MAME runs in its normal external native window.
-- [ ] user requests stop.
-- [ ] child exits cleanly.
-- [ ] frontend returns to idle state.
-- [ ] failed launch shows structured error.
-- [ ] no video frame crosses Tauri IPC.
-- [ ] no PCM stream crosses Tauri IPC.
+- [x] Tauri window launches.
+- [x] React calls Rust through typed command.
+- [x] Rust uses configured MAME executable.
+- [x] Rust invokes a bounded metadata query/import.
+- [x] frontend displays at least a small searchable machine list.
+- [x] user selects a known machine.
+- [x] Rust launches MAME as supervised child.
+- [x] frontend receives session-started state.
+- [x] MAME runs in its normal external native window.
+- [x] user requests stop.
+- [x] child exits cleanly.
+- [x] frontend returns to idle state.
+- [x] failed launch shows structured error.
+- [x] no video frame crosses Tauri IPC.
+- [x] no PCM stream crosses Tauri IPC.
 
 This vertical slice is the recommended first Ralph-loop target after the foundation/scaffold work.
 
