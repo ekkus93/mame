@@ -1,0 +1,50 @@
+name: Tauri security
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tauri-security.yml"
+      - ".github/dependabot.yml"
+      - "tauri/**"
+      - "scripts/tauri/test-security-policy.py"
+  pull_request:
+    paths:
+      - ".github/workflows/tauri-security.yml"
+      - ".github/dependabot.yml"
+      - "tauri/**"
+      - "scripts/tauri/test-security-policy.py"
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: MT-1500 privileged-boundary policy regression
+        run: python3 scripts/tauri/test-security-policy.py
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - name: Install JavaScript dependencies from lockfile
+        working-directory: tauri
+        run: npm ci
+
+      - name: Audit production JavaScript dependency advisories
+        working-directory: tauri
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit Rust dependency advisories
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: tauri/src-tauri
