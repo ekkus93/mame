@@ -29,9 +29,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
-            tauri
-            scripts/tauri
+            /COPYING
+            /3rdparty/README.md
+            /docs/legal/
+            /tauri/
+            /scripts/tauri/
 
       - name: MT-1302 bundled runtime staging contract
         working-directory: ${{ github.workspace }}
@@ -68,6 +72,17 @@ jobs:
           key: ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
           restore-keys: |
             ${{ runner.os }}-tauri-debug-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Generate MT-1307 license inventory
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/generate-license-inventory.py
+
+      - name: Upload MT-1307 license inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-license-inventory-${{ github.sha }}
+          path: artifacts/license-inventory/
+          if-no-files-found: error
 
       - name: Install frontend dependencies from lockfile
         run: npm ci
