@@ -3,14 +3,63 @@ name: CI (Windows)
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     tags:
       - '*'
+    paths:
+      - '.github/workflows/ci-windows.yml'
+      - '3rdparty/**'
+      - 'hash/**'
+      - 'scripts/**'
+      - '!scripts/tauri/**'
+      - 'src/**'
+      - 'COPYING'
+      - 'makefile'
+  pull_request:
+    paths:
+      - '.github/workflows/ci-windows.yml'
+      - '3rdparty/**'
+      - 'hash/**'
+      - 'scripts/**'
+      - '!scripts/tauri/**'
+      - 'src/**'
+      - 'COPYING'
+      - 'makefile'
 
 permissions:
   contents: read
 
 jobs:
+  smoke-windows-tiny:
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
+      with:
+        msystem: CLANG64
+        install: git make mingw-w64-clang-x86_64-clang mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-lld mingw-w64-clang-x86_64-llvm mingw-w64-clang-x86_64-libc++ mingw-w64-clang-x86_64-sdl3 mingw-w64-clang-x86_64-gcc-compat
+    - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+    - name: Build representative tiny target
+      env:
+        OVERRIDE_AR: "llvm-ar"
+        OVERRIDE_CC: clang
+        OVERRIDE_CXX: clang++
+        ARCHOPTS: "-fuse-ld=lld"
+        SUBTARGET: tiny
+        TOOLS: 0
+        USE_SDL3: 1
+      run: make -j3
+    - name: Execute representative validation
+      run: ./mametiny.exe -validate
+
   build-windows:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         compiler: [gcc-x64, clang-x64, clang-arm64]
