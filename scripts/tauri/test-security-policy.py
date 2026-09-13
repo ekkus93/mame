@@ -51,6 +51,21 @@ def main() -> int:
     )
 
     tauri_config = load_json(TAURI_ROOT / "src-tauri/tauri.conf.json")
+    build = tauri_config.get("build", {})
+    require(
+        build.get("frontendDist") == "../dist",
+        "production WebView content must remain the local bundled frontend",
+    )
+    require(
+        build.get("devUrl") == "http://localhost:1420",
+        "development WebView content must remain the fixed local Vite origin",
+    )
+    for window in tauri_config.get("app", {}).get("windows", []):
+        require(
+            "url" not in window,
+            "privileged application windows must not navigate to arbitrary remote content",
+        )
+
     csp = tauri_config.get("app", {}).get("security", {}).get("csp")
     require(
         csp == EXPECTED_CSP,
