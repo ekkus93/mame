@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
+import type { MameVersionReport } from "./backend/types";
 import { BulkAuditPanel } from "./library/BulkAuditPanel";
 import { CollectionManager } from "./library/CollectionManager";
 import { LibraryBrowser } from "./library/LibraryBrowser";
@@ -10,6 +11,17 @@ import { SessionControlPanel } from "./session/SessionControlPanel";
 import { GeneralSettingsPanel } from "./settings/GeneralSettingsPanel";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
+
+function mameVersionLabel(report: MameVersionReport): string {
+  switch (report.status) {
+    case "notConfigured":
+      return "Not configured";
+    case "available":
+      return report.identity.rawVersionLine;
+    case "unavailable":
+      return `Unavailable (${report.errorCode}): ${report.errorMessage}`;
+  }
+}
 
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
@@ -58,12 +70,52 @@ export default function App() {
             <>
               <span className="backend-dot" aria-hidden="true" />
               <span>Rust backend connected</span>
-              <code>v{state.info.protocolVersion}</code>
+              <code>
+                app v{state.info.appVersion} · api v{state.info.protocolVersion}
+              </code>
             </>
           )}
           {state.status === "error" && <span className="error-message">{state.message}</span>}
         </section>
       </header>
+
+      {state.status === "ready" && (
+        <details className="version-report">
+          <summary>Version information</summary>
+          <dl className="version-grid">
+            <div>
+              <dt>Application</dt>
+              <dd>v{state.info.appVersion}</dd>
+            </div>
+            <div>
+              <dt>Build</dt>
+              <dd>
+                <code>{state.info.build.gitSha ?? "git unavailable"}</code>
+                {" · "}
+                {state.info.build.profile}
+                {" · "}
+                {state.info.build.target}
+              </dd>
+            </div>
+            <div>
+              <dt>MAME</dt>
+              <dd>{mameVersionLabel(state.info.mame)}</dd>
+            </div>
+            <div>
+              <dt>Catalog schema</dt>
+              <dd>v{state.info.databaseSchemaVersion}</dd>
+            </div>
+            <div>
+              <dt>Settings schema</dt>
+              <dd>v{state.info.settingsSchemaVersion}</dd>
+            </div>
+            <div>
+              <dt>Runtime protocol</dt>
+              <dd>v{state.info.runtimeProtocolVersion}</dd>
+            </div>
+          </dl>
+        </details>
+      )}
 
       {state.status === "ready" ? (
         <>

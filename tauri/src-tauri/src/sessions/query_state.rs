@@ -5,6 +5,8 @@ use crate::errors::{AppError, AppResult};
 
 use super::{control, SessionState, SessionSupervisor};
 
+pub(crate) const RUNTIME_CONTROL_PROTOCOL_VERSION: u32 = control::PROTOCOL_VERSION;
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryMameRuntimeStateRequest {

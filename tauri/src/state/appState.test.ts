@@ -10,6 +10,15 @@ describe("appStateReducer", () => {
         protocolVersion: 1,
         appVersion: "0.1.0",
         backend: "rust-tauri",
+        build: {
+          gitSha: "0123456789abcdef",
+          profile: "debug",
+          target: "x86_64-unknown-linux-gnu",
+        },
+        databaseSchemaVersion: 4,
+        settingsSchemaVersion: 2,
+        runtimeProtocolVersion: 1,
+        mame: { status: "notConfigured" },
       },
     });
 
@@ -19,6 +28,15 @@ describe("appStateReducer", () => {
         protocolVersion: 1,
         appVersion: "0.1.0",
         backend: "rust-tauri",
+        build: {
+          gitSha: "0123456789abcdef",
+          profile: "debug",
+          target: "x86_64-unknown-linux-gnu",
+        },
+        databaseSchemaVersion: 4,
+        settingsSchemaVersion: 2,
+        runtimeProtocolVersion: 1,
+        mame: { status: "notConfigured" },
       },
     });
   });

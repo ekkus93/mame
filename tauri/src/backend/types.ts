@@ -13,10 +13,31 @@ export type AppInfoRequest = {
   protocolVersion: typeof APP_PROTOCOL_VERSION;
 };
 
+export type BuildIdentity = {
+  gitSha: string | null;
+  profile: string;
+  target: string;
+};
+
+export type MameVersionReport =
+  | { status: "notConfigured" }
+  | { status: "available"; identity: MameExecutableIdentity }
+  | {
+      status: "unavailable";
+      path: string | null;
+      errorCode: string;
+      errorMessage: string;
+    };
+
 export type AppInfoResponse = {
   protocolVersion: typeof APP_PROTOCOL_VERSION;
   appVersion: string;
   backend: "rust-tauri";
+  build: BuildIdentity;
+  databaseSchemaVersion: number;
+  settingsSchemaVersion: number;
+  runtimeProtocolVersion: number;
+  mame: MameVersionReport;
 };
 
 export type AppReadyEventV1 = {
@@ -248,7 +269,13 @@ export type SetLibraryFavoriteRequest = {
 };
 
 export type SessionState =
-  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
+  | "created"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "exited"
+  | "failed"
+  | "crashed";
 
 export type SessionSnapshot = {
   schemaVersion: 1;
@@ -374,7 +401,13 @@ export type QueryMameRuntimeStateResult = {
   effectiveMuted: boolean;
 };
 
-export type ArtworkKind = "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
+export type ArtworkKind =
+  | "screenshot"
+  | "cabinet"
+  | "marquee"
+  | "flyer"
+  | "icon"
+  | "systemImage";
 
 export type ArtworkProvenance = {
   kind: "localFile";
