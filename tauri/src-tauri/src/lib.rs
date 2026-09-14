@@ -14,6 +14,7 @@ pub mod controller_profiles;
 pub mod controller_settings;
 pub mod diagnostics;
 pub mod errors;
+mod event_names;
 pub mod general_settings;
 pub mod history;
 pub mod library;

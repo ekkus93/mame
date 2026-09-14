@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Runtime};
 use crate::{
     config::{load_settings, settings_path, SETTINGS_SCHEMA_VERSION},
     errors::{AppError, AppResult},
+    event_names::APP_READY_EVENT,
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
     sessions::query_state::RUNTIME_CONTROL_PROTOCOL_VERSION,
     storage::CATALOG_SCHEMA_VERSION,
@@ -143,7 +144,7 @@ pub fn emit_ready<R: Runtime>(app: &tauri::AppHandle<R>) -> AppResult<()> {
         app_version: env!("CARGO_PKG_VERSION"),
     };
 
-    app.emit("app.ready", event).map_err(|error| {
+    app.emit(APP_READY_EVENT, event).map_err(|error| {
         AppError::new(
             "APP_READY_EVENT_FAILED",
             "The backend could not emit the application-ready event.",

@@ -10,7 +10,10 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::errors::{AppError, AppResult};
+use crate::{
+    errors::{AppError, AppResult},
+    event_names::{SESSION_STATE_SAVED_EVENT, SESSION_STATE_SAVE_FAILED_EVENT},
+};
 
 use super::{control, SessionSnapshot, SessionState, SessionSupervisor};
 
@@ -66,13 +69,13 @@ pub fn save_mame_state(
     let result = save_state_for_session(&app, &session, &request.slot);
     match result {
         Ok(result) => {
-            if let Err(error) = app.emit("session.state_saved", result.clone()) {
+            if let Err(error) = app.emit(SESSION_STATE_SAVED_EVENT, result.clone()) {
                 return Err(AppError::new(
                     "SAVE_STATE_EVENT_EMIT_FAILED",
                     "The save state was written successfully, but its success event could not be emitted.",
                 )
                 .with_details(serde_json::json!({
-                    "event": "session.state_saved",
+                    "event": SESSION_STATE_SAVED_EVENT,
                     "cause": error.to_string(),
                     "saved": result
                 })));
@@ -88,12 +91,12 @@ pub fn save_mame_state(
                 slot: request.slot,
                 error: error.clone(),
             };
-            if let Err(emit_error) = app.emit("session.state_save_failed", failed_event) {
+            if let Err(emit_error) = app.emit(SESSION_STATE_SAVE_FAILED_EVENT, failed_event) {
                 let operation_details = std::mem::take(&mut error.details);
                 error.details = serde_json::json!({
                     "operation": operation_details,
                     "eventEmission": {
-                        "event": "session.state_save_failed",
+                        "event": SESSION_STATE_SAVE_FAILED_EVENT,
                         "cause": emit_error.to_string()
                     }
                 });
