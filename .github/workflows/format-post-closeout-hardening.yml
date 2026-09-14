@@ -1,0 +1,40 @@
+name: Format post-closeout hardening files
+
+on:
+  push:
+    branches:
+      - ralph/post-closeout-hardening-v4
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.12.0'
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: tauri
+        run: npm ci
+      - name: Apply Prettier
+        working-directory: tauri
+        run: npx prettier --write src/backend/types.ts src/session/SessionControlPanel.tsx
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet -- tauri/src/backend/types.ts tauri/src/session/SessionControlPanel.tsx; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tauri/src/backend/types.ts tauri/src/session/SessionControlPanel.tsx
+          git commit -m "style: apply prettier to post-closeout frontend files"
+          git push origin HEAD:ralph/post-closeout-hardening-v4
