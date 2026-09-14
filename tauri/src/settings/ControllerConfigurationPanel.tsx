@@ -9,7 +9,6 @@ import {
   type ControllerProfileScope,
 } from "../backend/controllerProfiles";
 import { errorMessage } from "../backend/errors";
-import { MachineArtworkPanel } from "../library/MachineArtworkPanel";
 import "./controllerConfiguration.css";
 
 type DetectedGamepad = {
@@ -32,9 +31,7 @@ function provenanceLabel(kind: ControllerMappingProvenanceKind): string {
 }
 
 function scopeLabel(scope: ControllerProfileScope | null): string {
-  if (scope === null) {
-    return "None";
-  }
+  if (scope === null) return "None";
   return scope.kind === "global" ? "Global" : `Machine ${scope.shortName}`;
 }
 
@@ -69,14 +66,10 @@ export function ControllerConfigurationPanel({
     setError(null);
     void getControllerProfileConfiguration(scope)
       .then((loaded) => {
-        if (!cancelled) {
-          setConfiguration(loaded);
-        }
+        if (!cancelled) setConfiguration(loaded);
       })
       .catch((reason: unknown) => {
-        if (!cancelled) {
-          setError(errorMessage(reason));
-        }
+        if (!cancelled) setError(errorMessage(reason));
       });
     return () => {
       cancelled = true;
@@ -117,17 +110,11 @@ export function ControllerConfigurationPanel({
     setGamepadApiAvailable(true);
     const detected = Array.from(navigator.getGamepads())
       .filter((gamepad): gamepad is Gamepad => gamepad !== null && gamepad.connected)
-      .map((gamepad) => ({
-        index: gamepad.index,
-        id: gamepad.id,
-        mapping: gamepad.mapping,
-      }));
+      .map((gamepad) => ({ index: gamepad.index, id: gamepad.id, mapping: gamepad.mapping }));
     setGamepads(detected);
     const firstStandard = detected.find((gamepad) => gamepad.mapping === "standard");
     setSelectedGamepad(firstStandard ? String(firstStandard.index) : "");
-    if (firstStandard && profileName === "") {
-      setProfileName(firstStandard.id.slice(0, 120));
-    }
+    if (firstStandard && profileName === "") setProfileName(firstStandard.id.slice(0, 120));
   }
 
   async function captureProfile() {
@@ -172,6 +159,11 @@ export function ControllerConfigurationPanel({
       <div className="controller-configuration__heading">
         <div>
           <h3>{shortName ? "Machine controller profile" : "Controller profiles"}</h3>
+          <p>
+            {shortName
+              ? "This selection overrides the global profile only for the selected machine. Clear it to inherit the global selection."
+              : "The global selection is inherited by machines that do not have a machine-specific controller assignment."}
+          </p>
           <p>
             Profiles store controller identity and mapping provenance. Selection is configuration
             intent only; this build does not yet translate saved profiles into MAME gameplay-input
@@ -242,9 +234,7 @@ export function ControllerConfigurationPanel({
             <div className="controller-configuration__provenance">
               <strong>{provenanceLabel(effective.mappingProvenance.kind)}</strong>
               <span>Target identity: {effective.targetDevice.value}</span>
-              <span>
-                Reported mapping: {effective.targetDevice.reportedMapping ?? "Not reported"}
-              </span>
+              <span>Reported mapping: {effective.targetDevice.reportedMapping ?? "Not reported"}</span>
               {effective.mappingProvenance.sourceReference && (
                 <span>Source: {effective.mappingProvenance.sourceReference}</span>
               )}
@@ -338,8 +328,6 @@ export function ControllerConfigurationPanel({
           </div>
         </section>
       )}
-
-      {shortName && <MachineArtworkPanel machine={shortName} />}
     </section>
   );
 }
