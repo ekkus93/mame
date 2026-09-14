@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
+} from "react";
 
 import {
   discoverMachineArtwork,
@@ -8,13 +15,12 @@ import {
   type MachineArtwork,
 } from "../backend/artwork";
 import type { LaunchPreferences } from "../backend/generalSettings";
-import type { MachineDetail, SessionSnapshot } from "../backend/types";
+import type { MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
-import { SoftwareListBrowser } from "../library/SoftwareListBrowser";
 import { machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
 
-export type MachineRightView = "images" | "info" | "audit" | "settings" | "software";
+export type MachineRightView = "images" | "info" | "audit" | "settings";
 
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
@@ -47,7 +53,9 @@ export function MachineRightPanel({
   pendingLaunchOverrides,
   onPendingLaunchOverridesChanged,
   onAuditResultChanged,
-  onSoftwareSessionStarted,
+  firstTabRef,
+  onNavigateToMachines,
+  onSettingsClose,
 }: {
   detail: MachineDetail;
   view: MachineRightView;
@@ -57,17 +65,28 @@ export function MachineRightPanel({
   pendingLaunchOverrides: LaunchPreferences | null;
   onPendingLaunchOverridesChanged: (preferences: LaunchPreferences | null) => void;
   onAuditResultChanged: () => void;
-  onSoftwareSessionStarted: (session: SessionSnapshot) => void;
+  firstTabRef: RefObject<HTMLButtonElement | null>;
+  onNavigateToMachines: () => void;
+  onSettingsClose: () => void;
 }) {
+  const handleRegionKey = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      onNavigateToMachines();
+    }
+  };
+
   return (
     <aside className="mame-right-panel" aria-label="Selected machine context">
       <div className="mame-right-tabs" role="tablist" aria-label="Machine detail view">
         <button
+          ref={firstTabRef}
           type="button"
           role="tab"
           aria-selected={view === "images"}
           className={view === "images" ? "is-selected" : ""}
           onClick={() => onViewChange("images")}
+          onKeyDown={handleRegionKey}
         >
           Images
         </button>
@@ -77,6 +96,7 @@ export function MachineRightPanel({
           aria-selected={view === "info"}
           className={view === "info" ? "is-selected" : ""}
           onClick={() => onViewChange("info")}
+          onKeyDown={handleRegionKey}
         >
           Info
         </button>
@@ -97,18 +117,19 @@ export function MachineRightPanel({
         />
       )}
       {view === "settings" && (
-        <MachineSettingsPanel
-          shortName={detail.shortName}
-          pendingLaunchOverrides={pendingLaunchOverrides}
-          onPendingLaunchOverridesChanged={onPendingLaunchOverridesChanged}
-        />
-      )}
-      {view === "software" && (
-        <SoftwareListBrowser
-          detail={detail}
-          launchOverrides={pendingLaunchOverrides}
-          onSessionStarted={onSoftwareSessionStarted}
-        />
+        <div className="mame-context-subview" aria-label="Selected machine configuration">
+          <div className="mame-context-subview-toolbar">
+            <button type="button" className="secondary-button" autoFocus onClick={onSettingsClose}>
+              ← Machine details
+            </button>
+            <span>Configure {detail.description}</span>
+          </div>
+          <MachineSettingsPanel
+            shortName={detail.shortName}
+            pendingLaunchOverrides={pendingLaunchOverrides}
+            onPendingLaunchOverridesChanged={onPendingLaunchOverridesChanged}
+          />
+        </div>
       )}
     </aside>
   );

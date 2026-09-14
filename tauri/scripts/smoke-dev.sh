@@ -4,6 +4,11 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root/tauri"
 
+# Prove the window we are about to smoke is the MAME-style shell rather than a
+# surviving legacy composition. This static contract complements the real X11
+# window/process survival check below.
+python3 "$repo_root/scripts/tauri/test-mame-ui-reproduction.py"
+
 log_file="$(mktemp)"
 child_pid=""
 

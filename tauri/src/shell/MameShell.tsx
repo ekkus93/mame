@@ -1,25 +1,31 @@
-import { useReducer, useState } from "react";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { useEffect, useReducer, useState } from "react";
 
-import type { AppInfoResponse, MameVersionReport } from "../backend/types";
+import { getMameSession } from "../backend/commands";
+import {
+  SESSION_CRASHED_EVENT,
+  SESSION_EXITED_EVENT,
+  SESSION_FAILED_EVENT,
+  SESSION_STARTED_EVENT,
+} from "../backend/events";
+import type {
+  AppInfoResponse,
+  MameVersionReport,
+  SessionLifecycleEventV1,
+  SessionSnapshot,
+} from "../backend/types";
 import { MameBrowser } from "../browser/MameBrowser";
 import { BulkAuditPanel } from "../library/BulkAuditPanel";
 import { CollectionManager } from "../library/CollectionManager";
-import { LibraryBrowser } from "../library/LibraryBrowser";
 import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
 import { SessionControlPanel } from "../session/SessionControlPanel";
 import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
 import { GeneralSettingsPanel } from "../settings/GeneralSettingsPanel";
 import "./MameShell.css";
+import "./ContextualSurfaces.css";
 
 type ShellView =
-  | "library"
-  | "session"
-  | "settings"
-  | "audit"
-  | "history"
-  | "collections"
-  | "diagnostics"
-  | "legacy";
+  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {
@@ -32,8 +38,15 @@ function mameVersionLabel(report: MameVersionReport): string {
   }
 }
 
+function activeSession(session: SessionSnapshot | null): SessionSnapshot | null {
+  return session && ["created", "starting", "running", "stopping"].includes(session.state)
+    ? session
+    : null;
+}
+
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const [view, setView] = useState<ShellView>("library");
+  const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
     (value: number) => value + 1,
     0,
@@ -41,13 +54,55 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
 
   const navigate = (next: ShellView) => () => setView(next);
 
+  useEffect(() => {
+    let disposed = false;
+    const unlisteners: UnlistenFn[] = [];
+
+    void getMameSession()
+      .then((current) => {
+        if (!disposed) setSession(activeSession(current));
+      })
+      .catch(() => {
+        if (!disposed) setSession(null);
+      });
+
+    const bind = async () => {
+      unlisteners.push(
+        await listen<SessionLifecycleEventV1>(SESSION_STARTED_EVENT, (event) => {
+          if (!disposed) setSession(activeSession(event.payload.session));
+        }),
+      );
+      for (const eventName of [
+        SESSION_EXITED_EVENT,
+        SESSION_CRASHED_EVENT,
+        SESSION_FAILED_EVENT,
+      ] as const) {
+        unlisteners.push(
+          await listen<SessionLifecycleEventV1>(eventName, () => {
+            if (!disposed) setSession(null);
+          }),
+        );
+      }
+      if (disposed) unlisteners.splice(0).forEach((unlisten) => unlisten());
+    };
+
+    void bind().catch(() => {
+      // The browser already fails closed for gameplay-input ownership if session state is unknown.
+    });
+
+    return () => {
+      disposed = true;
+      unlisteners.splice(0).forEach((unlisten) => unlisten());
+    };
+  }, []);
+
   return (
     <main className="mame-shell">
       <header className="mame-shell-header">
-        <div className="mame-brand" onClick={navigate("library")} role="presentation">
+        <button type="button" className="mame-brand" onClick={navigate("library")}>
           <strong>MAME</strong>
           <span>Tauri frontend</span>
-        </div>
+        </button>
         <nav className="mame-shell-nav" aria-label="Application views">
           <button
             type="button"
@@ -116,29 +171,17 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
         )}
         {view === "diagnostics" && <DiagnosticsPanel />}
-        {view === "legacy" && (
-          <div className="mame-legacy-stack" aria-label="Legacy dashboard during migration">
-            <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
-            <DiagnosticsPanel />
-            <SessionControlPanel />
-            <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
-            <LibraryBrowser
-              availabilityRevision={availabilityRevision}
-              onAuditResultsChanged={bumpAvailabilityRevision}
-            />
-            <RecentHistoryPanel />
-            <CollectionManager />
-          </div>
-        )}
       </section>
 
       <footer className="mame-status-bar">
+        <button type="button" className="mame-session-status" onClick={navigate("session")}>
+          {session
+            ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
+            : "No active MAME session"}
+        </button>
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>
         <span>Backend {appInfo.backend}</span>
-        <button type="button" className="mame-legacy-link" onClick={navigate("legacy")}>
-          Legacy UI
-        </button>
       </footer>
     </main>
   );

@@ -62,6 +62,9 @@ export function MameBrowser({
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const machineRowRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const activeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const rightPanelFirstTabRef = useRef<HTMLButtonElement | null>(null);
+  const configureButtonRef = useRef<HTMLButtonElement | null>(null);
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
@@ -83,6 +86,7 @@ export function MameBrowser({
   const [softwareRightPanelMode, setSoftwareRightPanelMode] = useState<MameUiPanelMode>("images");
   const [softwareArtworkKind, setSoftwareArtworkKind] = useState<ArtworkKind>("screenshot");
   const [softwareMode, setSoftwareMode] = useState(false);
+  const [showNarrowDetails, setShowNarrowDetails] = useState(false);
   const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(
     null,
   );
@@ -106,9 +110,7 @@ export function MameBrowser({
         setSoftwareArtworkKind(saved.softwareArtworkKind);
       })
       .catch((reason: unknown) => {
-        if (!cancelled) {
-          setUiStateError(`Saved browser state unavailable: ${errorMessage(reason)}`);
-        }
+        if (!cancelled) setUiStateError(`Saved browser state unavailable: ${errorMessage(reason)}`);
       })
       .finally(() => {
         if (!cancelled) setUiStateHydrated(true);
@@ -136,6 +138,7 @@ export function MameBrowser({
 
   useEffect(() => {
     setSoftwareMode(false);
+    setShowNarrowDetails(false);
   }, [selected?.shortName]);
 
   useEffect(() => {
@@ -245,9 +248,7 @@ export function MameBrowser({
     setPendingLaunchOverrides(null);
     void getMameMachineDetail({ shortName: selected.shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence) {
-          setDetailState({ status: "ready", detail });
-        }
+        if (detailSequence.current === sequence) setDetailState({ status: "ready", detail });
       })
       .catch((reason: unknown) => {
         if (detailSequence.current === sequence) {
@@ -264,6 +265,12 @@ export function MameBrowser({
           page.total,
         ).toLocaleString()} of ${page.total.toLocaleString()}`
       : "0 machines";
+
+  const focusSelectedMachine = useCallback(() => {
+    if (!page || !selected) return;
+    const index = page.items.findIndex((machine) => machine.shortName === selected.shortName);
+    if (index >= 0) machineRowRefs.current[index]?.focus();
+  }, [page, selected]);
 
   const launchDetail = useCallback(
     (detail: MachineDetail) => {
@@ -297,6 +304,17 @@ export function MameBrowser({
 
   function handleMachineRowKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
     if (!page) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      activeFilterButtonRef.current?.focus();
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setShowNarrowDetails(true);
+      rightPanelFirstTabRef.current?.focus();
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       const machine = page.items[index];
@@ -364,6 +382,7 @@ export function MameBrowser({
 
   function changeRightView(next: MachineRightView) {
     setRightView(next);
+    setShowNarrowDetails(true);
     if (next === "images" || next === "info") setPrimaryRightView(next);
   }
 
@@ -404,6 +423,14 @@ export function MameBrowser({
         <span className="mame-browser-range" aria-live="polite">
           {range}
         </span>
+        <button
+          type="button"
+          className="secondary-button mame-narrow-details-toggle"
+          aria-expanded={showNarrowDetails}
+          onClick={() => setShowNarrowDetails((current) => !current)}
+        >
+          {showNarrowDetails ? "Hide details" : "Details"}
+        </button>
         {detail && (
           <div className="mame-context-actions" aria-label="Selected machine actions">
             <button
@@ -427,6 +454,7 @@ export function MameBrowser({
               Audit
             </button>
             <button
+              ref={configureButtonRef}
               type="button"
               className="secondary-button"
               onClick={() => changeRightView("settings")}
@@ -462,7 +490,7 @@ export function MameBrowser({
         </div>
       )}
 
-      <div className="mame-browser-grid">
+      <div className={`mame-browser-grid ${showNarrowDetails ? "show-details" : ""}`}>
         <MachineFilterPanel
           active={filter}
           filterValue={filterValue}
@@ -471,6 +499,10 @@ export function MameBrowser({
             setFilterValue(value);
             setPreferredMachine(null);
           }}
+          registerActiveButton={(element) => {
+            activeFilterButtonRef.current = element;
+          }}
+          onNavigateToMachines={focusSelectedMachine}
         />
 
         <section
@@ -545,9 +577,11 @@ export function MameBrowser({
             pendingLaunchOverrides={pendingLaunchOverrides}
             onPendingLaunchOverridesChanged={setPendingLaunchOverrides}
             onAuditResultChanged={onAuditResultsChanged}
-            onSoftwareSessionStarted={(session) => {
-              setPendingLaunchOverrides(null);
-              setGameplayInputOwned(isGameplaySessionState(session.state));
+            firstTabRef={rightPanelFirstTabRef}
+            onNavigateToMachines={focusSelectedMachine}
+            onSettingsClose={() => {
+              changeRightView("info");
+              configureButtonRef.current?.focus();
             }}
           />
         ) : (

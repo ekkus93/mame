@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +31,7 @@ BUILD_RS = ROOT / "tauri/src-tauri/build.rs"
 WORKFLOW = ROOT / ".github/workflows/tauri-project.yml"
 SPEC = ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md"
 TODO = ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md"
+MAME_UI_REGRESSION = ROOT / "scripts/tauri/test-mame-ui-reproduction.py"
 
 
 def read(path: Path) -> str:
@@ -187,6 +190,8 @@ def main() -> int:
     for task in ("PCH-001", "PCH-002", "PCH-003", "PCH-004", "PCH-005", "PCH-006", "PCH-007"):
         require(spec, task, "hardening spec task coverage")
         require(todo, task, "hardening TODO task coverage")
+
+    subprocess.run([sys.executable, str(MAME_UI_REGRESSION)], check=True, cwd=ROOT)
 
     print("post-closeout hardening regression passed")
     return 0
