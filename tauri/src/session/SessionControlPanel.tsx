@@ -11,6 +11,14 @@ import {
   stopMame,
 } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
+import {
+  SESSION_CRASHED_EVENT,
+  SESSION_EXITED_EVENT,
+  SESSION_FAILED_EVENT,
+  SESSION_PAUSED_EVENT,
+  SESSION_RESUMED_EVENT,
+  SESSION_STARTED_EVENT,
+} from "../backend/events";
 import type {
   QueryMameRuntimeStateResult,
   SessionLifecycleEventV1,
@@ -94,7 +102,7 @@ export function SessionControlPanel() {
       });
 
     const bind = async () => {
-      const started = await listen<SessionLifecycleEventV1>("session.started", (event) => {
+      const started = await listen<SessionLifecycleEventV1>(SESSION_STARTED_EVENT, (event) => {
         if (!disposed) {
           acceptSession(event.payload.session);
           setFailure(null);
@@ -103,7 +111,7 @@ export function SessionControlPanel() {
       });
       unlisteners.push(started);
 
-      const exited = await listen<SessionLifecycleEventV1>("session.exited", () => {
+      const exited = await listen<SessionLifecycleEventV1>(SESSION_EXITED_EVENT, () => {
         if (!disposed) {
           setSession(null);
           setRuntimeState(null);
@@ -114,7 +122,7 @@ export function SessionControlPanel() {
       });
       unlisteners.push(exited);
 
-      for (const eventName of ["session.crashed", "session.failed"] as const) {
+      for (const eventName of [SESSION_CRASHED_EVENT, SESSION_FAILED_EVENT] as const) {
         const unlisten = await listen<SessionLifecycleEventV1>(eventName, (event) => {
           if (!disposed) {
             setSession(null);
@@ -129,7 +137,7 @@ export function SessionControlPanel() {
         unlisteners.push(unlisten);
       }
 
-      const paused = await listen<SessionPauseEventV1>("session.paused", (event) => {
+      const paused = await listen<SessionPauseEventV1>(SESSION_PAUSED_EVENT, (event) => {
         if (!disposed) {
           setRuntimeState((current) =>
             current && current.sessionId === event.payload.sessionId
@@ -140,7 +148,7 @@ export function SessionControlPanel() {
       });
       unlisteners.push(paused);
 
-      const resumed = await listen<SessionPauseEventV1>("session.resumed", (event) => {
+      const resumed = await listen<SessionPauseEventV1>(SESSION_RESUMED_EVENT, (event) => {
         if (!disposed) {
           setRuntimeState((current) =>
             current && current.sessionId === event.payload.sessionId
