@@ -200,7 +200,7 @@ function ArtworkPane({
         {asset ? (
           <img
             src={asset.dataUrl}
-            alt={`${asset.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
+            alt={`${slot?.asset?.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
           />
         ) : (
           <div className="mame-panel-state">
