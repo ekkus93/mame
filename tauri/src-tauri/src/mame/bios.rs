@@ -2,8 +2,7 @@ use std::{
     collections::HashMap,
     io::{self, Read},
     process::{Command, Stdio},
-    str,
-    thread,
+    str, thread,
     time::{Duration, Instant},
 };
 
@@ -160,7 +159,9 @@ fn parse_bios_choices(xml: &str, expected_machine: &str) -> AppResult<Vec<BiosCh
         match reader.read_event_into(&mut buffer).map_err(xml_error)? {
             Event::Start(start) if start.name().as_ref() == b"machine" => {
                 let attrs = attributes(&start)?;
-                in_expected_machine = attrs.get("name").is_some_and(|name| name == expected_machine);
+                in_expected_machine = attrs
+                    .get("name")
+                    .is_some_and(|name| name == expected_machine);
                 machine_seen |= in_expected_machine;
             }
             Event::Empty(empty) if in_expected_machine && empty.name().as_ref() == b"biosset" => {
@@ -211,11 +212,9 @@ fn parse_biosset(attributes: &HashMap<String, String>) -> AppResult<BiosChoice> 
 pub(crate) fn validate_bios_identifier(value: &str) -> AppResult<()> {
     let valid = !value.is_empty()
         && value.len() <= 64
-        && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'_' | b'-' | b'.')
-        });
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.'));
     if valid {
         return Ok(());
     }
