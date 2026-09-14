@@ -10,6 +10,8 @@ use crate::{
     errors::{AppError, AppResult},
 };
 
+use super::bios::validate_bios_identifier;
+
 const MAX_IDENTIFIER_SEGMENT_LEN: usize = 16;
 const MAX_SOFTWARE_LIST_IDENTIFIER_LEN: usize = 64;
 
@@ -17,6 +19,7 @@ const MAX_SOFTWARE_LIST_IDENTIFIER_LEN: usize = 64;
 pub struct MameLaunchTarget {
     pub machine: String,
     pub software: Option<String>,
+    pub bios: Option<String>,
     pub project_paths: Vec<ProjectPathArgument>,
 }
 
@@ -44,12 +47,17 @@ impl MameArgv {
 pub fn build_launch_argv(target: &MameLaunchTarget) -> AppResult<MameArgv> {
     validate_short_identifier("machine", &target.machine)?;
 
-    let mut args = Vec::with_capacity(2 + (target.project_paths.len() * 2));
+    let mut args = Vec::with_capacity(4 + (target.project_paths.len() * 2));
     args.push(OsString::from(&target.machine));
 
     if let Some(software) = &target.software {
         validate_software_identifier(software)?;
         args.push(OsString::from(software));
+    }
+
+    if let Some(bios) = &target.bios {
+        validate_bios_identifier(bios)?;
+        push_option(&mut args, "bios", bios);
     }
 
     for project_path in &target.project_paths {
@@ -270,6 +278,7 @@ mod tests {
         let target = MameLaunchTarget {
             machine: "pacman".to_owned(),
             software: Some("list_name:item_name:cart".to_owned()),
+            bios: None,
             project_paths: vec![ProjectPathArgument {
                 option: "rompath".to_owned(),
                 path: path.clone(),
@@ -285,10 +294,23 @@ mod tests {
     }
 
     #[test]
+    fn launch_arguments_include_only_typed_bios_option() {
+        let target = MameLaunchTarget {
+            machine: "pc".to_owned(),
+            software: None,
+            bios: Some("rev-3".to_owned()),
+            project_paths: Vec::new(),
+        };
+        let argv = build_launch_argv(&target).expect("BIOS must validate");
+        assert_eq!(argv.as_slice(), ["pc", "-bios", "rev-3"]);
+    }
+
+    #[test]
     fn launch_preferences_map_to_bounded_mame_options() {
         let target = MameLaunchTarget {
             machine: "pacman".to_owned(),
             software: None,
+            bios: None,
             project_paths: Vec::new(),
         };
         let preferences = LaunchPreferencesV1 {
@@ -310,6 +332,7 @@ mod tests {
         let target = MameLaunchTarget {
             machine: "pacman".to_owned(),
             software: None,
+            bios: None,
             project_paths: Vec::new(),
         };
         let argv = build_launch_argv_with_preferences(&target, &LaunchPreferencesV1::default())
@@ -322,6 +345,7 @@ mod tests {
         let target = MameLaunchTarget {
             machine: "pacman".to_owned(),
             software: None,
+            bios: None,
             project_paths: Vec::new(),
         };
         let preferences = LaunchPreferencesV1 {
@@ -330,7 +354,7 @@ mod tests {
             audio: AudioPreference::Auto,
         };
         let argv = build_launch_argv_with_preferences(&target, &preferences)
-            .expect("automatic providers must produce bounded argv");
+            .expect("automatic providers must produce safe argv");
         assert_eq!(
             argv.as_slice(),
             ["pacman", "-window", "-video", "auto", "-sound", "auto"]

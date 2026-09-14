@@ -112,7 +112,22 @@ impl CatalogRepository {
                 .push(row.map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?);
         }
 
-        stored.into_detail(generation_id, displays, software_lists)
+        let mandatory_device_count: i64 = self
+            .connection
+            .query_row(
+                r#"SELECT COUNT(*)
+                   FROM devices
+                   WHERE generation_id = ?1
+                     AND machine_short_name = ?2
+                     AND mandatory IS NOT NULL
+                     AND mandatory <> 'no'"#,
+                params![generation_id, short_name],
+                |row| row.get(0),
+            )
+            .map_err(|error| database_error("CATALOG_DETAIL_QUERY_FAILED", error))?;
+        let can_start_empty = mandatory_device_count == 0;
+
+        stored.into_detail(generation_id, displays, software_lists, can_start_empty)
     }
 }
 
@@ -146,6 +161,7 @@ impl StoredMachineDetail {
         generation_id: i64,
         displays: Vec<MachineDisplayInfo>,
         software_lists: Vec<MachineSoftwareListInfo>,
+        can_start_empty: bool,
     ) -> AppResult<MachineDetail> {
         Ok(MachineDetail {
             schema_version: 1,
@@ -162,6 +178,7 @@ impl StoredMachineDetail {
             is_device: sqlite_bool(self.is_device, "isDevice")?,
             is_mechanical: sqlite_bool(self.is_mechanical, "isMechanical")?,
             runnable: sqlite_bool(self.runnable, "runnable")?,
+            can_start_empty,
             driver_status: self.driver_status,
             driver_emulation: self.driver_emulation,
             driver_cocktail: self.driver_cocktail,
@@ -325,6 +342,7 @@ mod tests {
         assert_eq!(detail.software_lists[1].name, "apple2_flop_orig");
         assert_eq!(detail.software_lists[1].status, "original");
         assert_eq!(detail.software_lists[1].filter.as_deref(), Some("A2"));
+        assert!(detail.can_start_empty);
     }
 
     #[test]

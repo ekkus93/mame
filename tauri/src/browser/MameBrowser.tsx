@@ -31,6 +31,7 @@ import {
   nextBrowserIndex,
   type MameBrowserFilter,
 } from "./model";
+import { SoftwareBrowser } from "./SoftwareBrowser";
 
 type LoadState =
   | { status: "awaitingFilterValue" }
@@ -49,6 +50,8 @@ type LaunchState =
   | { status: "launching" }
   | { status: "launched"; session: SessionSnapshot }
   | { status: "error"; message: string };
+
+type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
 
 export function MameBrowser({
   availabilityRevision,
@@ -79,6 +82,7 @@ export function MameBrowser({
   const [artworkKind, setArtworkKind] = useState<ArtworkKind>("screenshot");
   const [softwareRightPanelMode, setSoftwareRightPanelMode] = useState<MameUiPanelMode>("images");
   const [softwareArtworkKind, setSoftwareArtworkKind] = useState<ArtworkKind>("screenshot");
+  const [softwareMode, setSoftwareMode] = useState(false);
   const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(
     null,
   );
@@ -129,6 +133,10 @@ export function MameBrowser({
   useEffect(() => {
     if (selected) setRememberedMachine(selected.shortName);
   }, [selected]);
+
+  useEffect(() => {
+    setSoftwareMode(false);
+  }, [selected?.shortName]);
 
   useEffect(() => {
     if (!uiStateHydrated) return;
@@ -311,6 +319,7 @@ export function MameBrowser({
         event.repeat ||
         event.altKey ||
         gameplayInputOwned ||
+        softwareMode ||
         !document.hasFocus()
       ) {
         return;
@@ -341,7 +350,7 @@ export function MameBrowser({
 
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [detailState, gameplayInputOwned, launchDetail, search]);
+  }, [detailState, gameplayInputOwned, launchDetail, search, softwareMode]);
 
   const detail = detailState.status === "ready" ? detailState.detail : null;
 
@@ -356,6 +365,22 @@ export function MameBrowser({
   function changeRightView(next: MachineRightView) {
     setRightView(next);
     if (next === "images" || next === "info") setPrimaryRightView(next);
+  }
+
+  if (softwareMode && detail) {
+    return (
+      <SoftwareBrowser
+        detail={detail as SoftwareCapableMachineDetail}
+        launchOverrides={pendingLaunchOverrides}
+        panelMode={softwareRightPanelMode}
+        onPanelModeChange={setSoftwareRightPanelMode}
+        onBack={() => setSoftwareMode(false)}
+        onSessionStarted={(session) => {
+          setPendingLaunchOverrides(null);
+          setGameplayInputOwned(isGameplaySessionState(session.state));
+        }}
+      />
+    );
   }
 
   return (
@@ -412,7 +437,7 @@ export function MameBrowser({
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => changeRightView("software")}
+                onClick={() => setSoftwareMode(true)}
               >
                 Software
               </button>

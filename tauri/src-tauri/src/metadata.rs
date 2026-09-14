@@ -41,7 +41,7 @@ pub use model::{
     MachineSoftwareListInfo, MetadataFreshness, MetadataGenerationSummary, MetadataRefreshResult,
     MetadataStatus,
 };
-pub use software::SoftwareItemSummary;
+pub use software::{SoftwareItemSummary, SoftwareListFilter, SoftwarePartSummary};
 
 pub(crate) use catalog::{
     AvailabilityFilter, CatalogRepository, CloneFilter, MachineAvailabilityQuery, MachineQuery,

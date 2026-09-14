@@ -267,6 +267,7 @@ while :; do :; done
         MameLaunchTarget {
             machine: machine.to_owned(),
             software: None,
+            bios: None,
             project_paths: Vec::new(),
         }
     }

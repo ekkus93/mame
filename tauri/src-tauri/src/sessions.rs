@@ -171,6 +171,31 @@ pub(crate) fn launch_mame_with_source(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
+    launch_mame_with_source_and_bios(
+        source,
+        machine,
+        software,
+        None,
+        project_paths,
+        transient_launch_overrides,
+        supervisor,
+        app,
+    )
+}
+
+// This internal adapter mirrors the typed launch boundary and keeps BIOS an
+// explicit value rather than exposing a generic argv escape hatch.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn launch_mame_with_source_and_bios(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    bios: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
     let general_launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
         project_paths: project_paths
@@ -184,6 +209,7 @@ pub(crate) fn launch_mame_with_source(
     let target = MameLaunchTarget {
         machine,
         software,
+        bios,
         project_paths: project_paths
             .into_iter()
             .map(|project_path| ProjectPathArgument {
@@ -202,7 +228,8 @@ pub(crate) fn launch_mame_with_source(
         "MAME launch requested.",
         serde_json::json!({
             "machine": &target.machine,
-            "software": &target.software
+            "software": &target.software,
+            "bios": &target.bios
         }),
     );
     let catalog_path = storage::catalog_path(&app)?;

@@ -7,12 +7,14 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        get_software_list_xml, inspect_executable, validate_short_identifier,
-        validate_software_identifier, validate_software_list_identifier, MameExecutableIdentity,
-        MameExecutableSource,
+        get_machine_bios_choices, get_software_list_xml, inspect_executable,
+        validate_bios_identifier, validate_bios_selection, validate_short_identifier,
+        validate_software_identifier, validate_software_list_identifier, BiosChoice,
+        MameExecutableIdentity, MameExecutableSource,
     },
     metadata::{
-        parse_software_list_page, CatalogRepository, MetadataGenerationSummary, SoftwareItemSummary,
+        parse_software_list_page, CatalogRepository, MetadataGenerationSummary,
+        SoftwareItemSummary, SoftwareListFilter,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -21,6 +23,7 @@ use crate::{
 const DEFAULT_SOFTWARE_PAGE_SIZE: u32 = 50;
 const MAX_SOFTWARE_PAGE_SIZE: u32 = 200;
 const MAX_SOFTWARE_SEARCH_LENGTH: usize = 256;
+const MAX_SOFTWARE_FILTER_VALUE_LENGTH: usize = 128;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +32,10 @@ pub struct SoftwareListQueryRequest {
     pub software_list: String,
     #[serde(default)]
     pub text: Option<String>,
+    #[serde(default)]
+    pub filter: SoftwareListFilter,
+    #[serde(default)]
+    pub filter_value: Option<String>,
     #[serde(default = "default_software_page_size")]
     pub limit: u32,
     #[serde(default)]
@@ -50,10 +57,28 @@ pub struct SoftwareListPage {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct BiosChoicesRequest {
+    pub short_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BiosChoicesResponse {
+    pub schema_version: u32,
+    pub machine_short_name: String,
+    pub choices: Vec<BiosChoice>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct LaunchLibrarySoftwareRequest {
     pub short_name: String,
     pub software_list: String,
     pub software_item: String,
+    #[serde(default)]
+    pub software_part: Option<String>,
+    #[serde(default)]
+    pub bios: Option<String>,
     #[serde(default)]
     pub launch_overrides: Option<LaunchPreferencesV1>,
 }
@@ -80,6 +105,8 @@ pub async fn query_mame_software_list(
             Cursor::new(xml.as_bytes()),
             &request.software_list,
             request.text.as_deref(),
+            request.filter,
+            request.filter_value.as_deref(),
             request.limit,
             request.offset,
         )?;
@@ -100,6 +127,30 @@ pub async fn query_mame_software_list(
 }
 
 #[tauri::command]
+pub async fn query_mame_bios_choices(
+    request: BiosChoicesRequest,
+    app: AppHandle,
+) -> AppResult<BiosChoicesResponse> {
+    let short_name = validated_short_identifier("machine", request.short_name)?;
+    let catalog_path = storage::catalog_path(&app)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let repository = CatalogRepository::open(&catalog_path)?;
+        repository.machine_detail(&short_name)?;
+        let generation = active_generation(&repository)?;
+        let source = validated_generation_source(&generation)?;
+        let choices = get_machine_bios_choices(&source, &short_name)?;
+        Ok(BiosChoicesResponse {
+            schema_version: 1,
+            machine_short_name: short_name,
+            choices,
+        })
+    })
+    .await
+    .map_err(software_worker_error)?
+}
+
+#[tauri::command]
 pub fn launch_library_software(
     request: LaunchLibrarySoftwareRequest,
     app: AppHandle,
@@ -108,18 +159,77 @@ pub fn launch_library_software(
     let short_name = validated_short_identifier("machine", request.short_name)?;
     let software_list = validated_software_list(request.software_list)?;
     let software_item = validated_short_identifier("softwareItem", request.software_item)?;
+    let software_part = request
+        .software_part
+        .map(|part| validated_short_identifier("softwarePart", part))
+        .transpose()?;
+    let bios = request
+        .bios
+        .map(|bios| {
+            let bios = bios.trim().to_owned();
+            validate_bios_identifier(&bios)?;
+            Ok::<String, AppError>(bios)
+        })
+        .transpose()?;
     let catalog_path = storage::catalog_path(&app)?;
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
     let source = validated_generation_source(&generation)?;
+    if let Some(selected_bios) = bios.as_deref() {
+        let choices = get_machine_bios_choices(&source, &short_name)?;
+        validate_bios_selection(&choices, selected_bios)?;
+    }
+    let xml = get_software_list_xml(&source, &software_list)?;
+    let page = parse_software_list_page(
+        Cursor::new(xml.as_bytes()),
+        &software_list,
+        Some(&software_item),
+        SoftwareListFilter::All,
+        None,
+        1,
+        0,
+    )?;
+    let software_metadata = page
+        .items
+        .into_iter()
+        .find(|item| item.short_name == software_item)
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_SOFTWARE_ITEM_NOT_FOUND",
+                "The selected software item is not present in the requested software list.",
+            )
+        })?;
+    if software_metadata.parts.len() > 1 && software_part.is_none() {
+        return Err(AppError::new(
+            "MAME_SOFTWARE_PART_REQUIRED",
+            "The selected software item contains multiple launchable parts; choose a part before launch.",
+        ));
+    }
+    if let Some(part) = software_part.as_deref() {
+        if !software_metadata
+            .parts
+            .iter()
+            .any(|candidate| candidate.name == part)
+        {
+            return Err(AppError::new(
+                "MAME_SOFTWARE_PART_INVALID",
+                "The selected software part is not present in the requested software item.",
+            )
+            .with_details(serde_json::json!({ "softwarePart": part })));
+        }
+    }
 
-    let software = format!("{software_list}:{software_item}");
+    let software = match software_part.as_deref() {
+        Some(part) => format!("{software_list}:{software_item}:{part}"),
+        None => format!("{software_list}:{software_item}"),
+    };
     validate_software_identifier(&software)?;
-    sessions::launch_mame_with_source(
+    sessions::launch_mame_with_source_and_bios(
         source,
         short_name,
         Some(software),
+        bios,
         Vec::new(),
         request.launch_overrides,
         supervisor,
@@ -132,21 +242,17 @@ fn validate_query_request(
 ) -> AppResult<SoftwareListQueryRequest> {
     let short_name = validated_short_identifier("machine", request.short_name)?;
     let software_list = validated_software_list(request.software_list)?;
-    let text = request
-        .text
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty());
-    if text
-        .as_ref()
-        .is_some_and(|value| value.chars().count() > MAX_SOFTWARE_SEARCH_LENGTH)
-    {
+    let text = normalize_optional(request.text, MAX_SOFTWARE_SEARCH_LENGTH, "text")?;
+    let filter_value = normalize_optional(
+        request.filter_value,
+        MAX_SOFTWARE_FILTER_VALUE_LENGTH,
+        "filterValue",
+    )?;
+    if request.filter.requires_value() && filter_value.is_none() {
         return Err(AppError::new(
-            "MAME_SOFTWARE_SEARCH_TOO_LONG",
-            "The software-list search text exceeds the supported length.",
-        )
-        .with_details(serde_json::json!({
-            "maxLength": MAX_SOFTWARE_SEARCH_LENGTH
-        })));
+            "MAME_SOFTWARE_FILTER_VALUE_REQUIRED",
+            "The selected software filter requires a value.",
+        ));
     }
     if request.limit == 0 || request.limit > MAX_SOFTWARE_PAGE_SIZE {
         return Err(AppError::new(
@@ -162,9 +268,32 @@ fn validate_query_request(
         short_name,
         software_list,
         text,
+        filter: request.filter,
+        filter_value,
         limit: request.limit,
         offset: request.offset,
     })
+}
+
+fn normalize_optional(
+    value: Option<String>,
+    max_length: usize,
+    field: &str,
+) -> AppResult<Option<String>> {
+    let value = value
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
+    if value
+        .as_ref()
+        .is_some_and(|value| value.chars().count() > max_length)
+    {
+        return Err(AppError::new(
+            "MAME_SOFTWARE_QUERY_VALUE_TOO_LONG",
+            "A software-list query field exceeds the supported length.",
+        )
+        .with_details(serde_json::json!({ "field": field, "maxLength": max_length })));
+    }
+    Ok(value)
 }
 
 fn validated_short_identifier(field: &str, value: String) -> AppResult<String> {
@@ -284,7 +413,10 @@ fn software_worker_error(error: impl std::fmt::Display) -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_query_request, SoftwareListQueryRequest};
+    use super::{
+        validate_query_request, SoftwareListFilter, SoftwareListQueryRequest,
+        MAX_SOFTWARE_FILTER_VALUE_LENGTH,
+    };
 
     #[test]
     fn query_validation_is_bounded_and_normalizes_search_text() {
@@ -292,6 +424,8 @@ mod tests {
             short_name: " apple2e ".to_owned(),
             software_list: " apple2_flop_clcracked ".to_owned(),
             text: Some("  archon  ".to_owned()),
+            filter: SoftwareListFilter::All,
+            filter_value: None,
             limit: 50,
             offset: 0,
         })
@@ -307,10 +441,39 @@ mod tests {
             short_name: "apple2e".to_owned(),
             software_list: "apple2_flop_orig".to_owned(),
             text: None,
+            filter: SoftwareListFilter::All,
+            filter_value: None,
             limit: 201,
             offset: 0,
         })
         .expect_err("oversized page must fail");
         assert_eq!(error.code, "MAME_SOFTWARE_PAGE_LIMIT_INVALID");
+    }
+
+    #[test]
+    fn value_filter_requires_a_bounded_value() {
+        let error = validate_query_request(SoftwareListQueryRequest {
+            short_name: "apple2e".to_owned(),
+            software_list: "apple2_flop_orig".to_owned(),
+            text: None,
+            filter: SoftwareListFilter::Publisher,
+            filter_value: None,
+            limit: 50,
+            offset: 0,
+        })
+        .expect_err("publisher filter must require value");
+        assert_eq!(error.code, "MAME_SOFTWARE_FILTER_VALUE_REQUIRED");
+
+        let error = validate_query_request(SoftwareListQueryRequest {
+            short_name: "apple2e".to_owned(),
+            software_list: "apple2_flop_orig".to_owned(),
+            text: None,
+            filter: SoftwareListFilter::Publisher,
+            filter_value: Some("x".repeat(MAX_SOFTWARE_FILTER_VALUE_LENGTH + 1)),
+            limit: 50,
+            offset: 0,
+        })
+        .expect_err("oversized filter value must fail");
+        assert_eq!(error.code, "MAME_SOFTWARE_QUERY_VALUE_TOO_LONG");
     }
 }

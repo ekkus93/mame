@@ -185,6 +185,7 @@ export type MachineDetail = {
   isDevice: boolean;
   isMechanical: boolean;
   runnable: boolean;
+  canStartEmpty: boolean;
   driverStatus: string | null;
   driverEmulation: string | null;
   driverCocktail: string | null;
