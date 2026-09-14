@@ -37,13 +37,16 @@ describe("library keyboard navigation", () => {
     expect(shortcut({ altKey: true })).toBeNull();
   });
 
-  it("provides bounded arrow and edge navigation", () => {
-    expect(nextMachineIndex("ArrowDown", 0, 3)).toBe(1);
-    expect(nextMachineIndex("ArrowDown", 2, 3)).toBe(2);
-    expect(nextMachineIndex("ArrowUp", 0, 3)).toBe(0);
-    expect(nextMachineIndex("Home", 2, 3)).toBe(0);
-    expect(nextMachineIndex("End", 0, 3)).toBe(2);
-    expect(nextMachineIndex("PageDown", 0, 3)).toBeNull();
+  it("provides bounded arrow, paging, and edge navigation", () => {
+    expect(nextMachineIndex("ArrowDown", 0, 30)).toBe(1);
+    expect(nextMachineIndex("ArrowDown", 29, 30)).toBe(29);
+    expect(nextMachineIndex("ArrowUp", 0, 30)).toBe(0);
+    expect(nextMachineIndex("PageDown", 2, 30, 12)).toBe(14);
+    expect(nextMachineIndex("PageDown", 25, 30, 12)).toBe(29);
+    expect(nextMachineIndex("PageUp", 14, 30, 12)).toBe(2);
+    expect(nextMachineIndex("PageUp", 5, 30, 12)).toBe(0);
+    expect(nextMachineIndex("Home", 20, 30)).toBe(0);
+    expect(nextMachineIndex("End", 0, 30)).toBe(29);
   });
 
   it("treats only active supervised states as gameplay ownership", () => {

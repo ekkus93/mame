@@ -1,0 +1,404 @@
+.mame-browser {
+  height: calc(100vh - 5.05rem);
+  min-height: 32rem;
+  display: grid;
+  grid-template-columns: 12.5rem minmax(24rem, 1fr) minmax(19rem, 27vw);
+  overflow: hidden;
+}
+
+.mame-browser button,
+.mame-browser input {
+  font: inherit;
+}
+
+.mame-browser__filters,
+.mame-browser__right {
+  min-height: 0;
+  overflow: auto;
+  background: color-mix(in srgb, Canvas 96%, currentColor 4%);
+}
+
+.mame-browser__filters {
+  padding: 0.65rem 0;
+  border-right: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.mame-browser__filters h2 {
+  margin: 0;
+  padding: 0.3rem 0.75rem 0.55rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.66;
+}
+
+.mame-browser__filter-list {
+  display: grid;
+}
+
+.mame-browser__filter-list button {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.mame-browser__filter-list button:hover,
+.mame-browser__filter-list button.is-selected {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.mame-browser__filter-list button.is-selected {
+  border-left-color: currentColor;
+  font-weight: 700;
+}
+
+.mame-browser__filter-note {
+  margin: 0.8rem 0.75rem 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  opacity: 0.58;
+}
+
+.mame-browser__center {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: Canvas;
+}
+
+.mame-browser__searchbar {
+  min-height: 2.7rem;
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.mame-browser__searchbar label {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mame-browser__searchbar input {
+  width: 100%;
+  min-height: 1.95rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 0.25rem;
+  color: inherit;
+  background: Canvas;
+}
+
+.mame-browser__searchbar kbd {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 0.2rem;
+  font-size: 0.68rem;
+  opacity: 0.68;
+}
+
+.mame-browser__range {
+  min-width: 9rem;
+  text-align: right;
+  font-size: 0.7rem;
+  opacity: 0.65;
+}
+
+.mame-browser__list-wrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+.mame-browser__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mame-browser__list > li {
+  border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.mame-browser__list > li.is-selected {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.mame-browser__list > li > button {
+  width: 100%;
+  min-height: 2.8rem;
+  display: grid;
+  grid-template-columns: minmax(11rem, 1.6fr) 7.5rem minmax(10rem, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.65rem;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.mame-browser__list > li > button:hover {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.mame-browser__list > li > button:focus-visible,
+.mame-browser__filter-list button:focus-visible,
+.mame-browser__right-tabs button:focus-visible,
+.mame-browser__toolbar button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.mame-browser__machine-name,
+.mame-browser__machine-meta,
+.mame-browser__list code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mame-browser__machine-name {
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.mame-browser__list code,
+.mame-browser__machine-meta,
+.mame-browser__machine-flags {
+  font-size: 0.7rem;
+  opacity: 0.72;
+}
+
+.mame-browser__machine-flags {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.mame-browser__machine-flags span {
+  padding: 0.14rem 0.3rem;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 0.2rem;
+}
+
+.mame-browser__pagination {
+  min-height: 2.4rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.55rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  font-size: 0.7rem;
+}
+
+.mame-browser__pagination span {
+  text-align: center;
+  opacity: 0.68;
+}
+
+.mame-browser__pagination button,
+.mame-browser__right-tabs button,
+.mame-browser__toolbar button {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 0.25rem;
+  color: inherit;
+  background: transparent;
+}
+
+.mame-browser__pagination button:disabled,
+.mame-browser__toolbar button:disabled {
+  opacity: 0.4;
+}
+
+.mame-browser__right {
+  border-left: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.mame-browser__right-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0.4rem;
+  gap: 0.3rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  background: color-mix(in srgb, Canvas 96%, currentColor 4%);
+}
+
+.mame-browser__right-tabs button.is-selected {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-weight: 700;
+}
+
+.mame-browser__selected-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.mame-browser__selected-heading h2 {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.mame-browser__selected-heading code,
+.mame-browser__selected-heading > span {
+  font-size: 0.7rem;
+  opacity: 0.68;
+}
+
+.mame-browser__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.mame-browser__toolbar .mame-browser__start {
+  margin-left: auto;
+  border-color: currentColor;
+  background: CanvasText;
+  color: Canvas;
+  font-weight: 750;
+}
+
+.mame-browser__right-content {
+  padding: 0.65rem;
+}
+
+.mame-browser__right-content .machine-artwork {
+  margin: 0;
+}
+
+.mame-browser__info dl {
+  margin: 0;
+}
+
+.mame-browser__info dl > div {
+  display: grid;
+  grid-template-columns: 6.8rem minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.42rem 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.mame-browser__info dt {
+  font-size: 0.7rem;
+  opacity: 0.62;
+}
+
+.mame-browser__info dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+.mame-browser__info-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.mame-browser__info-flags span {
+  padding: 0.2rem 0.35rem;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 0.2rem;
+  font-size: 0.68rem;
+}
+
+.mame-browser__empty,
+.mame-browser__inline-error {
+  padding: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mame-browser__inline-error {
+  border-bottom: 1px solid currentColor;
+  font-weight: 650;
+}
+
+@media (max-width: 1020px) {
+  .mame-browser {
+    grid-template-columns: 11rem minmax(22rem, 1fr);
+  }
+
+  .mame-browser__right {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .mame-browser {
+    height: auto;
+    min-height: calc(100vh - 7rem);
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .mame-browser__filters {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  }
+
+  .mame-browser__filter-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mame-browser__filter-list button {
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .mame-browser__filter-list button.is-selected {
+    border-bottom-color: currentColor;
+  }
+
+  .mame-browser__filter-note {
+    display: none;
+  }
+
+  .mame-browser__center {
+    min-height: 34rem;
+  }
+
+  .mame-browser__list > li > button {
+    grid-template-columns: minmax(10rem, 1fr) 6rem auto;
+  }
+
+  .mame-browser__machine-meta {
+    display: none;
+  }
+
+  .mame-browser__searchbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .mame-browser__range {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}

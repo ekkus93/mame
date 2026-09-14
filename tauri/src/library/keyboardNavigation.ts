@@ -44,16 +44,22 @@ export function nextMachineIndex(
   key: string,
   currentIndex: number,
   itemCount: number,
+  pageSize = 10,
 ): number | null {
   if (itemCount <= 0 || currentIndex < 0 || currentIndex >= itemCount) {
     return null;
   }
 
+  const boundedPageSize = Math.max(1, pageSize);
   switch (key) {
     case "ArrowDown":
       return Math.min(currentIndex + 1, itemCount - 1);
     case "ArrowUp":
       return Math.max(currentIndex - 1, 0);
+    case "PageDown":
+      return Math.min(currentIndex + boundedPageSize, itemCount - 1);
+    case "PageUp":
+      return Math.max(currentIndex - boundedPageSize, 0);
     case "Home":
       return 0;
     case "End":
