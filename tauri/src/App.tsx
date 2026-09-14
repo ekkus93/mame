@@ -3,6 +3,12 @@ import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
 import { errorMessage } from "./backend/errors";
+import {
+  SESSION_CRASHED_EVENT,
+  SESSION_EXITED_EVENT,
+  SESSION_FAILED_EVENT,
+  SESSION_STARTED_EVENT,
+} from "./backend/events";
 import type { MameVersionReport } from "./backend/types";
 import { BulkAuditPanel } from "./library/BulkAuditPanel";
 import { CollectionManager } from "./library/CollectionManager";
@@ -65,10 +71,10 @@ export default function App() {
 
     const bind = async () => {
       for (const eventName of [
-        "session.started",
-        "session.exited",
-        "session.crashed",
-        "session.failed",
+        SESSION_STARTED_EVENT,
+        SESSION_EXITED_EVENT,
+        SESSION_CRASHED_EVENT,
+        SESSION_FAILED_EVENT,
       ] as const) {
         unlisteners.push(await listen(eventName, refreshShortcutOwnership));
       }
