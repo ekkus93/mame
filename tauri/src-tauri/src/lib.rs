@@ -20,6 +20,7 @@ pub mod history;
 pub mod library;
 pub mod machine_settings;
 pub mod mame;
+pub mod mame_ui;
 pub mod metadata;
 pub mod path_configuration;
 pub mod platform;
@@ -80,6 +81,7 @@ pub fn run() -> Result<(), tauri::Error> {
             metadata::refresh_mame_metadata,
             metadata::get_mame_metadata_status,
             library::query_mame_library,
+            mame_ui::query_mame_ui_library,
             library::get_mame_machine_detail,
             library::launch_library_machine,
             library::audit::get_library_machine_audit,
