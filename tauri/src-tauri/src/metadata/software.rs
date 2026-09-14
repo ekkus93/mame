@@ -76,7 +76,9 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
     reader.config_mut().trim_text(true);
 
     let text_filter = text_filter.map(|value| value.to_lowercase());
-    let normalized_filter_value = filter_value.map(str::trim).filter(|value| !value.is_empty());
+    let normalized_filter_value = filter_value
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
     let page_start = u64::from(offset);
     let page_end = page_start.saturating_add(u64::from(limit));
     let mut buffer = Vec::new();
@@ -378,8 +380,9 @@ fn item_matches(
         SoftwareListFilter::Parents => item.clone_of.is_none(),
         SoftwareListFilter::Clones => item.clone_of.is_some(),
         SoftwareListFilter::Year => filter_value.is_some_and(|value| item.year == value),
-        SoftwareListFilter::Publisher => filter_value
-            .is_some_and(|value| item.publisher.eq_ignore_ascii_case(value)),
+        SoftwareListFilter::Publisher => {
+            filter_value.is_some_and(|value| item.publisher.eq_ignore_ascii_case(value))
+        }
         SoftwareListFilter::Supported => item.supported == "yes",
         SoftwareListFilter::PartiallySupported => item.supported == "partial",
         SoftwareListFilter::Unsupported => item.supported == "no",
