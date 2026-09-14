@@ -104,7 +104,20 @@ def main() -> int:
         "project Rust crate must retain explicit GPL-2.0-only package metadata",
     )
 
-    control_rs = (TAURI_ROOT / "src-tauri/src/sessions/control.rs").read_text(encoding="utf-8")
+    control_rs = "\n".join(
+        (TAURI_ROOT / "src-tauri/src/sessions" / path).read_text(encoding="utf-8")
+        for path in (
+            "control.rs",
+            "control_registry.rs",
+            "control_bootstrap.rs",
+            "control_channel.rs",
+            "control_requests.rs",
+            "control_correlation.rs",
+            "control_parser.rs",
+            "control_events.rs",
+            "control_protocol.rs",
+        )
+    )
     require(
         "std::fs::Permissions::from_mode(0o600)" in control_rs,
         "runtime-control bootstrap files must remain private on Unix",
