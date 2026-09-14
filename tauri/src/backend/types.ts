@@ -269,7 +269,22 @@ export type SetLibraryFavoriteRequest = {
 };
 
 export type SessionState =
-  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
+  | "created"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "exited"
+  | "failed"
+  | "crashed";
+
+export type EffectiveProjectPath = {
+  option: string;
+  path: string;
+};
+
+export type EffectiveLaunchConfig = {
+  projectPaths: EffectiveProjectPath[];
+};
 
 export type SessionSnapshot = {
   schemaVersion: 1;
@@ -277,7 +292,21 @@ export type SessionSnapshot = {
   state: SessionState;
   machine: string;
   software: string | null;
+  executable: MameExecutableIdentity;
+  effectiveArgv: string[];
+  effectiveConfig: EffectiveLaunchConfig;
+  createdAtEpochMs: number;
+  startedAtEpochMs: number | null;
+  endedAtEpochMs: number | null;
   pid: number | null;
+  exitCode: number | null;
+  terminationSignal: number | null;
+  forcedTermination: boolean;
+  stdoutTail: string;
+  stderrTail: string;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
+  diagnosticError: string | null;
 };
 
 export type SessionLifecycleEventV1 = {
