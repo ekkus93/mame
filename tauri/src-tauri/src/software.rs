@@ -22,7 +22,7 @@ use crate::{
 const DEFAULT_SOFTWARE_PAGE_SIZE: u32 = 50;
 const MAX_SOFTWARE_PAGE_SIZE: u32 = 200;
 const MAX_SOFTWARE_SEARCH_LENGTH: usize = 256;
-const MAX_SOFTWARE_FILTER_VALUE_LENGTH: usize = 256;
+const MAX_SOFTWARE_FILTER_VALUE_LENGTH: usize = 128;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -120,53 +120,50 @@ pub fn launch_library_software(
     let software_item = validated_short_identifier("softwareItem", request.software_item)?;
     let software_part = request
         .software_part
-        .map(|value| validated_short_identifier("softwarePart", value))
+        .map(|part| validated_short_identifier("softwarePart", part))
         .transpose()?;
     let catalog_path = storage::catalog_path(&app)?;
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
     let source = validated_generation_source(&generation)?;
-
     let xml = get_software_list_xml(&source, &software_list)?;
-    let parsed = parse_software_list_page(
+    let page = parse_software_list_page(
         Cursor::new(xml.as_bytes()),
         &software_list,
         Some(&software_item),
         SoftwareListFilter::All,
         None,
-        MAX_SOFTWARE_PAGE_SIZE,
+        1,
         0,
     )?;
-    let item = parsed
+    let software_metadata = page
         .items
-        .iter()
-        .find(|candidate| candidate.short_name == software_item)
+        .into_iter()
+        .find(|item| item.short_name == software_item)
         .ok_or_else(|| {
             AppError::new(
                 "MAME_SOFTWARE_ITEM_NOT_FOUND",
-                "The selected software item is not present in the authoritative MAME software list.",
+                "The selected software item is not present in the requested software list.",
             )
         })?;
-    if let Some(part) = software_part.as_deref() {
-        if !item.parts.iter().any(|candidate| candidate.name == part) {
-            return Err(AppError::new(
-                "MAME_SOFTWARE_PART_NOT_FOUND",
-                "The selected software part is not present in the authoritative MAME software item.",
-            )
-            .with_details(serde_json::json!({
-                "softwareItem": software_item,
-                "softwarePart": part
-            })));
-        }
-    } else if item.parts.len() > 1 {
+    if software_metadata.parts.len() > 1 && software_part.is_none() {
         return Err(AppError::new(
             "MAME_SOFTWARE_PART_REQUIRED",
-            "The selected software item exposes multiple launchable parts and requires an explicit part selection.",
+            "The selected software item contains multiple launchable parts; choose a part before launch.",
         ));
     }
+    if let Some(part) = software_part.as_deref() {
+        if !software_metadata.parts.iter().any(|candidate| candidate.name == part) {
+            return Err(AppError::new(
+                "MAME_SOFTWARE_PART_INVALID",
+                "The selected software part is not present in the requested software item.",
+            )
+            .with_details(serde_json::json!({ "softwarePart": part })));
+        }
+    }
 
-    let software = match software_part {
+    let software = match software_part.as_deref() {
         Some(part) => format!("{software_list}:{software_item}:{part}"),
         None => format!("{software_list}:{software_item}"),
     };
@@ -220,8 +217,14 @@ fn validate_query_request(
     })
 }
 
-fn normalize_optional(value: Option<String>, max_length: usize, field: &str) -> AppResult<Option<String>> {
-    let value = value.map(|value| value.trim().to_owned()).filter(|value| !value.is_empty());
+fn normalize_optional(
+    value: Option<String>,
+    max_length: usize,
+    field: &str,
+) -> AppResult<Option<String>> {
+    let value = value
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
     if value
         .as_ref()
         .is_some_and(|value| value.chars().count() > max_length)
@@ -352,8 +355,10 @@ fn software_worker_error(error: impl std::fmt::Display) -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_query_request, SoftwareListQueryRequest};
-    use crate::metadata::SoftwareListFilter;
+    use super::{
+        validate_query_request, SoftwareListFilter, SoftwareListQueryRequest,
+        MAX_SOFTWARE_FILTER_VALUE_LENGTH,
+    };
 
     #[test]
     fn query_validation_is_bounded_and_normalizes_search_text() {
@@ -361,8 +366,8 @@ mod tests {
             short_name: " apple2e ".to_owned(),
             software_list: " apple2_flop_clcracked ".to_owned(),
             text: Some("  archon  ".to_owned()),
-            filter: SoftwareListFilter::Publisher,
-            filter_value: Some(" Electronic Arts ".to_owned()),
+            filter: SoftwareListFilter::All,
+            filter_value: None,
             limit: 50,
             offset: 0,
         })
@@ -370,7 +375,6 @@ mod tests {
         assert_eq!(request.short_name, "apple2e");
         assert_eq!(request.software_list, "apple2_flop_clcracked");
         assert_eq!(request.text.as_deref(), Some("archon"));
-        assert_eq!(request.filter_value.as_deref(), Some("Electronic Arts"));
     }
 
     #[test]
@@ -389,17 +393,29 @@ mod tests {
     }
 
     #[test]
-    fn value_filters_fail_closed_without_a_value() {
+    fn value_filter_requires_a_bounded_value() {
         let error = validate_query_request(SoftwareListQueryRequest {
             short_name: "apple2e".to_owned(),
             software_list: "apple2_flop_orig".to_owned(),
             text: None,
-            filter: SoftwareListFilter::Year,
+            filter: SoftwareListFilter::Publisher,
             filter_value: None,
             limit: 50,
             offset: 0,
         })
-        .expect_err("missing value must fail");
+        .expect_err("publisher filter must require value");
         assert_eq!(error.code, "MAME_SOFTWARE_FILTER_VALUE_REQUIRED");
+
+        let error = validate_query_request(SoftwareListQueryRequest {
+            short_name: "apple2e".to_owned(),
+            software_list: "apple2_flop_orig".to_owned(),
+            text: None,
+            filter: SoftwareListFilter::Publisher,
+            filter_value: Some("x".repeat(MAX_SOFTWARE_FILTER_VALUE_LENGTH + 1)),
+            limit: 50,
+            offset: 0,
+        })
+        .expect_err("oversized filter value must fail");
+        assert_eq!(error.code, "MAME_SOFTWARE_QUERY_VALUE_TOO_LONG");
     }
 }
