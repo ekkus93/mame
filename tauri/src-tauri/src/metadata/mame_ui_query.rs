@@ -30,6 +30,8 @@ pub(crate) enum MameUiMachineFilter {
     SourceFile,
     SaveSupported,
     SaveUnsupported,
+    ChdRequired,
+    NoChdRequired,
     VerticalScreen,
     HorizontalScreen,
 }
@@ -335,6 +337,12 @@ fn filter_predicate(filter: MameUiMachineFilter) -> &'static str {
         MameUiMachineFilter::SaveUnsupported => {
             "m.driver_savestate IS NULL OR m.driver_savestate = 'unsupported'"
         }
+        MameUiMachineFilter::ChdRequired => {
+            "EXISTS (SELECT 1 FROM machine_disk_presence md WHERE md.generation_id = m.generation_id AND md.machine_short_name = m.short_name)"
+        }
+        MameUiMachineFilter::NoChdRequired => {
+            "NOT EXISTS (SELECT 1 FROM machine_disk_presence md WHERE md.generation_id = m.generation_id AND md.machine_short_name = m.short_name)"
+        }
         MameUiMachineFilter::VerticalScreen => {
             "EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name AND d.rotate IN (90, 270))"
         }
@@ -443,11 +451,19 @@ mod tests {
             MameUiMachineFilter::SourceFile,
             MameUiMachineFilter::SaveSupported,
             MameUiMachineFilter::SaveUnsupported,
+            MameUiMachineFilter::ChdRequired,
+            MameUiMachineFilter::NoChdRequired,
             MameUiMachineFilter::VerticalScreen,
             MameUiMachineFilter::HorizontalScreen,
         ] {
             assert!(!filter_predicate(filter).trim().is_empty());
         }
+    }
+
+    #[test]
+    fn chd_filters_use_authoritative_disk_presence_table() {
+        assert!(filter_predicate(MameUiMachineFilter::ChdRequired).contains("machine_disk_presence"));
+        assert!(filter_predicate(MameUiMachineFilter::NoChdRequired).contains("NOT EXISTS"));
     }
 
     #[test]
