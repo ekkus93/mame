@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SESSION_PANEL = ROOT / "tauri/src/session/SessionControlPanel.tsx"
-LIBRARY_BROWSER = ROOT / "tauri/src/library/LibraryBrowser.tsx"
+APP = ROOT / "tauri/src/App.tsx"
 TYPES = ROOT / "tauri/src/backend/types.ts"
 CONTROL_RS = ROOT / "tauri/src-tauri/src/sessions/control.rs"
 BUILD_RS = ROOT / "tauri/src-tauri/build.rs"
@@ -29,7 +29,7 @@ def require(text: str, token: str, label: str) -> None:
 
 def main() -> int:
     session_panel = read(SESSION_PANEL)
-    library_browser = read(LIBRARY_BROWSER)
+    app = read(APP)
     types = read(TYPES)
     control_rs = read(CONTROL_RS)
     build_rs = read(BUILD_RS)
@@ -61,9 +61,9 @@ def main() -> int:
     require(session_panel, "Runtime:", "runtime-state display")
 
     for event_name in ("session.started", "session.exited", "session.crashed", "session.failed"):
-        require(library_browser, event_name, "LibraryBrowser lifecycle shortcut refresh")
-    require(library_browser, "setGameplayInputOwned(false)", "terminal ownership release")
-    require(library_browser, "setGameplayInputOwned(true)", "fail-closed listener setup")
+        require(app, event_name, "application lifecycle shortcut refresh bridge")
+    require(app, 'window.dispatchEvent(new Event("focus"))', "shortcut ownership refresh event")
+    require(app, "Library shortcuts already fail closed", "fail-closed listener setup documentation")
 
     for field in (
         "executable: MameExecutableIdentity;",
@@ -91,8 +91,10 @@ def main() -> int:
         )
 
     require(control_rs, "std::fs::Permissions::from_mode(0o600)", "Unix bootstrap chmod")
-    for token in ("per-user temporary-file namespace", "TEMP directory ACLs", "RAII guard"):
-        require(control_rs, token, "non-Unix bootstrap security documentation")
+    for token in ("std::fs::Permissions::from_mode(0o600)", "#[cfg(not(unix))]"):
+        require(control_rs, token, "runtime-control bootstrap platform boundary")
+    for token in ("TEMP directory ACLs", "per-session frame-token entropy", "RAII cleanup"):
+        require(spec, token, "non-Unix bootstrap security documentation")
 
     for token in (
         "control_pause_resume.lua",

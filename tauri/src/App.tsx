@@ -1,3 +1,4 @@
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useReducer } from "react";
 
 import { getAppInfo } from "./backend/commands";
@@ -49,6 +50,41 @@ export default function App() {
 
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    const unlisteners: UnlistenFn[] = [];
+
+    const refreshShortcutOwnership = () => {
+      if (!disposed) {
+        window.dispatchEvent(new Event("focus"));
+      }
+    };
+
+    const bind = async () => {
+      for (const eventName of [
+        "session.started",
+        "session.exited",
+        "session.crashed",
+        "session.failed",
+      ] as const) {
+        unlisteners.push(await listen(eventName, refreshShortcutOwnership));
+      }
+
+      if (disposed) {
+        unlisteners.splice(0).forEach((unlisten) => unlisten());
+      }
+    };
+
+    void bind().catch(() => {
+      // Library shortcuts already fail closed while ownership cannot be refreshed.
+    });
+
+    return () => {
+      disposed = true;
+      unlisteners.splice(0).forEach((unlisten) => unlisten());
     };
   }, []);
 
