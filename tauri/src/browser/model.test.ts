@@ -1,20 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMameBrowserRequest, nextBrowserIndex } from "./model";
+import { buildMameBrowserRequest, filterRequiresValue, nextBrowserIndex } from "./model";
 
 describe("MAME browser model", () => {
-  it("maps canonical frontend filters to bounded backend queries", () => {
-    expect(buildMameBrowserRequest("available", " pac ", 10)).toMatchObject({
+  it("maps canonical frontend filters to bounded MAME UI queries", () => {
+    expect(buildMameBrowserRequest("available", " pac ", "", 10)).toEqual({
       text: "pac",
-      availability: "available",
-      cloneFilter: "all",
+      filter: "available",
+      filterValue: null,
       limit: 100,
       offset: 10,
     });
-    expect(buildMameBrowserRequest("unavailable", "")).toMatchObject({ availability: "missing" });
-    expect(buildMameBrowserRequest("working", "")).toMatchObject({ driverStatus: "good" });
-    expect(buildMameBrowserRequest("parents", "")).toMatchObject({ cloneFilter: "parentsOnly" });
-    expect(buildMameBrowserRequest("clones", "")).toMatchObject({ cloneFilter: "clonesOnly" });
+    expect(buildMameBrowserRequest("notWorking", "", "")).toMatchObject({
+      filter: "notWorking",
+    });
+    expect(buildMameBrowserRequest("manufacturer", "", " Namco ")).toMatchObject({
+      filter: "manufacturer",
+      filterValue: "Namco",
+    });
+  });
+
+  it("identifies canonical filters that require a bounded value", () => {
+    expect(filterRequiresValue("manufacturer")).toBe(true);
+    expect(filterRequiresValue("year")).toBe(true);
+    expect(filterRequiresValue("sourceFile")).toBe(true);
+    expect(filterRequiresValue("favorites")).toBe(false);
   });
 
   it("supports bounded row, edge and page navigation", () => {
