@@ -234,7 +234,9 @@ export function ControllerConfigurationPanel({
             <div className="controller-configuration__provenance">
               <strong>{provenanceLabel(effective.mappingProvenance.kind)}</strong>
               <span>Target identity: {effective.targetDevice.value}</span>
-              <span>Reported mapping: {effective.targetDevice.reportedMapping ?? "Not reported"}</span>
+              <span>
+                Reported mapping: {effective.targetDevice.reportedMapping ?? "Not reported"}
+              </span>
               {effective.mappingProvenance.sourceReference && (
                 <span>Source: {effective.mappingProvenance.sourceReference}</span>
               )}

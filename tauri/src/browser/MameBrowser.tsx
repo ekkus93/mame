@@ -446,7 +446,11 @@ export function MameBrowser({
               revision={favoriteRevision}
               onChanged={bumpFavoriteRevision}
             />
-            <button type="button" className="secondary-button" onClick={() => changeRightView("audit")}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => changeRightView("audit")}
+            >
               Audit
             </button>
             <button
