@@ -20,14 +20,7 @@ import type {
 } from "../backend/types";
 import { SaveStateBrowser } from "./SaveStateBrowser";
 
-type RuntimeOperation =
-  | "pause"
-  | "resume"
-  | "reset"
-  | "mute"
-  | "unmute"
-  | "refresh"
-  | null;
+type RuntimeOperation = "pause" | "resume" | "reset" | "mute" | "unmute" | "refresh" | null;
 
 const TERMINAL_SESSION_STATES = new Set(["exited", "failed", "crashed"]);
 
@@ -294,7 +287,11 @@ export function SessionControlPanel() {
                 {runtimeState.effectiveMuted ? "muted" : "not muted"}
               </p>
             )}
-            <div className="session-control-actions" role="group" aria-label="MAME runtime controls">
+            <div
+              className="session-control-actions"
+              role="group"
+              aria-label="MAME runtime controls"
+            >
               <button type="button" disabled={!canCommand || paused} onClick={requestPause}>
                 {operation === "pause" ? "Pausing…" : "Pause"}
               </button>

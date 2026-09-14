@@ -269,13 +269,7 @@ export type SetLibraryFavoriteRequest = {
 };
 
 export type SessionState =
-  | "created"
-  | "starting"
-  | "running"
-  | "stopping"
-  | "exited"
-  | "failed"
-  | "crashed";
+  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
 
 export type EffectiveProjectPath = {
   option: string;
@@ -424,13 +418,7 @@ export type QueryMameRuntimeStateResult = {
   effectiveMuted: boolean;
 };
 
-export type ArtworkKind =
-  | "screenshot"
-  | "cabinet"
-  | "marquee"
-  | "flyer"
-  | "icon"
-  | "systemImage";
+export type ArtworkKind = "screenshot" | "cabinet" | "marquee" | "flyer" | "icon" | "systemImage";
 
 export type ArtworkProvenance = {
   kind: "localFile";
