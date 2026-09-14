@@ -58,7 +58,7 @@ export default function App() {
     };
 
     void bind().catch(() => {
-      // Browser shortcuts already fail closed while lifecycle ownership cannot be refreshed.
+      // Library shortcuts already fail closed while lifecycle ownership cannot be refreshed.
     });
 
     return () => {
