@@ -21,6 +21,7 @@ pub mod library;
 pub mod machine_settings;
 pub mod mame;
 pub mod mame_ui;
+pub mod mame_ui_export;
 pub mod mame_ui_state;
 pub mod metadata;
 pub mod path_configuration;
@@ -83,6 +84,7 @@ pub fn run() -> Result<(), tauri::Error> {
             metadata::get_mame_metadata_status,
             library::query_mame_library,
             mame_ui::query_mame_ui_library,
+            mame_ui_export::export_mame_ui_displayed_list,
             mame_ui_state::get_mame_ui_state,
             mame_ui_state::set_mame_ui_state,
             library::get_mame_machine_detail,
