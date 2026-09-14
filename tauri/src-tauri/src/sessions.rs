@@ -18,6 +18,7 @@ use crate::{
     config::{load_settings, settings_path, LaunchPreferencesV1},
     diagnostics,
     errors::AppResult,
+    event_names::{external_session_lifecycle_event, SESSION_PAUSED_EVENT, SESSION_RESUMED_EVENT},
     history, machine_settings,
     mame::{
         build_launch_argv, inspect_executable, MameExecutableIdentity, MameExecutableSource,
@@ -229,8 +230,10 @@ pub(crate) fn launch_mame_with_source(
                 "forcedTermination": event.session.forced_termination
             }),
         );
+        let external_name = external_session_lifecycle_event(name)
+            .ok_or_else(|| format!("unsupported session lifecycle event: {name}"))?;
         app_for_events
-            .emit(name, event)
+            .emit(external_name, event)
             .map_err(|error| error.to_string())
     });
 
@@ -246,9 +249,9 @@ pub(crate) fn launch_mame_with_source(
             let pause_session_id = session.session_id.clone();
             let pause_sink: control::PauseStateSink = Arc::new(move |paused| {
                 let event_name = if paused {
-                    "session.paused"
+                    SESSION_PAUSED_EVENT
                 } else {
-                    "session.resumed"
+                    SESSION_RESUMED_EVENT
                 };
                 diagnostics::record(
                     "info",
