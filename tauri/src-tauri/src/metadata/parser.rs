@@ -643,8 +643,20 @@ mod tests {
             Ok(())
         })
         .expect("disk metadata must parse");
-        assert!(machines.iter().find(|machine| machine.short_name == "diskgame").unwrap().requires_chd);
-        assert!(!machines.iter().find(|machine| machine.short_name == "romgame").unwrap().requires_chd);
+        assert!(
+            machines
+                .iter()
+                .find(|machine| machine.short_name == "diskgame")
+                .unwrap()
+                .requires_chd
+        );
+        assert!(
+            !machines
+                .iter()
+                .find(|machine| machine.short_name == "romgame")
+                .unwrap()
+                .requires_chd
+        );
     }
 
     #[test]
