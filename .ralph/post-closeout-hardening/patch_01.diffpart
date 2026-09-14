@@ -1,0 +1,120 @@
++++ b/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md
+@@ -0,0 +1,69 @@
++# MAME Tauri Post-Closeout Hardening TODO — 2026-09-13
++
++**Repository:** `ekkus93/mame`  
++**Spec:** `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md`  
++**Baseline:** post-MT-2200 `master`  
++**Status:** implemented pending exact-head PR and post-merge CI evidence
++
++This TODO tracks hardening discovered during the post-closeout review. It does not reopen MT-2200 and does not make the deferred MT-1000/1100/1200/1705 research tracks required.
++
++## PCH-001 — Expose runtime controls in the visible session UI
++
++- [x] Add visible pause control.
++- [x] Add visible resume control.
++- [x] Add visible soft-reset control.
++- [x] Add visible mute/unmute control.
++- [x] Add visible bounded runtime-state refresh/query control.
++- [x] Disable runtime controls unless the supervised session is running.
++- [x] Surface backend command failures through the existing error-envelope path.
++- [x] Add frontend view-model regression coverage for runtime-control state gating and labels.
++
++## PCH-002 — Fix stale keyboard/gameplay ownership after session termination
++
++- [x] Preserve the existing fail-closed library ownership lookup.
++- [x] Notify the existing shortcut-ownership refresh path after `session.exited`.
++- [x] Notify the existing shortcut-ownership refresh path after `session.crashed`.
++- [x] Notify the existing shortcut-ownership refresh path after `session.failed`.
++- [x] Notify the existing shortcut-ownership refresh path after an explicit stop result reaches a terminal state.
++- [x] Clear stale gameplay-input ownership without requiring the user to manually refocus the window.
++
++## PCH-003 — Harden/document runtime-control bootstrap file handling on Windows/non-Unix
++
++- [x] Preserve Unix `0600` bootstrap permissions.
++- [x] Add explicit Windows bootstrap ACL/security-contract documentation in the hardening spec.
++- [x] Verify by regression that the bootstrap remains `NamedTempFile`-backed and RAII-owned.
++- [x] Add static regression coverage so the contract cannot be removed without review.
++
++## PCH-004 — Guard runtime-control source composition invariants
++
++- [x] Add static regression coverage for runtime-control generation anchors.
++- [x] Verify all Lua/Rust runtime-control fragments remain tracked by `cargo:rerun-if-changed`.
++- [x] Verify generated Lua and Rust output names remain explicit.
++- [x] Verify anchor-drift failures remain fail-closed.
++
++## PCH-005 — Align frontend session typing with backend diagnostics
++
++- [x] Add TypeScript types for effective launch config/project paths.
++- [x] Add executable identity to `SessionSnapshot`.
++- [x] Add effective argv/config fields to `SessionSnapshot`.
++- [x] Add lifecycle timestamps to `SessionSnapshot`.
++- [x] Add exit/termination/forced-termination fields to `SessionSnapshot`.
++- [x] Add stdout/stderr tail and truncation fields to `SessionSnapshot`.
++- [x] Add diagnostic-error field to `SessionSnapshot`.
++- [x] Update frontend tests to exercise the richer session payload shape.
++
++## PCH-006 — Wire hardening regression into CI
++
++- [x] Add `scripts/tauri/test-post-closeout-hardening.py`.
++- [x] Run the hardening regression from the Tauri project workflow.
++- [x] Run the bootstrap security-contract check from the security policy regression.
++
++## PCH-007 — Qualification protocol
++
++- [x] Define that exact branch-head `Tauri project` CI must pass before promotion.
++- [x] Define that exact branch-head `Tauri security` CI must pass before promotion.
++- [x] Define that applicable documentation/package workflows must be green or intentionally not triggered by path filters.
++- [x] Define that promotion to `master` must use a qualified PR/merge gate.
++- [x] Define that post-merge `master` CI must be checked on the promoted SHA.
++
++Exact branch and post-merge run IDs are intentionally recorded in PR/CI evidence and the session closeout response rather than in this file, because a self-referential evidence-only commit would move the candidate SHA and restart the qualification cycle.
+diff --git a/scripts/tauri/test-post-closeout-hardening.py b/scripts/tauri/test-post-closeout-hardening.py
+new file mode 100755
+index 0000000..b1b2735
+--- /dev/null
++++ b/scripts/tauri/test-post-closeout-hardening.py
+@@ -0,0 +1,123 @@
++#!/usr/bin/env python3
++"""Static regression checks for the post-closeout hardening batch."""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++SPEC = REPO_ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md"
++TODO = REPO_ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md"
++SESSION_PANEL = REPO_ROOT / "tauri/src/session/SessionControlPanel.tsx"
++RUNTIME_VIEW = REPO_ROOT / "tauri/src/session/runtimeControlView.ts"
++RUNTIME_VIEW_TEST = REPO_ROOT / "tauri/src/session/runtimeControlView.test.ts"
++TYPES = REPO_ROOT / "tauri/src/backend/types.ts"
++CONTROL = REPO_ROOT / "tauri/src-tauri/src/sessions/control.rs"
++BUILD_RS = REPO_ROOT / "tauri/src-tauri/build.rs"
++WORKFLOW = REPO_ROOT / ".github/workflows/tauri-project.yml"
++
++RUNTIME_COMMAND_TOKENS = (
++    "pauseMame",
++    "resumeMame",
++    "resetMame",
++    "setMameMute",
++    "queryMameRuntimeState",
++    "Refresh state",
++    "Soft reset",
++)
++SESSION_SNAPSHOT_FIELDS = (
++    "executable: MameExecutableIdentity",
++    "effectiveArgv: string[]",
++    "effectiveConfig: EffectiveLaunchConfig",
++    "createdAtEpochMs: number",
++    "startedAtEpochMs: number | null",
++    "endedAtEpochMs: number | null",
++    "exitCode: number | null",
++    "terminationSignal: number | null",
++    "forcedTermination: boolean",
++    "stdoutTail: string",
++    "stderrTail: string",
++    "stdoutTruncated: boolean",
++    "stderrTruncated: boolean",
++    "diagnosticError: string | null",
++)
