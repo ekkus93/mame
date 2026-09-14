@@ -155,6 +155,7 @@ pub fn launch_mame(
         source,
         request.machine,
         request.software,
+        None,
         request.project_paths,
         request.launch_overrides,
         supervisor,
@@ -166,6 +167,7 @@ pub(crate) fn launch_mame_with_source(
     source: MameExecutableSource,
     machine: String,
     software: Option<String>,
+    bios: Option<String>,
     project_paths: Vec<ProjectPathRequest>,
     transient_launch_overrides: Option<LaunchPreferencesV1>,
     supervisor: State<'_, SessionSupervisor>,
@@ -184,6 +186,7 @@ pub(crate) fn launch_mame_with_source(
     let target = MameLaunchTarget {
         machine,
         software,
+        bios,
         project_paths: project_paths
             .into_iter()
             .map(|project_path| ProjectPathArgument {
@@ -202,7 +205,8 @@ pub(crate) fn launch_mame_with_source(
         "MAME launch requested.",
         serde_json::json!({
             "machine": &target.machine,
-            "software": &target.software
+            "software": &target.software,
+            "bios": &target.bios
         }),
     );
     let catalog_path = storage::catalog_path(&app)?;
