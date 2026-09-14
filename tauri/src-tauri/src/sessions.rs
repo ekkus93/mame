@@ -155,7 +155,6 @@ pub fn launch_mame(
         source,
         request.machine,
         request.software,
-        None,
         request.project_paths,
         request.launch_overrides,
         supervisor,
@@ -164,6 +163,27 @@ pub fn launch_mame(
 }
 
 pub(crate) fn launch_mame_with_source(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
+    launch_mame_with_source_and_bios(
+        source,
+        machine,
+        software,
+        None,
+        project_paths,
+        transient_launch_overrides,
+        supervisor,
+        app,
+    )
+}
+
+pub(crate) fn launch_mame_with_source_and_bios(
     source: MameExecutableSource,
     machine: String,
     software: Option<String>,
