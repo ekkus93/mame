@@ -56,6 +56,19 @@ def main() -> int:
         control_split_texts.append(read(split_path))
         require(control_rs, split_name, "runtime-control split include")
     control_combined = "\n".join([control_rs, *control_split_texts])
+    require(
+        control_rs,
+        'include_str!("control_pause_resume.lua")',
+        "runtime-control Lua composition anchor",
+    )
+    if any(
+        'include_str!("control_pause_resume.lua")' in text
+        for text in control_split_texts
+    ):
+        raise SystemExit(
+            "post-closeout hardening regression: runtime-control Lua composition anchor "
+            "must remain in control.rs for build.rs rewriting"
+        )
     build_rs = read(BUILD_RS)
     workflow = read(WORKFLOW)
     spec = read(SPEC)

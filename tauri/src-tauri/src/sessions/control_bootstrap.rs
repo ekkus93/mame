@@ -81,10 +81,3 @@ impl Drop for ControlBootstrap {
         unregister_bootstrap(&self.frame_token);
     }
 }
-
-fn build_bootstrap_script(session_id: &str, frame_token: &str, ready_frame: &str) -> String {
-    include_str!("control_pause_resume.lua")
-        .replace("__TOKEN__", frame_token)
-        .replace("__SESSION__", session_id)
-        .replace("__READY_FRAME__", ready_frame)
-}

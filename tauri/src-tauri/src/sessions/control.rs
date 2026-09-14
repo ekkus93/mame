@@ -70,6 +70,13 @@ pub(super) type SharedControlState = Arc<Mutex<ControlChannelState>>;
 pub(super) type SharedControlRuntime = Arc<ControlRuntime>;
 pub(super) type PauseStateSink = Arc<dyn Fn(bool) + Send + Sync>;
 
+fn build_bootstrap_script(session_id: &str, frame_token: &str, ready_frame: &str) -> String {
+    include_str!("control_pause_resume.lua")
+        .replace("__TOKEN__", frame_token)
+        .replace("__SESSION__", session_id)
+        .replace("__READY_FRAME__", ready_frame)
+}
+
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_registry.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_bootstrap.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_channel.rs"));
