@@ -17,7 +17,11 @@ export type MameBrowserFilterDefinition = {
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
   { id: "available", label: "Available", description: "Media verified as available" },
-  { id: "unavailable", label: "Unavailable", description: "Required media is missing or incorrect" },
+  {
+    id: "unavailable",
+    label: "Unavailable",
+    description: "Required media is missing or incorrect",
+  },
   { id: "working", label: "Working", description: "Drivers reported as working" },
   { id: "parents", label: "Parents", description: "Parent systems only" },
   { id: "clones", label: "Clones", description: "Clone systems only" },

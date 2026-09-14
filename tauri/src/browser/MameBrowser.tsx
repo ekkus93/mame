@@ -8,16 +8,30 @@ import {
   useState,
 } from "react";
 
-import { getMameMachineDetail, getMameSession, launchLibraryMachine, queryMameLibrary } from "../backend/commands";
+import {
+  getMameMachineDetail,
+  getMameSession,
+  launchLibraryMachine,
+  queryMameLibrary,
+} from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
-import type { MachineDetail, MachineListItem, MachinePage, SessionSnapshot } from "../backend/types";
+import type {
+  MachineDetail,
+  MachineListItem,
+  MachinePage,
+  SessionSnapshot,
+} from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { isEditableElement, isGameplaySessionState } from "../library/keyboardNavigation";
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
 import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
-import { buildMameBrowserRequest, nextBrowserIndex, type MameBrowserFilter } from "./model";
+import {
+  buildMameBrowserRequest,
+  nextBrowserIndex,
+  type MameBrowserFilter,
+} from "./model";
 
 type LoadState =
   | { status: "loading" }
@@ -55,9 +69,13 @@ export function MameBrowser({
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [rightView, setRightView] = useState<MachineRightView>("images");
-  const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(null);
+  const [pendingLaunchOverrides, setPendingLaunchOverrides] =
+    useState<LaunchPreferences | null>(null);
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
-  const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
+  const [favoriteRevision, bumpFavoriteRevision] = useReducer(
+    (value: number) => value + 1,
+    0,
+  );
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
 
   useEffect(() => {
@@ -92,7 +110,9 @@ export function MameBrowser({
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
         setSelected((current) => {
-          if (current && page.items.some((item) => item.shortName === current.shortName)) return current;
+          if (current && page.items.some((item) => item.shortName === current.shortName)) {
+            return current;
+          }
           return page.items[0] ?? null;
         });
       })
@@ -114,7 +134,9 @@ export function MameBrowser({
     setPendingLaunchOverrides(null);
     void getMameMachineDetail({ shortName: selected.shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence) setDetailState({ status: "ready", detail });
+        if (detailSequence.current === sequence) {
+          setDetailState({ status: "ready", detail });
+        }
       })
       .catch((reason: unknown) => {
         if (detailSequence.current === sequence) {
@@ -124,15 +146,22 @@ export function MameBrowser({
   }, [selected]);
 
   const page = loadState.status === "ready" ? loadState.page : null;
-  const range = page && page.total > 0
-    ? `${(page.offset + 1).toLocaleString()}–${Math.min(page.offset + page.items.length, page.total).toLocaleString()} of ${page.total.toLocaleString()}`
-    : "0 machines";
+  const range =
+    page && page.total > 0
+      ? `${(page.offset + 1).toLocaleString()}–${Math.min(
+          page.offset + page.items.length,
+          page.total,
+        ).toLocaleString()} of ${page.total.toLocaleString()}`
+      : "0 machines";
 
   const launchDetail = useCallback(
     (detail: MachineDetail) => {
       if (!detail.runnable || launchState.status === "launching") return;
       setLaunchState({ status: "launching" });
-      void launchLibraryMachine({ shortName: detail.shortName, launchOverrides: pendingLaunchOverrides })
+      void launchLibraryMachine({
+        shortName: detail.shortName,
+        launchOverrides: pendingLaunchOverrides,
+      })
         .then((session) => {
           setLaunchState({ status: "launched", session });
           setPendingLaunchOverrides(null);
@@ -148,14 +177,20 @@ export function MameBrowser({
 
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
-      if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
+      if (
+        detailState.status === "ready" &&
+        detailState.detail.shortName === machine.shortName
+      ) {
         launchDetail(detailState.detail);
       }
     },
     [detailState, launchDetail],
   );
 
-  function handleMachineRowKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
+  function handleMachineRowKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
     if (!page) return;
     if (event.key === "Enter") {
       event.preventDefault();
@@ -180,7 +215,9 @@ export function MameBrowser({
         event.altKey ||
         gameplayInputOwned ||
         !document.hasFocus()
-      ) return;
+      ) {
+        return;
+      }
 
       const editing = isEditableElement(event.target);
       if (event.key === "Escape" && event.target === searchInputRef.current && search) {
@@ -226,7 +263,9 @@ export function MameBrowser({
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
-        <span className="mame-browser-range" aria-live="polite">{range}</span>
+        <span className="mame-browser-range" aria-live="polite">
+          {range}
+        </span>
         {detail && (
           <div className="mame-context-actions" aria-label="Selected machine actions">
             <button
@@ -242,33 +281,71 @@ export function MameBrowser({
               revision={favoriteRevision}
               onChanged={bumpFavoriteRevision}
             />
-            <button type="button" className="secondary-button" onClick={() => setRightView("audit")}>Audit</button>
-            <button type="button" className="secondary-button" onClick={() => setRightView("settings")}>Configure</button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setRightView("audit")}
+            >
+              Audit
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setRightView("settings")}
+            >
+              Configure
+            </button>
             {detail.softwareLists.length > 0 && (
-              <button type="button" className="secondary-button" onClick={() => setRightView("software")}>Software</button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setRightView("software")}
+              >
+                Software
+              </button>
             )}
           </div>
         )}
       </div>
 
-      {launchState.status === "error" && <div className="mame-browser-banner is-error" role="alert">{launchState.message}</div>}
+      {launchState.status === "error" && (
+        <div className="mame-browser-banner is-error" role="alert">
+          {launchState.message}
+        </div>
+      )}
       {launchState.status === "launched" && (
-        <div className="mame-browser-banner" role="status">Session {launchState.session.sessionId} started.</div>
+        <div className="mame-browser-banner" role="status">
+          Session {launchState.session.sessionId} started.
+        </div>
       )}
 
       <div className="mame-browser-grid">
         <MachineFilterPanel active={filter} onChange={setFilter} />
 
-        <section className="mame-list-region" aria-label="Machine list" aria-busy={loadState.status === "loading"}>
+        <section
+          className="mame-list-region"
+          aria-label="Machine list"
+          aria-busy={loadState.status === "loading"}
+        >
           <div className="mame-region-heading">Machines</div>
-          {loadState.status === "loading" && <div className="mame-panel-state">Loading catalog…</div>}
-          {loadState.status === "error" && <div className="mame-panel-state" role="alert">{loadState.message}</div>}
-          {page && page.items.length === 0 && <div className="mame-panel-state">No machines match this filter.</div>}
+          {loadState.status === "loading" && (
+            <div className="mame-panel-state">Loading catalog…</div>
+          )}
+          {loadState.status === "error" && (
+            <div className="mame-panel-state" role="alert">
+              {loadState.message}
+            </div>
+          )}
+          {page && page.items.length === 0 && (
+            <div className="mame-panel-state">No machines match this filter.</div>
+          )}
           {page && page.items.length > 0 && (
             <MachineList
               page={page}
               selected={selected}
-              registerRow={(index, element) => { machineRowRefs.current[index] = element; }}
+              registerRow={(index, element) => {
+                machineRowRefs.current[index] = element;
+              }}
               onSelect={setSelected}
               onNavigate={handleMachineRowKeyDown}
               onActivate={activateMachine}
@@ -311,9 +388,15 @@ export function MameBrowser({
             }}
           />
         ) : (
-          <aside className="mame-right-panel"><div className="mame-panel-state">
-            {detailState.status === "loading" ? "Loading machine details…" : detailState.status === "error" ? detailState.message : "Select a machine."}
-          </div></aside>
+          <aside className="mame-right-panel">
+            <div className="mame-panel-state">
+              {detailState.status === "loading"
+                ? "Loading machine details…"
+                : detailState.status === "error"
+                  ? detailState.message
+                  : "Select a machine."}
+            </div>
+          </aside>
         )}
       </div>
     </section>

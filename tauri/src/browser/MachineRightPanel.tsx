@@ -68,7 +68,10 @@ export function MachineRightPanel({
       {view === "images" && <ArtworkPane machine={detail.shortName} />}
       {view === "info" && <InfoPane detail={detail} />}
       {view === "audit" && (
-        <MachineAuditPanel shortName={detail.shortName} onAuditResultChanged={onAuditResultChanged} />
+        <MachineAuditPanel
+          shortName={detail.shortName}
+          onAuditResultChanged={onAuditResultChanged}
+        />
       )}
       {view === "settings" && (
         <MachineSettingsPanel
@@ -106,7 +109,9 @@ function ArtworkPane({ machine }: { machine: string }) {
       .then((result) => {
         if (requestId.current !== id) return;
         setArtwork(result);
-        const preferred = result.slots.find((slot) => slot.kind === "screenshot" && slot.asset)?.kind;
+        const preferred = result.slots.find(
+          (slot) => slot.kind === "screenshot" && slot.asset,
+        )?.kind;
         const fallback = result.slots.find((slot) => slot.asset)?.kind;
         setSelectedKind(preferred ?? fallback ?? "screenshot");
       })
@@ -142,7 +147,13 @@ function ArtworkPane({ machine }: { machine: string }) {
   }, [slot]);
 
   if (loading) return <div className="mame-panel-state">Loading artwork…</div>;
-  if (error) return <div className="mame-panel-state" role="alert">Artwork unavailable: {error}</div>;
+  if (error) {
+    return (
+      <div className="mame-panel-state" role="alert">
+        Artwork unavailable: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="mame-artwork-pane">
@@ -163,7 +174,9 @@ function ArtworkPane({ machine }: { machine: string }) {
         {asset ? (
           <img src={asset.dataUrl} alt={`${machine} ${ARTWORK_LABELS[selectedKind]}`} />
         ) : (
-          <div className="mame-panel-state">No {ARTWORK_LABELS[selectedKind].toLowerCase()} artwork found.</div>
+          <div className="mame-panel-state">
+            No {ARTWORK_LABELS[selectedKind].toLowerCase()} artwork found.
+          </div>
         )}
       </div>
     </div>
@@ -182,16 +195,43 @@ function InfoPane({ detail }: { detail: MachineDetail }) {
       <h2>{detail.description}</h2>
       <p className="mame-info-short">{detail.shortName}</p>
       <dl>
-        <div><dt>Year</dt><dd>{detail.year ?? "Unknown"}</dd></div>
-        <div><dt>Manufacturer</dt><dd>{detail.manufacturer ?? "Unknown"}</dd></div>
-        <div><dt>Status</dt><dd>{machineStatusLabel(detail)}</dd></div>
-        <div><dt>Parent</dt><dd>{detail.cloneOf ? detail.parentDescription ?? detail.cloneOf : "Parent"}</dd></div>
-        <div><dt>Source</dt><dd>{detail.sourceFile ?? "Unknown"}</dd></div>
-        <div><dt>Save states</dt><dd>{detail.driverSavestate ?? "Unknown"}</dd></div>
-        <div><dt>Orientation</dt><dd>{orientation}</dd></div>
-        <div><dt>Software lists</dt><dd>{detail.softwareLists.length}</dd></div>
+        <div>
+          <dt>Year</dt>
+          <dd>{detail.year ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Manufacturer</dt>
+          <dd>{detail.manufacturer ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{machineStatusLabel(detail)}</dd>
+        </div>
+        <div>
+          <dt>Parent</dt>
+          <dd>{detail.cloneOf ? (detail.parentDescription ?? detail.cloneOf) : "Parent"}</dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{detail.sourceFile ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Save states</dt>
+          <dd>{detail.driverSavestate ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Orientation</dt>
+          <dd>{orientation}</dd>
+        </div>
+        <div>
+          <dt>Software lists</dt>
+          <dd>{detail.softwareLists.length}</dd>
+        </div>
       </dl>
-      {(detail.driverRequiresArtwork || detail.driverUnofficial || detail.driverNoSoundHardware || detail.driverIncomplete) && (
+      {(detail.driverRequiresArtwork ||
+        detail.driverUnofficial ||
+        detail.driverNoSoundHardware ||
+        detail.driverIncomplete) && (
         <div className="mame-info-flags" aria-label="Driver notes">
           {detail.driverRequiresArtwork && <span>Requires artwork</span>}
           {detail.driverUnofficial && <span>Unofficial</span>}

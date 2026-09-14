@@ -49,13 +49,55 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           <span>Tauri frontend</span>
         </div>
         <nav className="mame-shell-nav" aria-label="Application views">
-          <button type="button" aria-current={view === "library" ? "page" : undefined} onClick={navigate("library")}>Machines</button>
-          <button type="button" aria-current={view === "session" ? "page" : undefined} onClick={navigate("session")}>Session</button>
-          <button type="button" aria-current={view === "audit" ? "page" : undefined} onClick={navigate("audit")}>Audit</button>
-          <button type="button" aria-current={view === "history" ? "page" : undefined} onClick={navigate("history")}>History</button>
-          <button type="button" aria-current={view === "collections" ? "page" : undefined} onClick={navigate("collections")}>Collections</button>
-          <button type="button" aria-current={view === "settings" ? "page" : undefined} onClick={navigate("settings")}>Settings</button>
-          <button type="button" aria-current={view === "diagnostics" ? "page" : undefined} onClick={navigate("diagnostics")}>Diagnostics</button>
+          <button
+            type="button"
+            aria-current={view === "library" ? "page" : undefined}
+            onClick={navigate("library")}
+          >
+            Machines
+          </button>
+          <button
+            type="button"
+            aria-current={view === "session" ? "page" : undefined}
+            onClick={navigate("session")}
+          >
+            Session
+          </button>
+          <button
+            type="button"
+            aria-current={view === "audit" ? "page" : undefined}
+            onClick={navigate("audit")}
+          >
+            Audit
+          </button>
+          <button
+            type="button"
+            aria-current={view === "history" ? "page" : undefined}
+            onClick={navigate("history")}
+          >
+            History
+          </button>
+          <button
+            type="button"
+            aria-current={view === "collections" ? "page" : undefined}
+            onClick={navigate("collections")}
+          >
+            Collections
+          </button>
+          <button
+            type="button"
+            aria-current={view === "settings" ? "page" : undefined}
+            onClick={navigate("settings")}
+          >
+            Settings
+          </button>
+          <button
+            type="button"
+            aria-current={view === "diagnostics" ? "page" : undefined}
+            onClick={navigate("diagnostics")}
+          >
+            Diagnostics
+          </button>
         </nav>
       </header>
 
@@ -67,10 +109,14 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           />
         )}
         {view === "session" && <SessionControlPanel />}
-        {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
+        {view === "audit" && (
+          <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
+        )}
         {view === "history" && <RecentHistoryPanel />}
         {view === "collections" && <CollectionManager />}
-        {view === "settings" && <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />}
+        {view === "settings" && (
+          <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+        )}
         {view === "diagnostics" && <DiagnosticsPanel />}
         {view === "legacy" && (
           <div className="mame-legacy-stack" aria-label="Legacy dashboard during migration">
@@ -78,7 +124,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             <DiagnosticsPanel />
             <SessionControlPanel />
             <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
-            <LibraryBrowser availabilityRevision={availabilityRevision} onAuditResultsChanged={bumpAvailabilityRevision} />
+            <LibraryBrowser
+              availabilityRevision={availabilityRevision}
+              onAuditResultsChanged={bumpAvailabilityRevision}
+            />
             <RecentHistoryPanel />
             <CollectionManager />
           </div>
@@ -89,7 +138,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>
         <span>Backend {appInfo.backend}</span>
-        <button type="button" className="mame-legacy-link" onClick={navigate("legacy")}>Legacy UI</button>
+        <button type="button" className="mame-legacy-link" onClick={navigate("legacy")}>
+          Legacy UI
+        </button>
       </footer>
     </main>
   );
