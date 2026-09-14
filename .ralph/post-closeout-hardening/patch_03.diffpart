@@ -1,0 +1,188 @@
+    window.dispatchEvent(new Event("focus"));
++  }
++
++  function refreshRuntimeState(activeSession: SessionSnapshot | null): Promise<void> {
++    if (!activeSession || activeSession.state !== "running") {
++      clearRuntimeState();
++      return Promise.resolve();
++    }
++
++    setRuntimeStatus("Refreshing runtime state…");
++    return queryMameRuntimeState({ sessionId: activeSession.sessionId })
++      .then((current) => {
++        setRuntimeState(current);
++        setRuntimeStatus("Runtime state refreshed.");
++      })
++      .catch((error: unknown) => {
++        setRuntimeState(null);
++        setRuntimeStatus(null);
++        throw error;
++      });
++  }
++
+   useEffect(() => {
+     let disposed = false;
+     const unlisteners: UnlistenFn[] = [];
+@@ -23,8 +82,16 @@ export function SessionControlPanel() {
+     void getMameSession()
+       .then((current) => {
+         if (!disposed) {
+-          setSession(isActiveSession(current) ? current : null);
++          const activeSession = isActiveSession(current) ? current : null;
++          setObservedSession(activeSession);
+           setLoading(false);
++          if (activeSession?.state === "running") {
++            void refreshRuntimeState(activeSession).catch((error: unknown) => {
++              if (!disposed) {
++                setFailure(errorMessage(error));
++              }
++            });
++          }
+         }
+       })
+       .catch((error: unknown) => {
+@@ -37,17 +104,21 @@ export function SessionControlPanel() {
+     const bind = async () => {
+       const started = await listen<SessionLifecycleEventV1>("session.started", (event) => {
+         if (!disposed) {
+-          setSession(event.payload.session);
++          setObservedSession(event.payload.session);
+           setFailure(null);
++          setRuntimeState(null);
++          setRuntimeStatus("Runtime controls are ready after the first state refresh.");
+         }
+       });
+       unlisteners.push(started);
+ 
+       const exited = await listen<SessionLifecycleEventV1>("session.exited", () => {
+         if (!disposed) {
+-          setSession(null);
++          setObservedSession(null);
+           setStopping(false);
+           setFailure(null);
++          clearRuntimeState();
++          notifyShortcutOwnershipMayHaveChanged();
+         }
+       });
+       unlisteners.push(exited);
+@@ -55,11 +126,36 @@ export function SessionControlPanel() {
+       for (const eventName of ["session.crashed", "session.failed"] as const) {
+         const unlisten = await listen<SessionLifecycleEventV1>(eventName, (event) => {
+           if (!disposed) {
+-            setSession(null);
++            setObservedSession(null);
+             setStopping(false);
++            clearRuntimeState();
+             setFailure(
+-              `MAME session ${event.payload.session.sessionId} ended unexpectedly (${event.payload.session.state}).`,
++              `MAME session ${event.payload.session.sessionId} ended unexpectedly ` +
++                `(${event.payload.session.state}).`,
+             );
++            notifyShortcutOwnershipMayHaveChanged();
++          }
++        });
++        unlisteners.push(unlisten);
++      }
++
++      for (const [eventName, paused] of [
++        ["session.paused", true],
++        ["session.resumed", false],
++      ] as const) {
++        const unlisten = await listen<SessionPauseEventV1>(eventName, (event) => {
++          if (!disposed) {
++            setRuntimeState((current) => {
++              if (current && current.sessionId !== event.payload.sessionId) {
++                return current;
++              }
++              const activeSession = sessionRef.current;
++              if (!activeSession || activeSession.sessionId !== event.payload.sessionId) {
++                return current;
++              }
++              return mergeRuntimeState(activeSession, current, { paused: event.payload.paused });
++            });
++            setRuntimeStatus(paused ? "Runtime reported paused." : "Runtime reported resumed.");
+           }
+         });
+         unlisteners.push(unlisten);
+@@ -80,6 +176,9 @@ export function SessionControlPanel() {
+       disposed = true;
+       unlisteners.splice(0).forEach((unlisten) => unlisten());
+     };
++    // This effect intentionally binds long-lived app events once. Command buttons update runtime
++    // state directly, and lifecycle terminal events clear stale state.
++    // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
+ 
+   const requestStop = () => {
+@@ -91,9 +190,11 @@ export function SessionControlPanel() {
+     void stopMame({ sessionId: session.sessionId })
+       .then((result) => {
+         if (["exited", "failed", "crashed"].includes(result.session.state)) {
+-          setSession(null);
++          setObservedSession(null);
++          clearRuntimeState();
++          notifyShortcutOwnershipMayHaveChanged();
+         } else {
+-          setSession(result.session);
++          setObservedSession(result.session);
+         }
+         setStopping(false);
+       })
+@@ -103,6 +204,86 @@ export function SessionControlPanel() {
+       });
+   };
+ 
++  const runRuntimeAction = (action: RuntimeControlAction) => {
++    if (!session || session.state !== "running" || busyAction) {
++      return;
++    }
++
++    setBusyAction(action);
++    setFailure(null);
++    setRuntimeStatus(null);
++    const activeSession = session;
++
++    let operation: Promise<void>;
++    switch (action) {
++      case "pause":
++        operation = pauseMame({ sessionId: activeSession.sessionId }).then((result) => {
++          setRuntimeState((current) =>
++            mergeRuntimeState(activeSession, current, { paused: result.paused }),
++          );
++          setRuntimeStatus(
++            result.paused ? "Pause confirmed." : "Pause requested; runtime stayed active.",
++          );
++        });
++        break;
++      case "resume":
++        operation = resumeMame({ sessionId: activeSession.sessionId }).then((result) => {
++          setRuntimeState((current) =>
++            mergeRuntimeState(activeSession, current, { paused: result.paused }),
++          );
++          setRuntimeStatus(
++            result.paused ? "Resume requested; runtime still reports paused." : "Resume confirmed.",
++          );
++        });
++        break;
++      case "reset":
++        operation = resetMame({ sessionId: activeSession.sessionId }).then(() => {
++          setRuntimeStatus("Soft reset confirmed.");
++        });
++        break;
++      case "mute":
++      case "unmute":
++        operation = setMameMute({
++          sessionId: activeSession.sessionId,
++          muted: action === "mute",
++        }).then((result) => {
++          setRuntimeState((current) =>
++            mergeRuntimeState(activeSession, current, {
++              uiMuted: result.uiMuted,
++              effectiveMuted: result.effectiveMuted,
++            }),
++          );
++          setRuntimeStatus(
++            result.effectiveMuted
++              ? "Mute confirmed."
++              : result.uiMuted
++
