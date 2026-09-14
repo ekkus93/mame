@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use quick_xml::{events::Event, Reader};
+use quick_xml::{events::Event, Reader, XmlVersion};
 use serde::{Deserialize, Serialize};
 
 use crate::errors::{AppError, AppResult};
@@ -210,9 +210,12 @@ fn parse_biosset(attributes: &HashMap<String, String>) -> AppResult<BiosChoice> 
 }
 
 pub(crate) fn validate_bios_identifier(value: &str) -> AppResult<()> {
-    let valid = !value.is_empty()
-        && value.len() <= 64
-        && value.bytes().all(|byte| {
+    let mut bytes = value.bytes();
+    let valid = value.len() <= 64
+        && bytes
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && bytes.all(|byte| {
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.')
         });
     if valid {
@@ -220,7 +223,7 @@ pub(crate) fn validate_bios_identifier(value: &str) -> AppResult<()> {
     }
     Err(AppError::new(
         "MAME_BIOS_IDENTIFIER_INVALID",
-        "The BIOS identifier contains unsupported characters or exceeds the bounded length.",
+        "The BIOS identifier contains unsupported characters, starts with an option-like character, or exceeds the bounded length.",
     )
     .with_details(serde_json::json!({ "bios": value })))
 }
@@ -243,7 +246,7 @@ fn attributes(start: &quick_xml::events::BytesStart<'_>) -> AppResult<HashMap<St
             .with_details(serde_json::json!({ "cause": error.to_string() }))
         })?;
         let value = attribute
-            .unescape_value()
+            .normalized_value(XmlVersion::Implicit1_0)
             .map_err(|error| {
                 AppError::new(
                     "MAME_BIOS_XML_ATTRIBUTE_INVALID",
