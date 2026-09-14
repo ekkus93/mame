@@ -1,0 +1,37 @@
+name: Apply post-closeout hardening patch
+
+on:
+  push:
+    branches:
+      - ralph/post-closeout-hardening-v3
+    paths:
+      - ".github/workflows/apply-post-closeout-hardening.yml"
+      - ".ralph/post-closeout-hardening/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Apply hardening patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .ralph/post-closeout-hardening/patch_*.b64part | base64 --decode > /tmp/post-closeout-hardening.patch
+          git apply --check /tmp/post-closeout-hardening.patch
+          git apply /tmp/post-closeout-hardening.patch
+          git rm -r .ralph/post-closeout-hardening .github/workflows/apply-post-closeout-hardening.yml
+          git config user.name "chatgpt-ralph-bridge[bot]"
+          git config user.email "326723642+chatgpt-ralph-bridge[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: harden post-closeout Tauri session controls"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
