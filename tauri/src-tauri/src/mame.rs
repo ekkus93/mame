@@ -7,6 +7,7 @@ mod argv;
 mod audit;
 mod audit_runner;
 mod audit_store;
+mod bios;
 mod executable;
 mod software;
 
@@ -23,6 +24,10 @@ pub use audit_store::{
     invalidate_stale_machine_audit_results, load_current_machine_audit_result,
     save_machine_audit_result, StoredMachineAuditResult,
 };
+pub(crate) use bios::{
+    get_machine_bios_choices, validate_bios_identifier, validate_bios_selection,
+};
+pub use bios::BiosChoice;
 pub use executable::{
     configured_external_source, inspect_executable, validate_executable_path,
     MameExecutableIdentity, MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust,
