@@ -1,0 +1,120 @@
+diff --git a/.github/workflows/tauri-project.yml b/.github/workflows/tauri-project.yml
+index ce0e877..f1e0955 100644
+--- a/.github/workflows/tauri-project.yml
++++ b/.github/workflows/tauri-project.yml
+@@ -36,6 +36,8 @@ jobs:
+             /docs/legal/
+             /docs/MAME_TAURI_TODO_2026-09-08.md
+             /docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md
++            /docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md
++            /docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md
+             /tauri/
+             /scripts/tauri/
+ 
+@@ -67,6 +69,10 @@ jobs:
+         working-directory: ${{ github.workspace }}
+         run: python3 scripts/tauri/test-mt2200-todo-reconciliation.py
+ 
++      - name: Post-closeout hardening regression tests
++        working-directory: ${{ github.workspace }}
++        run: python3 scripts/tauri/test-post-closeout-hardening.py
++
+       - name: Install Tauri Linux build prerequisites
+         run: |
+           sudo apt-get update
+diff --git a/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md b/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md
+new file mode 100644
+index 0000000..9a9b302
+--- /dev/null
++++ b/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md
+@@ -0,0 +1,86 @@
++# MAME Tauri Post-Closeout Hardening Spec — 2026-09-13
++
++**Repository:** `ekkus93/mame`  
++**Baseline:** post-MT-2200 `master` after engineering-phase closure  
++**Scope:** hardening issues found in the post-closeout review of the production-useful external-window Tauri frontend
++
++## 1. Purpose
++
++MT-2200 closed the required engineering phase for the external-window Tauri frontend. This post-closeout hardening batch does not reopen that closure. It addresses review findings that improve user-facing completeness, state freshness, security documentation, generator maintainability, and frontend/backend type fidelity.
++
++## 2. Non-goals
++
++This batch must not reactivate the deferred optional research tracks:
++
++- MT-1000 native-window / embedded-rendering research;
++- MT-1100 dedicated Tauri MAME OSD;
++- MT-1200 in-process MAME hosting;
++- MT-1705 embedded-render performance qualification.
++
++No video frame, PCM stream, gameplay-input stream, or generic shell/filesystem privilege should be moved through Tauri IPC.
++
++## 3. Requirements
++
++### PCH-001 — Visible runtime controls
++
++The session panel must expose the runtime-control protocol that already exists at the Rust and frontend command layers:
++
++- pause;
++- resume;
++- soft reset;
++- mute/unmute;
++- bounded runtime-state refresh/query;
++- stop remains visible and bounded.
++
++Controls must be disabled unless a supervised MAME session is in the `running` state. The UI must present bounded status text and must surface backend errors through the existing error envelope path.
++
++### PCH-002 — Fresh keyboard/gameplay ownership state
++
++The library keyboard shortcut guard must clear stale gameplay-input ownership when a supervised session exits, crashes, or fails. It may do so by direct lifecycle subscription or by triggering the existing focus-time ownership refresh from the authoritative session lifecycle UI. It must remain fail-closed while ownership cannot be queried, and shortcuts must still be suppressed while MAME owns gameplay input or the Tauri document lacks focus.
++
++### PCH-003 — Runtime-control bootstrap file contract
++
++The private runtime-control Lua bootstrap contains a per-session bearer token and must remain ephemeral and non-shared.
++
++Unix builds must retain `0600` permissions. Windows and other non-Unix builds currently rely on the temporary-file and per-user temporary-directory semantics available through the Rust standard library and the host OS. The project documentation and regression tests must keep that contract explicit: the path must remain ephemeral, random, process-owned, and RAII-deleted, and it must not be changed to a shared, predictable, or persistent script path without adding an explicit Windows ACL implementation.
++
++### PCH-004 — Runtime-control composition guard
++
++The runtime-control source-generation path must remain fail-closed. Until it is fully converted away from anchor replacement, the hardening batch must add a regression guard that detects loss of anchor-drift assertions, generated-source wiring, or fragment rerun tracking.
++
++### PCH-005 — Frontend session payload fidelity
++
++The TypeScript `SessionSnapshot` type must match the richer Rust payload used by lifecycle events and diagnostics. The frontend may render only a subset, but the type must not hide executable identity, effective argv/config, timestamps, exit status, output tails, truncation flags, or diagnostic error state.
++
++### PCH-006 — CI hardening regression
++
++The hardening batch must add a checked-in static regression that verifies the visible UI controls, lifecycle-event keyboard ownership fix, bootstrap contract, composition invariants, and richer `SessionSnapshot` typing remain present. The Tauri project workflow must run this regression before the normal frontend/Rust build and test sequence.
++
++### PCH-007 — Qualification protocol
++
++The batch must be qualified through the same exact-head discipline used by MT-2200: green branch CI before promotion, guarded PR merge, and post-merge `master` CI inspection on the promoted SHA. Exact run IDs should be treated as external CI evidence rather than self-referential content inside the candidate commit.
++
++## 4. Acceptance criteria
++
++The batch is accepted when:
++
++1. the visible session UI exposes pause/resume/reset/mute/query controls;
++2. library keyboard ownership updates through lifecycle-triggered refresh notification as well as focus-time polling;
++3. the non-Unix runtime-control bootstrap security contract is explicit in documentation and regression-checked;
++4. runtime-control composition invariants are regression-checked;
++5. frontend `SessionSnapshot` typing covers the Rust fields;
++6. the post-closeout TODO is fully reconciled with no ambiguous unchecked required items;
++7. exact-head CI is green before promotion.
++
++## 5. Validation plan
++
++Local/static validation:
++
++- `python3 scripts/tauri/test-post-closeout-hardening.py`;
++- existing checked-in Python helper tests where the sandbox supports them.
++
++Repository CI validation:
++
++- `Tauri project` must pass and covers frontend format, lint, typecheck, tests, Rust format/tests/Clippy, and the static hardening regression;
++- `Tauri security` must pass and covers the privileged boundary plus the bootstrap-file security contract;
++- package/documentation workflows should remain green for promoted changes.
+diff --git a/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md b/docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md
+new file mode 100644
+index 0000000..4c7b511
+--- /dev/null
