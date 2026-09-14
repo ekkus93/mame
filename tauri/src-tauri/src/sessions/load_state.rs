@@ -10,7 +10,10 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::errors::{AppError, AppResult};
+use crate::{
+    errors::{AppError, AppResult},
+    event_names::{SESSION_STATE_LOADED_EVENT, SESSION_STATE_LOAD_FAILED_EVENT},
+};
 
 use super::{control, SessionSnapshot, SessionState, SessionSupervisor};
 
@@ -68,13 +71,13 @@ pub(super) fn load_mame_state_impl(
     let result = load_state_for_session(&app, &session, &request.slot);
     match result {
         Ok(result) => {
-            if let Err(error) = app.emit("session.state_loaded", result.clone()) {
+            if let Err(error) = app.emit(SESSION_STATE_LOADED_EVENT, result.clone()) {
                 return Err(AppError::new(
                     "LOAD_STATE_EVENT_EMIT_FAILED",
                     "The state was restored successfully, but its success event could not be emitted.",
                 )
                 .with_details(serde_json::json!({
-                    "event": "session.state_loaded",
+                    "event": SESSION_STATE_LOADED_EVENT,
                     "cause": error.to_string(),
                     "loaded": result
                 })));
@@ -90,12 +93,12 @@ pub(super) fn load_mame_state_impl(
                 slot: request.slot,
                 error: error.clone(),
             };
-            if let Err(emit_error) = app.emit("session.state_load_failed", failed_event) {
+            if let Err(emit_error) = app.emit(SESSION_STATE_LOAD_FAILED_EVENT, failed_event) {
                 let operation_details = std::mem::take(&mut error.details);
                 error.details = serde_json::json!({
                     "operation": operation_details,
                     "eventEmission": {
-                        "event": "session.state_load_failed",
+                        "event": SESSION_STATE_LOAD_FAILED_EVENT,
                         "cause": emit_error.to_string()
                     }
                 });
