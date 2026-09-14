@@ -60,9 +60,9 @@ pub async fn query_mame_ui_library(
 ) -> AppResult<MachinePage> {
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
-    let query = validated_query(request, &catalog_path, &settings_path)?;
 
     tauri::async_runtime::spawn_blocking(move || {
+        let query = validated_query(request, &catalog_path, &settings_path)?;
         CatalogRepository::open(&catalog_path)?.query_mame_ui_machines(&query)
     })
     .await

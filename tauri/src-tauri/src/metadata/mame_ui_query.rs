@@ -67,7 +67,7 @@ impl CatalogRepository {
                 |row| row.get(0),
             )
             .optional()
-            .map_err(|error| database_error(error))?
+            .map_err(database_error)?
             .ok_or_else(|| {
                 AppError::new(
                     "MAME_METADATA_NOT_READY",
@@ -83,10 +83,11 @@ impl CatalogRepository {
                 AND m.is_device = 0
                 AND (
                     :search_pattern IS NULL
-                    OR m.short_name LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
-                    OR m.description LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
-                    OR m.manufacturer LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
+                    OR m.short_name LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
+                    OR m.description LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
+                    OR m.manufacturer LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
                 )
+                AND (:filter_value IS NULL OR :filter_value IS NOT NULL)
                 AND ({predicate})
             "#
         );
@@ -241,11 +242,9 @@ fn filter_predicate(filter: MameUiMachineFilter) -> &'static str {
             "m.clone_of IS NOT NULL AND NOT EXISTS (SELECT 1 FROM machines p WHERE p.generation_id = m.generation_id AND p.short_name = m.clone_of AND p.is_bios = 1)"
         }
         MameUiMachineFilter::Manufacturer => {
-            "(:filter_value IS NOT NULL AND (m.manufacturer = :filter_value COLLATE NOCASE OR m.manufacturer LIKE (:filter_value || ' (%') ESCAPE '\\' COLLATE NOCASE))"
+            "(:filter_value IS NOT NULL AND (m.manufacturer = :filter_value COLLATE NOCASE OR (instr(m.manufacturer, ' (') > 0 AND substr(m.manufacturer, 1, instr(m.manufacturer, ' (') - 1) = :filter_value COLLATE NOCASE)))"
         }
-        MameUiMachineFilter::Year => {
-            ":filter_value IS NOT NULL AND m.year = :filter_value"
-        }
+        MameUiMachineFilter::Year => ":filter_value IS NOT NULL AND m.year = :filter_value",
         MameUiMachineFilter::SourceFile => {
             ":filter_value IS NOT NULL AND m.source_file = :filter_value COLLATE NOCASE"
         }
@@ -259,7 +258,7 @@ fn filter_predicate(filter: MameUiMachineFilter) -> &'static str {
             "EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name AND d.rotate IN (90, 270))"
         }
         MameUiMachineFilter::HorizontalScreen => {
-            "NOT EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name AND d.rotate IN (90, 270))"
+            "EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name) AND NOT EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name AND d.rotate IN (90, 270))"
         }
     }
 }
@@ -338,7 +337,7 @@ fn database_error(error: rusqlite::Error) -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::{filter_predicate, MameUiMachineFilter};
+    use super::{filter_predicate, like_pattern, MameUiMachineFilter};
 
     #[test]
     fn every_canonical_filter_has_a_nonempty_predicate() {
@@ -365,5 +364,17 @@ mod tests {
         ] {
             assert!(!filter_predicate(filter).trim().is_empty());
         }
+    }
+
+    #[test]
+    fn text_search_escapes_sql_like_metacharacters() {
+        assert_eq!(like_pattern(r"a%b_c\d"), r"%a\%b\_c\\d%");
+    }
+
+    #[test]
+    fn horizontal_filter_requires_a_display_and_excludes_rotated_displays() {
+        let predicate = filter_predicate(MameUiMachineFilter::HorizontalScreen);
+        assert!(predicate.contains("EXISTS"));
+        assert!(predicate.contains("NOT EXISTS"));
     }
 }
