@@ -62,10 +62,7 @@ export function MameShell({
 
       <section className="mame-shell__workspace">
         {workspace === "machines" ? (
-          <MachineBrowser
-            availabilityRevision={availabilityRevision}
-            onAvailabilityChanged={onAvailabilityChanged}
-          />
+          <MachineBrowser availabilityRevision={availabilityRevision} />
         ) : (
           <LegacyDashboard
             availabilityRevision={availabilityRevision}
