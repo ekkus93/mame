@@ -57,7 +57,8 @@ def main() -> int:
         require(session_panel, label, "SessionControlPanel visible runtime control")
 
     require(session_panel, "const canCommand = isRunningSession(session)", "running-session gate")
-    require(session_panel, "role=\"group\" aria-label=\"MAME runtime controls\"", "control grouping")
+    require(session_panel, 'role="group"', "control grouping role")
+    require(session_panel, 'aria-label="MAME runtime controls"', "control grouping label")
     require(session_panel, "Runtime:", "runtime-state display")
 
     for event_name in ("session.started", "session.exited", "session.crashed", "session.failed"):
