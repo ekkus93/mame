@@ -183,6 +183,9 @@ pub(crate) fn launch_mame_with_source(
     )
 }
 
+// This internal adapter mirrors the typed launch boundary and keeps BIOS an
+// explicit value rather than exposing a generic argv escape hatch.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn launch_mame_with_source_and_bios(
     source: MameExecutableSource,
     machine: String,
