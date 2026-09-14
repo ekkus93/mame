@@ -462,7 +462,9 @@ mod tests {
 
     #[test]
     fn chd_filters_use_authoritative_disk_presence_table() {
-        assert!(filter_predicate(MameUiMachineFilter::ChdRequired).contains("machine_disk_presence"));
+        assert!(
+            filter_predicate(MameUiMachineFilter::ChdRequired).contains("machine_disk_presence")
+        );
         assert!(filter_predicate(MameUiMachineFilter::NoChdRequired).contains("NOT EXISTS"));
     }
 
