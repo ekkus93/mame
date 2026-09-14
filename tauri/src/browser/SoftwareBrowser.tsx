@@ -123,7 +123,15 @@ export function SoftwareBrowser({
         setBrowse({ status: "error", message: errorMessage(reason) });
         setSelected(null);
       });
-  }, [debouncedFilterValue, debouncedSearch, detail.shortName, filter, listName, offset, requiresValue]);
+  }, [
+    debouncedFilterValue,
+    debouncedSearch,
+    detail.shortName,
+    filter,
+    listName,
+    offset,
+    requiresValue,
+  ]);
 
   const page = browse.status === "ready" ? browse.page : null;
   const range = useMemo(() => {
@@ -249,7 +257,11 @@ export function SoftwareBrowser({
         <button
           type="button"
           className="mame-start-button"
-          disabled={!selected || (selected.parts.length > 1 && !selectedPart) || launch.status === "launching"}
+          disabled={
+            !selected ||
+            (selected.parts.length > 1 && !selectedPart) ||
+            launch.status === "launching"
+          }
           onClick={launchSelected}
         >
           {launch.status === "launching" ? "Starting…" : "Start"}
@@ -327,7 +339,9 @@ export function SoftwareBrowser({
               {browse.message}
             </div>
           )}
-          {page && page.items.length === 0 && <div className="mame-panel-state">No software matches.</div>}
+          {page && page.items.length === 0 && (
+            <div className="mame-panel-state">No software matches.</div>
+          )}
           {page && page.items.length > 0 && (
             <ul className="mame-software-listbox" aria-label="Software results">
               {page.items.map((item, index) => (
@@ -401,7 +415,9 @@ export function SoftwareBrowser({
             <div className="mame-panel-state">Select software.</div>
           ) : panelMode === "images" ? (
             <div className="mame-artwork-frame">
-              <div className="mame-panel-state">No configured software artwork source is available.</div>
+              <div className="mame-panel-state">
+                No configured software artwork source is available.
+              </div>
             </div>
           ) : (
             <div className="mame-info-pane">
