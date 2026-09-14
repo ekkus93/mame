@@ -21,6 +21,8 @@ use crate::{
     config::{PathValidation, PathValidationStatus, PlatformPath},
     errors::{AppError, AppResult},
     mame::validate_short_identifier,
+    metadata::CatalogRepository,
+    storage,
 };
 
 const ARTWORK_SCHEMA_VERSION: u32 = 1;
@@ -38,42 +40,119 @@ const ARTWORK_EXTENSIONS: [(&str, &str); 4] = [
 pub enum ArtworkKind {
     Screenshot,
     Cabinet,
-    Marquee,
+    ControlPanel,
+    Pcb,
     Flyer,
+    TitleScreen,
+    Ending,
+    ArtworkPreview,
+    Bosses,
+    Logo,
+    Versus,
+    GameOver,
+    HowTo,
+    Scores,
+    Select,
+    Marquee,
+    Cover,
     Icon,
     SystemImage,
 }
 
 impl ArtworkKind {
-    const ALL: [Self; 6] = [
+    pub(crate) const ALL: [Self; 19] = [
         Self::Screenshot,
         Self::Cabinet,
-        Self::Marquee,
+        Self::ControlPanel,
+        Self::Pcb,
         Self::Flyer,
+        Self::TitleScreen,
+        Self::Ending,
+        Self::ArtworkPreview,
+        Self::Bosses,
+        Self::Logo,
+        Self::Versus,
+        Self::GameOver,
+        Self::HowTo,
+        Self::Scores,
+        Self::Select,
+        Self::Marquee,
+        Self::Cover,
         Self::Icon,
         Self::SystemImage,
     ];
 
-    fn directory_name(self) -> &'static str {
+    pub(crate) fn directory_name(self) -> &'static str {
         match self {
             Self::Screenshot => "snap",
             Self::Cabinet => "cabinets",
-            Self::Marquee => "marquees",
+            Self::ControlPanel => "cpanels",
+            Self::Pcb => "pcb",
             Self::Flyer => "flyers",
+            Self::TitleScreen => "titles",
+            Self::Ending => "ends",
+            Self::ArtworkPreview => "artpreview",
+            Self::Bosses => "bosses",
+            Self::Logo => "logos",
+            Self::Versus => "versus",
+            Self::GameOver => "gameover",
+            Self::HowTo => "howto",
+            Self::Scores => "scores",
+            Self::Select => "select",
+            Self::Marquee => "marquees",
+            Self::Cover => "covers",
             Self::Icon => "icons",
             Self::SystemImage => "systems",
         }
     }
 
-    fn asset_token(self) -> &'static str {
+    pub(crate) fn asset_token(self) -> &'static str {
         match self {
             Self::Screenshot => "screenshot",
             Self::Cabinet => "cabinet",
-            Self::Marquee => "marquee",
+            Self::ControlPanel => "controlPanel",
+            Self::Pcb => "pcb",
             Self::Flyer => "flyer",
+            Self::TitleScreen => "titleScreen",
+            Self::Ending => "ending",
+            Self::ArtworkPreview => "artworkPreview",
+            Self::Bosses => "bosses",
+            Self::Logo => "logo",
+            Self::Versus => "versus",
+            Self::GameOver => "gameOver",
+            Self::HowTo => "howTo",
+            Self::Scores => "scores",
+            Self::Select => "select",
+            Self::Marquee => "marquee",
+            Self::Cover => "cover",
             Self::Icon => "icon",
             Self::SystemImage => "systemImage",
         }
+    }
+
+    pub(crate) fn from_asset_token(token: &str) -> Option<Self> {
+        Some(match token {
+            "screenshot" => Self::Screenshot,
+            "cabinet" => Self::Cabinet,
+            "controlPanel" => Self::ControlPanel,
+            "pcb" => Self::Pcb,
+            "flyer" => Self::Flyer,
+            "titleScreen" => Self::TitleScreen,
+            "ending" => Self::Ending,
+            "artworkPreview" => Self::ArtworkPreview,
+            "bosses" => Self::Bosses,
+            "logo" => Self::Logo,
+            "versus" => Self::Versus,
+            "gameOver" => Self::GameOver,
+            "howTo" => Self::HowTo,
+            "scores" => Self::Scores,
+            "select" => Self::Select,
+            "marquee" => Self::Marquee,
+            "cover" => Self::Cover,
+            "icon" => Self::Icon,
+            "systemImage" => Self::SystemImage,
+            _ => return None,
+        })
     }
 }
 
@@ -87,8 +166,6 @@ pub enum ArtworkProvenanceKind {
 #[serde(rename_all = "camelCase")]
 pub struct ArtworkProvenance {
     pub kind: ArtworkProvenanceKind,
-    /// Stable configured-root ordinal. The root path itself is intentionally
-    /// not included in the public descriptor.
     pub root_index: u32,
 }
 
@@ -221,7 +298,6 @@ fn persist_artwork_settings(path: &Path, settings: &ArtworkSettingsV1) -> AppRes
 
     match fs::metadata(path) {
         Ok(_) => {
-            // Never silently replace a malformed or future-version document.
             load_artwork_settings(path)?;
         }
         Err(error) if error.kind() == ErrorKind::NotFound => {}
@@ -433,22 +509,45 @@ pub async fn pick_artwork_directory(app: AppHandle) -> AppResult<Option<Platform
 
 #[tauri::command]
 pub fn discover_machine_artwork(machine: String, app: AppHandle) -> AppResult<MachineArtwork> {
+    validate_short_identifier("machine", &machine)?;
     let settings = load_artwork_settings(&artwork_settings_path(&app)?)?;
-    discover_machine_artwork_from_roots(&machine, &settings.roots)
+    let repository = CatalogRepository::open(&storage::catalog_path(&app)?)?;
+    let detail = repository.machine_detail(&machine)?;
+    let parent = match detail.clone_of.as_deref() {
+        Some(parent) => {
+            let parent_detail = repository.machine_detail(parent)?;
+            (!parent_detail.is_bios).then(|| parent.to_owned())
+        }
+        None => None,
+    };
+    discover_machine_artwork_with_parent_from_roots(&machine, parent.as_deref(), &settings.roots)
 }
 
+#[cfg(test)]
 fn discover_machine_artwork_from_roots(
     machine: &str,
     roots: &[PlatformPath],
 ) -> AppResult<MachineArtwork> {
+    discover_machine_artwork_with_parent_from_roots(machine, None, roots)
+}
+
+fn discover_machine_artwork_with_parent_from_roots(
+    machine: &str,
+    parent: Option<&str>,
+    roots: &[PlatformPath],
+) -> AppResult<MachineArtwork> {
     validate_short_identifier("machine", machine)?;
+    if let Some(parent) = parent {
+        validate_short_identifier("parentMachine", parent)?;
+    }
     validate_artwork_roots(roots)?;
 
     let slots = ArtworkKind::ALL
         .into_iter()
         .map(|kind| ArtworkSlot {
             kind,
-            asset: find_local_artwork(machine, kind, roots),
+            asset: find_local_artwork(machine, kind, roots)
+                .or_else(|| parent.and_then(|parent| find_local_artwork(parent, kind, roots))),
         })
         .collect();
 
@@ -526,7 +625,8 @@ mod tests {
     use crate::config::{PathValidationStatus, PlatformPath};
 
     use super::{
-        apply_artwork_roots, discover_machine_artwork_from_roots, ArtworkKind, ArtworkProvenance,
+        apply_artwork_roots, discover_machine_artwork_from_roots,
+        discover_machine_artwork_with_parent_from_roots, ArtworkKind, ArtworkProvenance,
         ArtworkProvenanceKind,
     };
 
@@ -539,23 +639,27 @@ mod tests {
     }
 
     #[test]
-    fn artwork_model_serializes_all_required_mt801_categories() {
-        let kinds = [
-            ArtworkKind::Screenshot,
-            ArtworkKind::Cabinet,
-            ArtworkKind::Marquee,
-            ArtworkKind::Flyer,
-            ArtworkKind::Icon,
-            ArtworkKind::SystemImage,
-        ];
-
+    fn artwork_model_serializes_canonical_mame_categories_and_extensions() {
         assert_eq!(
-            serde_json::to_value(kinds).expect("serialize artwork kinds"),
+            serde_json::to_value(ArtworkKind::ALL).expect("serialize artwork kinds"),
             serde_json::json!([
                 "screenshot",
                 "cabinet",
-                "marquee",
+                "controlPanel",
+                "pcb",
                 "flyer",
+                "titleScreen",
+                "ending",
+                "artworkPreview",
+                "bosses",
+                "logo",
+                "versus",
+                "gameOver",
+                "howTo",
+                "scores",
+                "select",
+                "marquee",
+                "cover",
                 "icon",
                 "systemImage"
             ])
@@ -622,7 +726,7 @@ mod tests {
         )
         .expect("discover local artwork");
 
-        assert_eq!(discovered.slots.len(), 6);
+        assert_eq!(discovered.slots.len(), ArtworkKind::ALL.len());
         let screenshot = discovered
             .slots
             .iter()
@@ -647,6 +751,27 @@ mod tests {
             .asset
             .is_none());
 
+        fs::remove_dir_all(root).expect("remove temporary root");
+    }
+
+    #[test]
+    fn missing_clone_artwork_falls_back_to_authorized_parent() {
+        let root = temp_root("parent-fallback");
+        fs::create_dir_all(root.join("snap")).expect("create snap directory");
+        fs::write(root.join("snap/parent.png"), b"parent").expect("write parent screenshot");
+        let discovered = discover_machine_artwork_with_parent_from_roots(
+            "clone",
+            Some("parent"),
+            &[PlatformPath::new(&root)],
+        )
+        .expect("discover with parent fallback");
+        let screenshot = discovered
+            .slots
+            .iter()
+            .find(|slot| slot.kind == ArtworkKind::Screenshot)
+            .and_then(|slot| slot.asset.as_ref())
+            .expect("parent screenshot must be used");
+        assert_eq!(screenshot.machine, "parent");
         fs::remove_dir_all(root).expect("remove temporary root");
     }
 

@@ -146,6 +146,15 @@ impl CatalogImport<'_> {
                 }))
             })?;
 
+        if machine.requires_chd {
+            self.transaction
+                .execute(
+                    "INSERT INTO machine_disk_presence(generation_id, machine_short_name) VALUES (?1, ?2)",
+                    params![self.generation_id, machine.short_name],
+                )
+                .map_err(|error| database_error("CATALOG_METADATA_INSERT_FAILED", error))?;
+        }
+
         for chip in &machine.chips {
             let clock_hz = chip
                 .clock_hz

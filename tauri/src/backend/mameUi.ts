@@ -20,6 +20,8 @@ export type MameUiMachineFilter =
   | "sourceFile"
   | "saveSupported"
   | "saveUnsupported"
+  | "chdRequired"
+  | "noChdRequired"
   | "verticalScreen"
   | "horizontalScreen";
 
@@ -27,6 +29,7 @@ export type MameUiMachineSearchRequest = {
   text?: string | null;
   filter: MameUiMachineFilter;
   filterValue?: string | null;
+  preferredMachine?: string | null;
   limit?: number;
   offset?: number;
 };

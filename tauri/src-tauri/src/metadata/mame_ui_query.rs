@@ -30,6 +30,8 @@ pub(crate) enum MameUiMachineFilter {
     SourceFile,
     SaveSupported,
     SaveUnsupported,
+    ChdRequired,
+    NoChdRequired,
     VerticalScreen,
     HorizontalScreen,
 }
@@ -39,6 +41,7 @@ pub(crate) struct MameUiMachineQuery {
     pub text: Option<String>,
     pub filter: MameUiMachineFilter,
     pub filter_value: Option<String>,
+    pub preferred_machine: Option<String>,
     pub limit: u32,
     pub offset: u32,
     pub audit_identity_json: Option<String>,
@@ -83,9 +86,9 @@ impl CatalogRepository {
                 AND m.is_device = 0
                 AND (
                     :search_pattern IS NULL
-                    OR m.short_name LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
-                    OR m.description LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
-                    OR m.manufacturer LIKE :search_pattern ESCAPE '\' COLLATE NOCASE
+                    OR m.short_name LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
+                    OR m.description LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
+                    OR m.manufacturer LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
                 )
                 AND (:filter_value IS NULL OR :filter_value IS NOT NULL)
                 AND ({predicate})
@@ -105,7 +108,7 @@ impl CatalogRepository {
                 &total_sql,
                 named_params! {
                     ":generation_id": generation_id,
-                    ":search_pattern": search_pattern,
+                    ":search_pattern": search_pattern.as_deref(),
                     ":filter_value": query.filter_value.as_deref(),
                     ":audit_identity": query.audit_identity_json.as_deref(),
                     ":audit_paths": query.audit_content_paths_json.as_deref(),
@@ -119,6 +122,19 @@ impl CatalogRepository {
                 "The catalog returned an invalid negative result count.",
             )
         })?;
+
+        let effective_offset = if query.offset == 0 {
+            self.preferred_page_offset(
+                query,
+                generation_id,
+                search_pattern.as_deref(),
+                audit_join,
+                &sql_where,
+            )?
+            .unwrap_or(query.offset)
+        } else {
+            query.offset
+        };
 
         let sql = format!(
             r#"
@@ -155,12 +171,12 @@ impl CatalogRepository {
             .query_map(
                 named_params! {
                     ":generation_id": generation_id,
-                    ":search_pattern": search_pattern,
+                    ":search_pattern": search_pattern.as_deref(),
                     ":filter_value": query.filter_value.as_deref(),
                     ":audit_identity": query.audit_identity_json.as_deref(),
                     ":audit_paths": query.audit_content_paths_json.as_deref(),
                     ":limit": i64::from(query.limit),
-                    ":offset": i64::from(query.offset),
+                    ":offset": i64::from(effective_offset),
                 },
                 |row| {
                     Ok(StoredMameUiMachineItem {
@@ -207,11 +223,78 @@ impl CatalogRepository {
             schema_version: 1,
             generation_id,
             total,
-            offset: query.offset,
+            offset: effective_offset,
             limit: query.limit,
             items,
             availability_by_short_name,
         })
+    }
+
+    fn preferred_page_offset(
+        &self,
+        query: &MameUiMachineQuery,
+        generation_id: i64,
+        search_pattern: Option<&str>,
+        audit_join: &str,
+        sql_where: &str,
+    ) -> AppResult<Option<u32>> {
+        let Some(preferred_machine) = query.preferred_machine.as_deref() else {
+            return Ok(None);
+        };
+
+        let sql = format!(
+            r#"
+            WITH filtered AS (
+                SELECT
+                    m.short_name,
+                    ROW_NUMBER() OVER (
+                        ORDER BY m.description COLLATE NOCASE ASC, m.short_name COLLATE NOCASE ASC
+                    ) - 1 AS row_position
+                FROM machines m
+                {audit_join}
+                WHERE {sql_where}
+            )
+            SELECT row_position
+            FROM filtered
+            WHERE short_name = :preferred_machine
+            LIMIT 1
+            "#
+        );
+        let position: Option<i64> = self
+            .connection
+            .query_row(
+                &sql,
+                named_params! {
+                    ":generation_id": generation_id,
+                    ":search_pattern": search_pattern,
+                    ":filter_value": query.filter_value.as_deref(),
+                    ":audit_identity": query.audit_identity_json.as_deref(),
+                    ":audit_paths": query.audit_content_paths_json.as_deref(),
+                    ":preferred_machine": preferred_machine,
+                },
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(database_error)?;
+
+        position
+            .map(|position| {
+                let position = u64::try_from(position).map_err(|_| {
+                    AppError::new(
+                        "CATALOG_QUERY_RESULT_INVALID",
+                        "The catalog returned an invalid preferred-machine position.",
+                    )
+                })?;
+                let page_size = u64::from(query.limit);
+                let offset = (position / page_size) * page_size;
+                u32::try_from(offset).map_err(|_| {
+                    AppError::new(
+                        "CATALOG_QUERY_RESULT_INVALID",
+                        "The preferred-machine page offset exceeds the supported query range.",
+                    )
+                })
+            })
+            .transpose()
     }
 }
 
@@ -253,6 +336,12 @@ fn filter_predicate(filter: MameUiMachineFilter) -> &'static str {
         }
         MameUiMachineFilter::SaveUnsupported => {
             "m.driver_savestate IS NULL OR m.driver_savestate = 'unsupported'"
+        }
+        MameUiMachineFilter::ChdRequired => {
+            "EXISTS (SELECT 1 FROM machine_disk_presence md WHERE md.generation_id = m.generation_id AND md.machine_short_name = m.short_name)"
+        }
+        MameUiMachineFilter::NoChdRequired => {
+            "NOT EXISTS (SELECT 1 FROM machine_disk_presence md WHERE md.generation_id = m.generation_id AND md.machine_short_name = m.short_name)"
         }
         MameUiMachineFilter::VerticalScreen => {
             "EXISTS (SELECT 1 FROM displays d WHERE d.generation_id = m.generation_id AND d.machine_short_name = m.short_name AND d.rotate IN (90, 270))"
@@ -362,11 +451,21 @@ mod tests {
             MameUiMachineFilter::SourceFile,
             MameUiMachineFilter::SaveSupported,
             MameUiMachineFilter::SaveUnsupported,
+            MameUiMachineFilter::ChdRequired,
+            MameUiMachineFilter::NoChdRequired,
             MameUiMachineFilter::VerticalScreen,
             MameUiMachineFilter::HorizontalScreen,
         ] {
             assert!(!filter_predicate(filter).trim().is_empty());
         }
+    }
+
+    #[test]
+    fn chd_filters_use_authoritative_disk_presence_table() {
+        assert!(
+            filter_predicate(MameUiMachineFilter::ChdRequired).contains("machine_disk_presence")
+        );
+        assert!(filter_predicate(MameUiMachineFilter::NoChdRequired).contains("NOT EXISTS"));
     }
 
     #[test]

@@ -5,6 +5,7 @@ use crate::{
     config::settings_path,
     errors::{AppError, AppResult},
     library::audit::resolve_bulk_audit_context,
+    mame::validate_short_identifier,
     metadata::{CatalogRepository, MachinePage, MameUiMachineFilter, MameUiMachineQuery},
     storage,
 };
@@ -34,6 +35,8 @@ pub enum MameUiMachineFilterRequest {
     SourceFile,
     SaveSupported,
     SaveUnsupported,
+    ChdRequired,
+    NoChdRequired,
     VerticalScreen,
     HorizontalScreen,
 }
@@ -47,6 +50,8 @@ pub struct MameUiMachineSearchRequest {
     pub filter: MameUiMachineFilterRequest,
     #[serde(default)]
     pub filter_value: Option<String>,
+    #[serde(default)]
+    pub preferred_machine: Option<String>,
     #[serde(default = "default_page_size")]
     pub limit: u32,
     #[serde(default)]
@@ -83,6 +88,14 @@ fn validated_query(
     let text = normalize_optional(request.text, "text", MAX_SEARCH_TEXT_LENGTH)?;
     let filter_value =
         normalize_optional(request.filter_value, "filterValue", MAX_FILTER_VALUE_LENGTH)?;
+    let preferred_machine = request
+        .preferred_machine
+        .map(|value| {
+            let value = value.trim().to_owned();
+            validate_short_identifier("preferredMachine", &value)?;
+            Ok::<_, AppError>(value)
+        })
+        .transpose()?;
     let filter = map_filter(request.filter);
     let needs_value = matches!(
         filter,
@@ -111,6 +124,7 @@ fn validated_query(
         text,
         filter,
         filter_value,
+        preferred_machine,
         limit: request.limit,
         offset: request.offset,
         audit_identity_json,
@@ -137,6 +151,8 @@ fn map_filter(filter: MameUiMachineFilterRequest) -> MameUiMachineFilter {
         MameUiMachineFilterRequest::SourceFile => MameUiMachineFilter::SourceFile,
         MameUiMachineFilterRequest::SaveSupported => MameUiMachineFilter::SaveSupported,
         MameUiMachineFilterRequest::SaveUnsupported => MameUiMachineFilter::SaveUnsupported,
+        MameUiMachineFilterRequest::ChdRequired => MameUiMachineFilter::ChdRequired,
+        MameUiMachineFilterRequest::NoChdRequired => MameUiMachineFilter::NoChdRequired,
         MameUiMachineFilterRequest::VerticalScreen => MameUiMachineFilter::VerticalScreen,
         MameUiMachineFilterRequest::HorizontalScreen => MameUiMachineFilter::HorizontalScreen,
     }
@@ -206,6 +222,10 @@ mod tests {
         assert_eq!(
             map_filter(MameUiMachineFilterRequest::Favorites),
             MameUiMachineFilter::Favorites
+        );
+        assert_eq!(
+            map_filter(MameUiMachineFilterRequest::ChdRequired),
+            MameUiMachineFilter::ChdRequired
         );
         assert_eq!(
             map_filter(MameUiMachineFilterRequest::HorizontalScreen),

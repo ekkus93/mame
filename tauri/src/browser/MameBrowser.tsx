@@ -8,10 +8,12 @@ import {
   useState,
 } from "react";
 
+import type { ArtworkKind } from "../backend/artwork";
 import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import { queryMameUiLibrary } from "../backend/mameUi";
+import { getMameUiState, setMameUiState, type MameUiPanelMode } from "../backend/mameUiState";
 import type {
   MachineDetail,
   MachineListItem,
@@ -59,22 +61,58 @@ export function MameBrowser({
   const machineRowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
+  const [uiStateHydrated, setUiStateHydrated] = useState(false);
+  const [uiStateError, setUiStateError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MameBrowserFilter>("all");
   const [filterValue, setFilterValue] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
   const [offset, setOffset] = useState(0);
+  const [preferredMachine, setPreferredMachine] = useState<string | null>(null);
+  const [rememberedMachine, setRememberedMachine] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [rightView, setRightView] = useState<MachineRightView>("images");
+  const [primaryRightView, setPrimaryRightView] = useState<MameUiPanelMode>("images");
+  const [artworkKind, setArtworkKind] = useState<ArtworkKind>("screenshot");
+  const [softwareRightPanelMode, setSoftwareRightPanelMode] = useState<MameUiPanelMode>("images");
+  const [softwareArtworkKind, setSoftwareArtworkKind] = useState<ArtworkKind>("screenshot");
   const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(
     null,
   );
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
   const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMameUiState()
+      .then((saved) => {
+        if (cancelled) return;
+        setFilter(saved.filter);
+        setFilterValue(saved.filterValue ?? "");
+        setPreferredMachine(saved.lastMachine);
+        setRememberedMachine(saved.lastMachine);
+        setRightView(saved.rightPanelMode);
+        setPrimaryRightView(saved.rightPanelMode);
+        setArtworkKind(saved.artworkKind);
+        setSoftwareRightPanelMode(saved.softwareRightPanelMode);
+        setSoftwareArtworkKind(saved.softwareArtworkKind);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setUiStateError(`Saved browser state unavailable: ${errorMessage(reason)}`);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setUiStateHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 160);
@@ -88,10 +126,51 @@ export function MameBrowser({
 
   useEffect(() => setOffset(0), [filter, debouncedSearch, debouncedFilterValue]);
 
+  useEffect(() => {
+    if (selected) setRememberedMachine(selected.shortName);
+  }, [selected]);
+
+  useEffect(() => {
+    if (!uiStateHydrated) return;
+    const timer = window.setTimeout(() => {
+      void setMameUiState({
+        schemaVersion: 1,
+        lastMachine: rememberedMachine,
+        filter,
+        filterValue: filterValue.trim() || null,
+        rightPanelMode: primaryRightView,
+        artworkKind,
+        softwareRightPanelMode,
+        softwareArtworkKind,
+      })
+        .then(() => setUiStateError(null))
+        .catch((reason: unknown) => {
+          setUiStateError(`Browser state could not be saved: ${errorMessage(reason)}`);
+        });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [
+    artworkKind,
+    filter,
+    filterValue,
+    primaryRightView,
+    rememberedMachine,
+    softwareArtworkKind,
+    softwareRightPanelMode,
+    uiStateHydrated,
+  ]);
+
   const valueRequired = filterRequiresValue(filter);
   const request = useMemo(
-    () => buildMameBrowserRequest(filter, debouncedSearch, debouncedFilterValue, offset),
-    [filter, debouncedSearch, debouncedFilterValue, offset],
+    () =>
+      buildMameBrowserRequest(
+        filter,
+        debouncedSearch,
+        debouncedFilterValue,
+        offset,
+        offset === 0 ? preferredMachine : null,
+      ),
+    [filter, debouncedSearch, debouncedFilterValue, offset, preferredMachine],
   );
 
   const refreshGameplayOwnership = useCallback(() => {
@@ -107,6 +186,7 @@ export function MameBrowser({
   }, [refreshGameplayOwnership]);
 
   useEffect(() => {
+    if (!uiStateHydrated) return;
     const sequence = ++querySequence.current;
     if (valueRequired && !debouncedFilterValue) {
       setLoadState({ status: "awaitingFilterValue" });
@@ -119,19 +199,32 @@ export function MameBrowser({
       .then((page) => {
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
+        if (page.offset !== offset) setOffset(page.offset);
         setSelected((current) => {
           if (current && page.items.some((item) => item.shortName === current.shortName)) {
             return current;
           }
-          return page.items[0] ?? null;
+          const preferred = preferredMachine
+            ? page.items.find((item) => item.shortName === preferredMachine)
+            : null;
+          return preferred ?? page.items[0] ?? null;
         });
+        if (preferredMachine) setPreferredMachine(null);
       })
       .catch((reason: unknown) => {
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "error", message: errorMessage(reason) });
         setSelected(null);
       });
-  }, [availabilityRevision, debouncedFilterValue, request, valueRequired]);
+  }, [
+    availabilityRevision,
+    debouncedFilterValue,
+    offset,
+    preferredMachine,
+    request,
+    uiStateHydrated,
+    valueRequired,
+  ]);
 
   useEffect(() => {
     if (!selected) {
@@ -256,7 +349,13 @@ export function MameBrowser({
     if (next !== filter) {
       setFilter(next);
       setFilterValue("");
+      setPreferredMachine(null);
     }
+  }
+
+  function changeRightView(next: MachineRightView) {
+    setRightView(next);
+    if (next === "images" || next === "info") setPrimaryRightView(next);
   }
 
   return (
@@ -271,7 +370,10 @@ export function MameBrowser({
             aria-keyshortcuts="/"
             placeholder="Search systems..."
             autoComplete="off"
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPreferredMachine(null);
+            }}
           />
         </label>
         <span className="mame-browser-range" aria-live="polite">
@@ -295,14 +397,14 @@ export function MameBrowser({
             <button
               type="button"
               className="secondary-button"
-              onClick={() => setRightView("audit")}
+              onClick={() => changeRightView("audit")}
             >
               Audit
             </button>
             <button
               type="button"
               className="secondary-button"
-              onClick={() => setRightView("settings")}
+              onClick={() => changeRightView("settings")}
             >
               Configure
             </button>
@@ -310,7 +412,7 @@ export function MameBrowser({
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => setRightView("software")}
+                onClick={() => changeRightView("software")}
               >
                 Software
               </button>
@@ -319,6 +421,11 @@ export function MameBrowser({
         )}
       </div>
 
+      {uiStateError && (
+        <div className="mame-browser-banner is-error" role="status">
+          {uiStateError}
+        </div>
+      )}
       {launchState.status === "error" && (
         <div className="mame-browser-banner is-error" role="alert">
           {launchState.message}
@@ -335,7 +442,10 @@ export function MameBrowser({
           active={filter}
           filterValue={filterValue}
           onChange={changeFilter}
-          onFilterValueChange={setFilterValue}
+          onFilterValueChange={(value) => {
+            setFilterValue(value);
+            setPreferredMachine(null);
+          }}
         />
 
         <section
@@ -344,13 +454,14 @@ export function MameBrowser({
           aria-busy={loadState.status === "loading"}
         >
           <div className="mame-region-heading">Machines</div>
-          {loadState.status === "awaitingFilterValue" && (
+          {!uiStateHydrated && <div className="mame-panel-state">Restoring browser state…</div>}
+          {uiStateHydrated && loadState.status === "awaitingFilterValue" && (
             <div className="mame-panel-state">Enter a value for the selected filter.</div>
           )}
-          {loadState.status === "loading" && (
+          {uiStateHydrated && loadState.status === "loading" && (
             <div className="mame-panel-state">Loading catalog…</div>
           )}
-          {loadState.status === "error" && (
+          {uiStateHydrated && loadState.status === "error" && (
             <div className="mame-panel-state" role="alert">
               {loadState.message}
             </div>
@@ -376,7 +487,10 @@ export function MameBrowser({
                 type="button"
                 className="secondary-button"
                 disabled={page.offset === 0}
-                onClick={() => setOffset(Math.max(0, page.offset - page.limit))}
+                onClick={() => {
+                  setPreferredMachine(null);
+                  setOffset(Math.max(0, page.offset - page.limit));
+                }}
               >
                 Previous
               </button>
@@ -385,7 +499,10 @@ export function MameBrowser({
                 type="button"
                 className="secondary-button"
                 disabled={page.offset + page.items.length >= page.total}
-                onClick={() => setOffset(page.offset + page.limit)}
+                onClick={() => {
+                  setPreferredMachine(null);
+                  setOffset(page.offset + page.limit);
+                }}
               >
                 Next
               </button>
@@ -397,7 +514,9 @@ export function MameBrowser({
           <MachineRightPanel
             detail={detail}
             view={rightView}
-            onViewChange={setRightView}
+            onViewChange={changeRightView}
+            artworkKind={artworkKind}
+            onArtworkKindChange={setArtworkKind}
             pendingLaunchOverrides={pendingLaunchOverrides}
             onPendingLaunchOverridesChanged={setPendingLaunchOverrides}
             onAuditResultChanged={onAuditResultsChanged}

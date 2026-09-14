@@ -1,4 +1,4 @@
-//! Bounded, path-blind reads for local artwork selected by MT-802 discovery.
+//! Bounded, path-blind reads for local artwork selected by artwork discovery.
 //!
 //! The WebView never supplies or receives a host filesystem path. Asset IDs are
 //! parsed as untrusted input and re-authorized against the current persisted
@@ -15,6 +15,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
 use crate::{
+    artwork::ArtworkKind,
     config::PlatformPath,
     errors::{AppError, AppResult},
     mame::validate_short_identifier,
@@ -202,16 +203,8 @@ fn parse_asset_id(asset_id: &str) -> AppResult<ParsedAssetId<'_>> {
     let root_index = parts[1].parse::<usize>().map_err(|_| invalid_asset_id())?;
     let machine = parts[2];
     validate_short_identifier("machine", machine).map_err(|_| invalid_asset_id())?;
+    let kind = ArtworkKind::from_asset_token(parts[3]).ok_or_else(invalid_asset_id)?;
 
-    let directory = match parts[3] {
-        "screenshot" => "snap",
-        "cabinet" => "cabinets",
-        "marquee" => "marquees",
-        "flyer" => "flyers",
-        "icon" => "icons",
-        "systemImage" => "systems",
-        _ => return Err(invalid_asset_id()),
-    };
     let (extension, mime_type) = match parts[4] {
         "png" => ("png", "image/png"),
         "jpg" => ("jpg", "image/jpeg"),
@@ -223,7 +216,7 @@ fn parse_asset_id(asset_id: &str) -> AppResult<ParsedAssetId<'_>> {
     Ok(ParsedAssetId {
         root_index,
         machine,
-        directory,
+        directory: kind.directory_name(),
         mime_type,
         extension,
     })
@@ -310,6 +303,13 @@ mod tests {
         assert_eq!(encode_base64(b"f"), "Zg==");
         assert_eq!(encode_base64(b"fo"), "Zm8=");
         assert_eq!(encode_base64(b"foo"), "Zm9v");
+    }
+
+    #[test]
+    fn asset_id_parser_accepts_canonical_mame_categories() {
+        let parsed = parse_asset_id("local:0:pacman:controlPanel:png")
+            .expect("canonical artwork token must parse");
+        assert_eq!(parsed.directory, "cpanels");
     }
 
     #[test]

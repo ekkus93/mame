@@ -19,8 +19,21 @@ export type MachineRightView = "images" | "info" | "audit" | "settings" | "softw
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
   cabinet: "Cabinet",
-  marquee: "Marquee",
+  controlPanel: "Control Panel",
+  pcb: "PCB",
   flyer: "Flyer",
+  titleScreen: "Title Screen",
+  ending: "Ending",
+  artworkPreview: "Artwork Preview",
+  bosses: "Bosses",
+  logo: "Logo",
+  versus: "Versus",
+  gameOver: "Game Over",
+  howTo: "HowTo",
+  scores: "Scores",
+  select: "Select",
+  marquee: "Marquee",
+  cover: "Covers",
   icon: "Icon",
   systemImage: "System image",
 };
@@ -29,6 +42,8 @@ export function MachineRightPanel({
   detail,
   view,
   onViewChange,
+  artworkKind,
+  onArtworkKindChange,
   pendingLaunchOverrides,
   onPendingLaunchOverridesChanged,
   onAuditResultChanged,
@@ -37,6 +52,8 @@ export function MachineRightPanel({
   detail: MachineDetail;
   view: MachineRightView;
   onViewChange: (view: MachineRightView) => void;
+  artworkKind: ArtworkKind;
+  onArtworkKindChange: (kind: ArtworkKind) => void;
   pendingLaunchOverrides: LaunchPreferences | null;
   onPendingLaunchOverridesChanged: (preferences: LaunchPreferences | null) => void;
   onAuditResultChanged: () => void;
@@ -65,7 +82,13 @@ export function MachineRightPanel({
         </button>
       </div>
 
-      {view === "images" && <ArtworkPane machine={detail.shortName} />}
+      {view === "images" && (
+        <ArtworkPane
+          machine={detail.shortName}
+          selectedKind={artworkKind}
+          onSelectedKindChange={onArtworkKindChange}
+        />
+      )}
       {view === "info" && <InfoPane detail={detail} />}
       {view === "audit" && (
         <MachineAuditPanel
@@ -91,35 +114,38 @@ export function MachineRightPanel({
   );
 }
 
-function ArtworkPane({ machine }: { machine: string }) {
-  const requestId = useRef(0);
+function ArtworkPane({
+  machine,
+  selectedKind,
+  onSelectedKindChange,
+}: {
+  machine: string;
+  selectedKind: ArtworkKind;
+  onSelectedKindChange: (kind: ArtworkKind) => void;
+}) {
+  const discoveryRequestId = useRef(0);
+  const assetRequestId = useRef(0);
   const [artwork, setArtwork] = useState<MachineArtwork | null>(null);
-  const [selectedKind, setSelectedKind] = useState<ArtworkKind>("screenshot");
   const [asset, setAsset] = useState<ArtworkAssetPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = ++requestId.current;
+    const id = ++discoveryRequestId.current;
+    assetRequestId.current += 1;
     setArtwork(null);
     setAsset(null);
     setLoading(true);
     setError(null);
     void discoverMachineArtwork(machine)
       .then((result) => {
-        if (requestId.current !== id) return;
-        setArtwork(result);
-        const preferred = result.slots.find(
-          (slot) => slot.kind === "screenshot" && slot.asset,
-        )?.kind;
-        const fallback = result.slots.find((slot) => slot.asset)?.kind;
-        setSelectedKind(preferred ?? fallback ?? "screenshot");
+        if (discoveryRequestId.current === id) setArtwork(result);
       })
       .catch((reason: unknown) => {
-        if (requestId.current === id) setError(String(reason));
+        if (discoveryRequestId.current === id) setError(String(reason));
       })
       .finally(() => {
-        if (requestId.current === id) setLoading(false);
+        if (discoveryRequestId.current === id) setLoading(false);
       });
   }, [machine]);
 
@@ -130,19 +156,19 @@ function ArtworkPane({ machine }: { machine: string }) {
 
   useEffect(() => {
     const descriptor = slot?.asset;
+    const id = ++assetRequestId.current;
     if (!descriptor) {
       setAsset(null);
       return;
     }
-    const id = ++requestId.current;
     setAsset(null);
     setError(null);
     void readArtworkAsset(descriptor.assetId)
       .then((payload) => {
-        if (requestId.current === id) setAsset(payload);
+        if (assetRequestId.current === id) setAsset(payload);
       })
       .catch((reason: unknown) => {
-        if (requestId.current === id) setError(String(reason));
+        if (assetRequestId.current === id) setError(String(reason));
       });
   }, [slot]);
 
@@ -164,7 +190,7 @@ function ArtworkPane({ machine }: { machine: string }) {
             type="button"
             className={selectedKind === candidate.kind ? "is-selected" : ""}
             aria-pressed={selectedKind === candidate.kind}
-            onClick={() => setSelectedKind(candidate.kind)}
+            onClick={() => onSelectedKindChange(candidate.kind)}
           >
             {ARTWORK_LABELS[candidate.kind]}
           </button>
@@ -172,7 +198,10 @@ function ArtworkPane({ machine }: { machine: string }) {
       </div>
       <div className="mame-artwork-frame">
         {asset ? (
-          <img src={asset.dataUrl} alt={`${machine} ${ARTWORK_LABELS[selectedKind]}`} />
+          <img
+            src={asset.dataUrl}
+            alt={`${slot?.asset?.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
+          />
         ) : (
           <div className="mame-panel-state">
             No {ARTWORK_LABELS[selectedKind].toLowerCase()} artwork found.
