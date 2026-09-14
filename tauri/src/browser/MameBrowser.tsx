@@ -8,14 +8,10 @@ import {
   useState,
 } from "react";
 
-import {
-  getMameMachineDetail,
-  getMameSession,
-  launchLibraryMachine,
-  queryMameLibrary,
-} from "../backend/commands";
+import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
+import { queryMameUiLibrary } from "../backend/mameUi";
 import type {
   MachineDetail,
   MachineListItem,
@@ -27,9 +23,15 @@ import { isEditableElement, isGameplaySessionState } from "../library/keyboardNa
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
 import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
-import { buildMameBrowserRequest, nextBrowserIndex, type MameBrowserFilter } from "./model";
+import {
+  buildMameBrowserRequest,
+  filterRequiresValue,
+  nextBrowserIndex,
+  type MameBrowserFilter,
+} from "./model";
 
 type LoadState =
+  | { status: "awaitingFilterValue" }
   | { status: "loading" }
   | { status: "ready"; page: MachinePage }
   | { status: "error"; message: string };
@@ -58,8 +60,10 @@ export function MameBrowser({
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
   const [filter, setFilter] = useState<MameBrowserFilter>("all");
+  const [filterValue, setFilterValue] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
   const [offset, setOffset] = useState(0);
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [selected, setSelected] = useState<MachineListItem | null>(null);
@@ -77,11 +81,17 @@ export function MameBrowser({
     return () => window.clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => setOffset(0), [filter, debouncedSearch]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedFilterValue(filterValue.trim()), 160);
+    return () => window.clearTimeout(timer);
+  }, [filterValue]);
 
+  useEffect(() => setOffset(0), [filter, debouncedSearch, debouncedFilterValue]);
+
+  const valueRequired = filterRequiresValue(filter);
   const request = useMemo(
-    () => buildMameBrowserRequest(filter, debouncedSearch, offset),
-    [filter, debouncedSearch, offset],
+    () => buildMameBrowserRequest(filter, debouncedSearch, debouncedFilterValue, offset),
+    [filter, debouncedSearch, debouncedFilterValue, offset],
   );
 
   const refreshGameplayOwnership = useCallback(() => {
@@ -98,8 +108,14 @@ export function MameBrowser({
 
   useEffect(() => {
     const sequence = ++querySequence.current;
+    if (valueRequired && !debouncedFilterValue) {
+      setLoadState({ status: "awaitingFilterValue" });
+      setSelected(null);
+      return;
+    }
+
     setLoadState({ status: "loading" });
-    void queryMameLibrary(request)
+    void queryMameUiLibrary(request)
       .then((page) => {
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
@@ -115,7 +131,7 @@ export function MameBrowser({
         setLoadState({ status: "error", message: errorMessage(reason) });
         setSelected(null);
       });
-  }, [availabilityRevision, request]);
+  }, [availabilityRevision, debouncedFilterValue, request, valueRequired]);
 
   useEffect(() => {
     if (!selected) {
@@ -236,6 +252,13 @@ export function MameBrowser({
 
   const detail = detailState.status === "ready" ? detailState.detail : null;
 
+  function changeFilter(next: MameBrowserFilter) {
+    if (next !== filter) {
+      setFilter(next);
+      setFilterValue("");
+    }
+  }
+
   return (
     <section className="mame-browser" aria-label="MAME machine selection">
       <div className="mame-browser-toolbar">
@@ -308,7 +331,12 @@ export function MameBrowser({
       )}
 
       <div className="mame-browser-grid">
-        <MachineFilterPanel active={filter} onChange={setFilter} />
+        <MachineFilterPanel
+          active={filter}
+          filterValue={filterValue}
+          onChange={changeFilter}
+          onFilterValueChange={setFilterValue}
+        />
 
         <section
           className="mame-list-region"
@@ -316,6 +344,9 @@ export function MameBrowser({
           aria-busy={loadState.status === "loading"}
         >
           <div className="mame-region-heading">Machines</div>
+          {loadState.status === "awaitingFilterValue" && (
+            <div className="mame-panel-state">Enter a value for the selected filter.</div>
+          )}
           {loadState.status === "loading" && (
             <div className="mame-panel-state">Loading catalog…</div>
           )}

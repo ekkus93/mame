@@ -10,6 +10,7 @@ mod detail;
 mod favorites;
 mod generator;
 mod history;
+mod mame_ui_query;
 mod model;
 mod parser;
 #[cfg(test)]
@@ -46,6 +47,7 @@ pub(crate) use catalog::{
     AvailabilityFilter, CatalogRepository, CloneFilter, MachineAvailabilityQuery, MachineQuery,
     MachineSort,
 };
+pub(crate) use mame_ui_query::{MameUiMachineFilter, MameUiMachineQuery};
 pub(crate) use software::parse_software_list_page;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

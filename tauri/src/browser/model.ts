@@ -1,12 +1,13 @@
-import type { MachineSearchRequest } from "../backend/types";
+import type { MameUiMachineFilter, MameUiMachineSearchRequest } from "../backend/mameUi";
 
-export type MameBrowserFilter =
-  "all" | "available" | "unavailable" | "working" | "parents" | "clones";
+export type MameBrowserFilter = MameUiMachineFilter;
+export type MameBrowserFilterValueKind = "manufacturer" | "year" | "sourceFile";
 
 export type MameBrowserFilterDefinition = {
   id: MameBrowserFilter;
   label: string;
   description: string;
+  valueKind?: MameBrowserFilterValueKind;
 };
 
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
@@ -17,48 +18,79 @@ export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
     label: "Unavailable",
     description: "Required media is missing or incorrect",
   },
-  { id: "working", label: "Working", description: "Drivers reported as working" },
+  { id: "working", label: "Working", description: "Systems not marked not-working" },
+  {
+    id: "notWorking",
+    label: "Not Working",
+    description: "Systems marked preliminary / not working",
+  },
+  { id: "mechanical", label: "Mechanical", description: "Mechanical systems" },
+  {
+    id: "notMechanical",
+    label: "Not Mechanical",
+    description: "Non-mechanical systems",
+  },
+  { id: "favorites", label: "Favorites", description: "User-favorited systems" },
+  { id: "bios", label: "BIOS", description: "BIOS root systems" },
+  { id: "notBios", label: "Not BIOS", description: "Systems that are not BIOS roots" },
   { id: "parents", label: "Parents", description: "Parent systems only" },
   { id: "clones", label: "Clones", description: "Clone systems only" },
+  {
+    id: "manufacturer",
+    label: "Manufacturer",
+    description: "Systems from a manufacturer",
+    valueKind: "manufacturer",
+  },
+  { id: "year", label: "Year", description: "Systems from a year", valueKind: "year" },
+  {
+    id: "sourceFile",
+    label: "Source File",
+    description: "Systems imported from a MAME source file",
+    valueKind: "sourceFile",
+  },
+  {
+    id: "saveSupported",
+    label: "Save Supported",
+    description: "Systems whose MAME driver supports save states",
+  },
+  {
+    id: "saveUnsupported",
+    label: "Save Unsupported",
+    description: "Systems whose MAME driver does not support save states",
+  },
+  {
+    id: "verticalScreen",
+    label: "Vertical Screen",
+    description: "Systems with a rotated vertical display",
+  },
+  {
+    id: "horizontalScreen",
+    label: "Horizontal Screen",
+    description: "Systems not marked with a rotated vertical display",
+  },
 ];
 
 export const MAME_BROWSER_PAGE_SIZE = 100;
 
+export function filterRequiresValue(filter: MameBrowserFilter): boolean {
+  return MAME_BROWSER_FILTERS.some(
+    (definition) => definition.id === filter && definition.valueKind !== undefined,
+  );
+}
+
 export function buildMameBrowserRequest(
   filter: MameBrowserFilter,
   text: string,
+  filterValue: string,
   offset = 0,
-): MachineSearchRequest {
-  const request: MachineSearchRequest = {
+): MameUiMachineSearchRequest {
+  return {
     text: text.trim() || null,
-    cloneFilter: "all",
-    sort: "descriptionAsc",
-    includeDevices: false,
+    filter,
+    filterValue: filterValue.trim() || null,
     limit: MAME_BROWSER_PAGE_SIZE,
     offset: Math.max(0, offset),
   };
-
-  switch (filter) {
-    case "available":
-      request.availability = "available";
-      break;
-    case "unavailable":
-      request.availability = "missing";
-      break;
-    case "working":
-      request.driverStatus = "good";
-      break;
-    case "parents":
-      request.cloneFilter = "parentsOnly";
-      break;
-    case "clones":
-      request.cloneFilter = "clonesOnly";
-      break;
-    case "all":
-      break;
-  }
-
-  return request;
 }
 
 export function nextBrowserIndex(
