@@ -16,6 +16,16 @@ fn replace_once(source: String, from: &str, to: &str, label: &str) -> String {
 
 fn compose_runtime_control() {
     println!("cargo:rerun-if-changed=src/sessions/control.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_registry.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_bootstrap.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_channel.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_requests.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_wait.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_correlation.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_parser.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_events.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_protocol.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_tests.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_exit.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_save_state.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_load_state.rs");

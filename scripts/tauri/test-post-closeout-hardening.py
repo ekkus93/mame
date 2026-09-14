@@ -10,6 +10,18 @@ SESSION_PANEL = ROOT / "tauri/src/session/SessionControlPanel.tsx"
 APP = ROOT / "tauri/src/App.tsx"
 TYPES = ROOT / "tauri/src/backend/types.ts"
 CONTROL_RS = ROOT / "tauri/src-tauri/src/sessions/control.rs"
+CONTROL_SPLIT_FILES = (
+    "control_registry.rs",
+    "control_bootstrap.rs",
+    "control_channel.rs",
+    "control_requests.rs",
+    "control_wait.rs",
+    "control_correlation.rs",
+    "control_parser.rs",
+    "control_events.rs",
+    "control_protocol.rs",
+    "control_tests.rs",
+)
 BUILD_RS = ROOT / "tauri/src-tauri/build.rs"
 WORKFLOW = ROOT / ".github/workflows/tauri-project.yml"
 SPEC = ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md"
@@ -32,6 +44,31 @@ def main() -> int:
     app = read(APP)
     types = read(TYPES)
     control_rs = read(CONTROL_RS)
+    control_line_count = len(control_rs.splitlines())
+    if control_line_count >= 800:
+        raise SystemExit(
+            "post-closeout hardening regression: control.rs must remain under "
+            f"800 lines after split refactor; found {control_line_count}"
+        )
+    control_split_texts = []
+    for split_name in CONTROL_SPLIT_FILES:
+        split_path = ROOT / "tauri/src-tauri/src/sessions" / split_name
+        control_split_texts.append(read(split_path))
+        require(control_rs, split_name, "runtime-control split include")
+    control_combined = "\n".join([control_rs, *control_split_texts])
+    require(
+        control_rs,
+        'include_str!("control_pause_resume.lua")',
+        "runtime-control Lua composition anchor",
+    )
+    if any(
+        'include_str!("control_pause_resume.lua")' in text
+        for text in control_split_texts
+    ):
+        raise SystemExit(
+            "post-closeout hardening regression: runtime-control Lua composition anchor "
+            "must remain in control.rs for build.rs rewriting"
+        )
     build_rs = read(BUILD_RS)
     workflow = read(WORKFLOW)
     spec = read(SPEC)
@@ -91,9 +128,9 @@ def main() -> int:
             "post-closeout hardening regression: save-state compatibility must not widen SessionSnapshot ad hoc"
         )
 
-    require(control_rs, "std::fs::Permissions::from_mode(0o600)", "Unix bootstrap chmod")
+    require(control_combined, "std::fs::Permissions::from_mode(0o600)", "Unix bootstrap chmod")
     for token in ("std::fs::Permissions::from_mode(0o600)", "#[cfg(not(unix))]"):
-        require(control_rs, token, "runtime-control bootstrap platform boundary")
+        require(control_combined, token, "runtime-control bootstrap platform boundary")
     for token in ("TEMP directory ACLs", "per-session frame-token entropy", "RAII cleanup"):
         require(spec, token, "non-Unix bootstrap security documentation")
 
@@ -106,6 +143,8 @@ def main() -> int:
         "replace_once",
     ):
         require(build_rs, token, "runtime-control source-generation guardrail")
+    for split_name in CONTROL_SPLIT_FILES:
+        require(build_rs, split_name, "runtime-control split rerun guard")
 
     require(workflow, "Post-closeout hardening regression tests", "CI wiring")
     require(workflow, "python3 scripts/tauri/test-post-closeout-hardening.py", "CI wiring")
