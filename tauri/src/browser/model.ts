@@ -66,7 +66,7 @@ export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   {
     id: "horizontalScreen",
     label: "Horizontal Screen",
-    description: "Systems not marked with a rotated vertical display",
+    description: "Systems with displays that are not vertically rotated",
   },
 ];
 
@@ -83,11 +83,13 @@ export function buildMameBrowserRequest(
   text: string,
   filterValue: string,
   offset = 0,
+  preferredMachine: string | null = null,
 ): MameUiMachineSearchRequest {
   return {
     text: text.trim() || null,
     filter,
     filterValue: filterValue.trim() || null,
+    preferredMachine,
     limit: MAME_BROWSER_PAGE_SIZE,
     offset: Math.max(0, offset),
   };
