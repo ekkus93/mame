@@ -1,0 +1,121 @@
+.mame-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  color: CanvasText;
+  background: Canvas;
+}
+
+.mame-shell__topbar {
+  min-height: 3.25rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: color-mix(in srgb, Canvas 94%, currentColor 6%);
+}
+
+.mame-shell__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  white-space: nowrap;
+}
+
+.mame-shell__brand strong {
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.mame-shell__brand span,
+.mame-shell__identity,
+.mame-shell__statusbar {
+  font-size: 0.76rem;
+  opacity: 0.78;
+}
+
+.mame-shell__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mame-shell__nav button {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  color: inherit;
+  background: transparent;
+}
+
+.mame-shell__nav button:hover,
+.mame-shell__nav button.is-active {
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.mame-shell__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.mame-shell__identity span {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mame-shell__workspace {
+  min-height: 0;
+  overflow: auto;
+}
+
+.mame-shell__statusbar {
+  min-height: 1.8rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0.8rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, Canvas 96%, currentColor 4%);
+}
+
+.legacy-dashboard {
+  width: min(1480px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1rem 0 2rem;
+}
+
+.legacy-dashboard__notice {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .mame-shell__topbar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .mame-shell__nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .mame-shell__identity span {
+    display: none;
+  }
+
+  .mame-shell__statusbar {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
