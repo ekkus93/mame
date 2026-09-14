@@ -28,6 +28,7 @@ def forbid(text: str, token: str, label: str) -> None:
 def main() -> int:
     app = read("tauri/src/App.tsx")
     shell = read("tauri/src/shell/MameShell.tsx")
+    shell_base_css = read("tauri/src/shell/MameShell.css")
     shell_css = read("tauri/src/shell/ContextualSurfaces.css")
     browser = read("tauri/src/browser/MameBrowser.tsx")
     filters = read("tauri/src/browser/MachineFilterPanel.tsx")
@@ -60,6 +61,7 @@ def main() -> int:
     require(shell, "mame-session-status", "active-session shell status")
     forbid(shell, "LibraryBrowser", "legacy library composition")
     forbid(shell, '"legacy"', "legacy shell route")
+    forbid(shell_base_css, "mame-legacy", "legacy dashboard-only CSS")
 
     for token in ("MachineFilterPanel", "MachineList", "MachineRightPanel", "SoftwareBrowser"):
         require(browser, token, "MAME browser composition")
@@ -100,7 +102,12 @@ def main() -> int:
         "SaveStateBrowser",
     ):
         require(session, token, "contextual session capability")
-    for token in ("saveKnownState", "loadKnownSaveState", "deleteSaveStateRecord", "saveStateCompatibility"):
+    for token in (
+        "saveKnownState",
+        "loadKnownSaveState",
+        "deleteSaveStateRecord",
+        "saveStateCompatibility",
+    ):
         require(save_states, token, "contextual save-state capability")
 
     require(shell_css, ":focus-visible", "visible keyboard focus")

@@ -42,8 +42,7 @@
 .mame-shell-nav button,
 .mame-right-tabs button,
 .mame-artwork-categories button,
-.mame-filter,
-.mame-legacy-link {
+.mame-filter {
   min-height: 0;
   border: 0;
   border-radius: 0;
@@ -425,22 +424,6 @@
   background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
   font-size: 0.68rem;
   opacity: 0.78;
-}
-
-.mame-status-bar .mame-legacy-link {
-  margin-left: auto;
-  padding: 0.2rem 0.35rem;
-  font-size: inherit;
-  text-decoration: underline;
-}
-
-.mame-legacy-stack {
-  width: min(1480px, calc(100% - 2rem));
-  margin: 1rem auto;
-}
-
-.mame-legacy-stack > * + * {
-  margin-top: 1rem;
 }
 
 @media (max-width: 1050px) {
