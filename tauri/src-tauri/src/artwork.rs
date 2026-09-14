@@ -523,6 +523,7 @@ pub fn discover_machine_artwork(machine: String, app: AppHandle) -> AppResult<Ma
     discover_machine_artwork_with_parent_from_roots(&machine, parent.as_deref(), &settings.roots)
 }
 
+#[cfg(test)]
 fn discover_machine_artwork_from_roots(
     machine: &str,
     roots: &[PlatformPath],
@@ -642,9 +643,25 @@ mod tests {
         assert_eq!(
             serde_json::to_value(ArtworkKind::ALL).expect("serialize artwork kinds"),
             serde_json::json!([
-                "screenshot", "cabinet", "controlPanel", "pcb", "flyer", "titleScreen",
-                "ending", "artworkPreview", "bosses", "logo", "versus", "gameOver", "howTo",
-                "scores", "select", "marquee", "cover", "icon", "systemImage"
+                "screenshot",
+                "cabinet",
+                "controlPanel",
+                "pcb",
+                "flyer",
+                "titleScreen",
+                "ending",
+                "artworkPreview",
+                "bosses",
+                "logo",
+                "versus",
+                "gameOver",
+                "howTo",
+                "scores",
+                "select",
+                "marquee",
+                "cover",
+                "icon",
+                "systemImage"
             ])
         );
     }
