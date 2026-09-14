@@ -225,8 +225,7 @@
 
 .mame-machine-row {
   display: grid;
-  grid-template-columns:
-    minmax(12rem, 2fr) 7rem 4rem minmax(8rem, 1fr) 6.5rem 6.5rem;
+  grid-template-columns: minmax(12rem, 2fr) 7rem 4rem minmax(8rem, 1fr) 6.5rem 6.5rem;
   align-items: center;
   gap: 0.55rem;
   width: 100%;

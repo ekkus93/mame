@@ -109,9 +109,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           />
         )}
         {view === "session" && <SessionControlPanel />}
-        {view === "audit" && (
-          <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
-        )}
+        {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
         {view === "history" && <RecentHistoryPanel />}
         {view === "collections" && <CollectionManager />}
         {view === "settings" && (

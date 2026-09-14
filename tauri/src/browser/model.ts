@@ -1,12 +1,7 @@
 import type { MachineSearchRequest } from "../backend/types";
 
 export type MameBrowserFilter =
-  | "all"
-  | "available"
-  | "unavailable"
-  | "working"
-  | "parents"
-  | "clones";
+  "all" | "available" | "unavailable" | "working" | "parents" | "clones";
 
 export type MameBrowserFilterDefinition = {
   id: MameBrowserFilter;

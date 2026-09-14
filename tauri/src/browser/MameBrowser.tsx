@@ -27,11 +27,7 @@ import { isEditableElement, isGameplaySessionState } from "../library/keyboardNa
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
 import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
-import {
-  buildMameBrowserRequest,
-  nextBrowserIndex,
-  type MameBrowserFilter,
-} from "./model";
+import { buildMameBrowserRequest, nextBrowserIndex, type MameBrowserFilter } from "./model";
 
 type LoadState =
   | { status: "loading" }
@@ -69,13 +65,11 @@ export function MameBrowser({
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [rightView, setRightView] = useState<MachineRightView>("images");
-  const [pendingLaunchOverrides, setPendingLaunchOverrides] =
-    useState<LaunchPreferences | null>(null);
-  const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
-  const [favoriteRevision, bumpFavoriteRevision] = useReducer(
-    (value: number) => value + 1,
-    0,
+  const [pendingLaunchOverrides, setPendingLaunchOverrides] = useState<LaunchPreferences | null>(
+    null,
   );
+  const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
+  const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
 
   useEffect(() => {
@@ -177,20 +171,14 @@ export function MameBrowser({
 
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
-      if (
-        detailState.status === "ready" &&
-        detailState.detail.shortName === machine.shortName
-      ) {
+      if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
         launchDetail(detailState.detail);
       }
     },
     [detailState, launchDetail],
   );
 
-  function handleMachineRowKeyDown(
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) {
+  function handleMachineRowKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
     if (!page) return;
     if (event.key === "Enter") {
       event.preventDefault();
