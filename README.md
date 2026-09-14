@@ -96,6 +96,14 @@ sudo apt-get install -y \
 
 `xvfb` and `xdotool` are used by the development-window smoke check. They are not normally required just to edit code, but they are required to reproduce the full Linux CI smoke path locally.
 
+#### Known Tauri 2 Linux GLib advisory
+
+At the time of this README update, the checked-in Rust dependency graph resolves the Tauri Linux GTK3 stack through `tauri 2.11.5`, `gtk 0.18.2`, and `webkit2gtk 2.0.2` to the Rust `glib 0.18.5` crate. RustSec reports `RUSTSEC-2024-0429` for that GLib crate as an informational `unsound` advisory affecting `glib::VariantStrIter` iterator methods. The application does not directly call the affected `VariantStrIter` API, and the project security audit currently reports no Rust vulnerabilities while still surfacing this informational warning.
+
+This dependency is upstream in the supported Tauri 2 Linux stack. Do **not** try to fix it by adding or forcing `glib 0.20` alongside the current GTK3 dependency graph, and do not create separate GLib-specific builds of the application solely for this advisory. A proper removal requires the upstream Tauri Linux stack to move to compatible newer GTK/GLib bindings.
+
+Until that migration is available in a supported Tauri release, keep the advisory visible and monitor Linux runtime behavior. If a Linux build shows reproducible GLib/GVariant crashes or behavior that could involve this advisory, capture the application logs and a minimal reproducer and reassess the dependency decision rather than silently suppressing the warning.
+
 ### macOS and Windows
 
 Use the normal Tauri 2 platform prerequisites for macOS or Windows, plus Node.js and Rust stable. The CI packaging workflows validate macOS app/DMG layout and Windows NSIS packaging behavior, but release signing/notarization still requires real platform credentials outside this repository.
