@@ -118,6 +118,7 @@ pub fn run() -> Result<(), tauri::Error> {
             controller_settings::set_controller_profile_selection,
             controller_settings::create_browser_controller_profile,
             software::query_mame_software_list,
+            software::query_mame_bios_choices,
             software::launch_library_software,
             path_configuration::get_content_path_configuration,
             path_configuration::set_content_path_configuration,
