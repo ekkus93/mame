@@ -1,0 +1,168 @@
+es() if line.startswith("- [ ]")]
++    require(not bare_unchecked, f"post-closeout TODO has unchecked required items: {bare_unchecked[:3]}")
++
++    for token in RUNTIME_COMMAND_TOKENS:
++        require(token in panel, f"session panel does not expose runtime control token {token!r}")
++    for helper in ("canPauseRuntime", "canResumeRuntime", "canRefreshRuntime", "runtimeStateLabel"):
++        require(helper in runtime_view, f"runtime-control view helper missing {helper}")
++        require(helper in runtime_view_test, f"runtime-control view helper lacks test coverage {helper}")
++
++    require(
++        "notifyShortcutOwnershipMayHaveChanged" in panel,
++        "session panel must notify the shortcut ownership refresh path after terminal sessions",
++    )
++    require(
++        'window.dispatchEvent(new Event("focus"))' in panel,
++        "shortcut ownership refresh must reuse the existing focus-time fail-closed lookup",
++    )
++    for event_name in ("session.exited", "session.crashed", "session.failed"):
++        require(event_name in panel, f"session panel must react to terminal lifecycle event {event_name}")
++
++    for field in SESSION_SNAPSHOT_FIELDS:
++        require(field in types, f"frontend SessionSnapshot is missing backend field {field!r}")
++
++    require("Windows" in spec and "per-user temporary-directory" in spec, "Windows bootstrap ACL contract must remain explicit in the spec")
++    require("NamedTempFile" in control, "bootstrap must remain tempfile-backed")
++    require("tempfile()" in control, "bootstrap must be created through tempfile rather than a predictable path")
++    require("Permissions::from_mode(0o600)" in control, "Unix bootstrap permissions must remain 0600")
++
++    require("assert_eq!(" in build_rs and "anchor drifted" in build_rs, "runtime-control composition must fail closed on anchor drift")
++    for fragment in RUNTIME_FRAGMENTS:
++        require(fragment in build_rs, f"runtime-control fragment is not tracked by build.rs: {fragment}")
++    require("runtime_control_mt710.lua" in build_rs, "generated runtime-control Lua output name must remain explicit")
++    require("runtime_control_mt710.rs" in build_rs, "generated runtime-control Rust output name must remain explicit")
++
++    require("test-post-closeout-hardening.py" in workflow, "Tauri project workflow must run the hardening regression")
++
++    print("Post-closeout hardening regression passed")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/tauri/test-security-policy.py b/scripts/tauri/test-security-policy.py
+index 5ed6ec4..c57a639 100644
+--- a/scripts/tauri/test-security-policy.py
++++ b/scripts/tauri/test-security-policy.py
+@@ -103,6 +103,16 @@ def main() -> int:
+         re.search(r'(?m)^license\s*=\s*"GPL-2\.0-only"\s*$', cargo_toml) is not None,
+         "project Rust crate must retain explicit GPL-2.0-only package metadata",
+     )
++    control_source = (TAURI_ROOT / "src-tauri/src/sessions/control.rs").read_text(encoding="utf-8")
++    require(
++        "NamedTempFile" in control_source and "tempfile()" in control_source,
++        "runtime-control bootstrap must remain tempfile-backed rather than predictable",
++    )
++    require(
++        "Permissions::from_mode(0o600)" in control_source,
++        "Unix runtime-control bootstrap files must remain restricted to 0600",
++    )
++
+ 
+     print("MT-1500 static security policy regression passed")
+     return 0
+diff --git a/tauri/src/backend/types.ts b/tauri/src/backend/types.ts
+index 7ae5dbe..edd592c 100644
+--- a/tauri/src/backend/types.ts
++++ b/tauri/src/backend/types.ts
+@@ -271,13 +271,36 @@ export type SetLibraryFavoriteRequest = {
+ export type SessionState =
+   "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
+ 
++export type EffectiveProjectPath = {
++  option: string;
++  path: string;
++};
++
++export type EffectiveLaunchConfig = {
++  projectPaths: EffectiveProjectPath[];
++};
++
+ export type SessionSnapshot = {
+   schemaVersion: 1;
+   sessionId: string;
+   state: SessionState;
+   machine: string;
+   software: string | null;
++  executable: MameExecutableIdentity;
++  effectiveArgv: string[];
++  effectiveConfig: EffectiveLaunchConfig;
++  createdAtEpochMs: number;
++  startedAtEpochMs: number | null;
++  endedAtEpochMs: number | null;
+   pid: number | null;
++  exitCode: number | null;
++  terminationSignal: number | null;
++  forcedTermination: boolean;
++  stdoutTail: string;
++  stderrTail: string;
++  stdoutTruncated: boolean;
++  stderrTruncated: boolean;
++  diagnosticError: string | null;
+ };
+ 
+ export type SessionLifecycleEventV1 = {
+diff --git a/tauri/src/session/SessionControlPanel.tsx b/tauri/src/session/SessionControlPanel.tsx
+index ea91171..39f7837 100644
+--- a/tauri/src/session/SessionControlPanel.tsx
++++ b/tauri/src/session/SessionControlPanel.tsx
+@@ -1,10 +1,31 @@
+ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+-import { useEffect, useState } from "react";
++import { useEffect, useRef, useState } from "react";
+ 
+-import { getMameSession, stopMame } from "../backend/commands";
++import {
++  getMameSession,
++  pauseMame,
++  queryMameRuntimeState,
++  resetMame,
++  resumeMame,
++  setMameMute,
++  stopMame,
++} from "../backend/commands";
+ import { errorMessage } from "../backend/errors";
+-import type { SessionLifecycleEventV1, SessionSnapshot } from "../backend/types";
++import type {
++  QueryMameRuntimeStateResult,
++  SessionLifecycleEventV1,
++  SessionPauseEventV1,
++  SessionSnapshot,
++} from "../backend/types";
+ import { SaveStateBrowser } from "./SaveStateBrowser";
++import {
++  canPauseRuntime,
++  canRefreshRuntime,
++  canResumeRuntime,
++  mergeRuntimeState,
++  runtimeStateLabel,
++  type RuntimeControlAction,
++} from "./runtimeControlView";
+ 
+ function isActiveSession(session: SessionSnapshot | null): session is SessionSnapshot {
+   return session !== null && ["created", "starting", "running", "stopping"].includes(session.state);
+@@ -12,10 +33,48 @@ function isActiveSession(session: SessionSnapshot | null): session is SessionSna
+ 
+ export function SessionControlPanel() {
+   const [session, setSession] = useState<SessionSnapshot | null>(null);
++  const sessionRef = useRef<SessionSnapshot | null>(null);
++  const [runtimeState, setRuntimeState] = useState<QueryMameRuntimeStateResult | null>(null);
++  const [runtimeStatus, setRuntimeStatus] = useState<string | null>(null);
++  const [busyAction, setBusyAction] = useState<RuntimeControlAction | null>(null);
+   const [loading, setLoading] = useState(true);
+   const [stopping, setStopping] = useState(false);
+   const [failure, setFailure] = useState<string | null>(null);
+ 
++  function setObservedSession(activeSession: SessionSnapshot | null) {
++    sessionRef.current = activeSession;
++    setSession(activeSession);
++  }
++
++  function clearRuntimeState() {
++    setRuntimeState(null);
++    setRuntimeStatus(null);
++    setBusyAction(null);
++  }
++
++  function notifyShortcutOwnershipMayHaveChanged() {
++
