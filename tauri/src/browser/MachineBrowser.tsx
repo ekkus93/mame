@@ -54,17 +54,12 @@ type LaunchState =
 
 type RightPanelMode = "images" | "info";
 
-export function MachineBrowser({
-  availabilityRevision,
-  onAvailabilityChanged,
-}: {
-  availabilityRevision: number;
-  onAvailabilityChanged: () => void;
-}) {
+export function MachineBrowser({ availabilityRevision }: { availabilityRevision: number }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
+  const pageRef = useRef<MachinePage | null>(null);
 
   const [filter, setFilter] = useState<MameMachineFilterId>("all");
   const [search, setSearch] = useState("");
@@ -88,22 +83,16 @@ export function MachineBrowser({
     setOffset(0);
   }, [filter, debouncedSearch]);
 
-  const currentPage =
-    loadState.status === "ready"
-      ? loadState.page
-      : loadState.status === "loading" || loadState.status === "error"
-        ? loadState.previous
-        : null;
-
   useEffect(() => {
     const sequence = ++querySequence.current;
-    const previous = currentPage;
+    const previous = pageRef.current;
     setLoadState({ status: "loading", previous });
     const request = buildMachineBrowserRequest(filter, debouncedSearch, offset);
 
     void queryMameLibrary(request)
       .then((page) => {
         if (querySequence.current !== sequence) return;
+        pageRef.current = page;
         setLoadState({ status: "ready", page });
         setSelected((current) => {
           if (current && page.items.some((item) => item.shortName === current.shortName)) {
@@ -118,6 +107,13 @@ export function MachineBrowser({
         if (!previous) setSelected(null);
       });
   }, [availabilityRevision, debouncedSearch, filter, offset]);
+
+  const currentPage =
+    loadState.status === "ready"
+      ? loadState.page
+      : loadState.status === "loading" || loadState.status === "error"
+        ? loadState.previous
+        : null;
 
   useEffect(() => {
     if (!selected) {
