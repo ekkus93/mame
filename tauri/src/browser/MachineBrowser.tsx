@@ -14,7 +14,12 @@ import {
   queryMameLibrary,
 } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
-import type { MachineDetail, MachineListItem, MachinePage, SessionSnapshot } from "../backend/types";
+import type {
+  MachineDetail,
+  MachineListItem,
+  MachinePage,
+  SessionSnapshot,
+} from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { MachineArtworkPanel } from "../library/MachineArtworkPanel";
 import {
@@ -65,7 +70,10 @@ export function MachineBrowser({ availabilityRevision }: { availabilityRevision:
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
-  const [loadState, setLoadState] = useState<LoadState>({ status: "loading", previous: null });
+  const [loadState, setLoadState] = useState<LoadState>({
+    status: "loading",
+    previous: null,
+  });
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
@@ -75,7 +83,10 @@ export function MachineBrowser({ availabilityRevision }: { availabilityRevision:
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
+    const timer = window.setTimeout(
+      () => setDebouncedSearch(search),
+      SEARCH_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [search]);
 
@@ -125,7 +136,9 @@ export function MachineBrowser({ availabilityRevision }: { availabilityRevision:
     setDetailState({ status: "loading", shortName });
     void getMameMachineDetail({ shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence) setDetailState({ status: "ready", detail });
+        if (detailSequence.current === sequence) {
+          setDetailState({ status: "ready", detail });
+        }
       })
       .catch((reason: unknown) => {
         if (detailSequence.current === sequence) {
@@ -393,7 +406,11 @@ export function MachineBrowser({ availabilityRevision }: { availabilityRevision:
               <span>{machineAvailabilityLabel(selectedAvailability)}</span>
             </div>
 
-            <div className="mame-browser__toolbar" role="toolbar" aria-label="Selected machine actions">
+            <div
+              className="mame-browser__toolbar"
+              role="toolbar"
+              aria-label="Selected machine actions"
+            >
               <FavoriteToggleButton
                 shortName={selected.shortName}
                 revision={favoritesRevision}
@@ -402,8 +419,12 @@ export function MachineBrowser({ availabilityRevision }: { availabilityRevision:
               <button
                 type="button"
                 className="mame-browser__start"
-                disabled={!selected.runnable || gameplayInputOwned || launchState.status === "launching"}
-                title={gameplayInputOwned ? "A native MAME session currently owns gameplay input" : undefined}
+                disabled={
+                  !selected.runnable || gameplayInputOwned || launchState.status === "launching"
+                }
+                title={
+                  gameplayInputOwned ? "A native MAME session currently owns gameplay input" : undefined
+                }
                 onClick={() => launchMachine(selected)}
               >
                 {launchState.status === "launching" && launchState.shortName === selected.shortName
