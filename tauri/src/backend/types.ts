@@ -270,13 +270,7 @@ export type SetLibraryFavoriteRequest = {
 };
 
 export type SessionState =
-  | "created"
-  | "starting"
-  | "running"
-  | "stopping"
-  | "exited"
-  | "failed"
-  | "crashed";
+  "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
 
 export type EffectiveProjectPath = {
   option: string;

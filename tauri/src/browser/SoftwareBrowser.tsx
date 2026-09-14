@@ -183,14 +183,7 @@ export function SoftwareBrowser({
         })
         .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
     },
-    [
-      detail.shortName,
-      launch.status,
-      launchOverrides,
-      listName,
-      onSessionStarted,
-      selectedBios,
-    ],
+    [detail.shortName, launch.status, launchOverrides, listName, onSessionStarted, selectedBios],
   );
 
   const launchSelected = useCallback(() => {
