@@ -16,9 +16,21 @@ export type MameMachineFilterDefinition = {
 
 export const MAME_MACHINE_FILTERS: readonly MameMachineFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "Show all runnable systems." },
-  { id: "available", label: "Available", description: "Show systems with verified media." },
-  { id: "unavailable", label: "Unavailable", description: "Show systems with missing or incorrect required media." },
-  { id: "working", label: "Working", description: "Show systems reported working by MAME." },
+  {
+    id: "available",
+    label: "Available",
+    description: "Show systems with verified media.",
+  },
+  {
+    id: "unavailable",
+    label: "Unavailable",
+    description: "Show systems with missing or incorrect required media.",
+  },
+  {
+    id: "working",
+    label: "Working",
+    description: "Show systems reported working by MAME.",
+  },
   { id: "parents", label: "Parents", description: "Show parent systems only." },
   { id: "clones", label: "Clones", description: "Show clone systems only." },
 ] as const;
