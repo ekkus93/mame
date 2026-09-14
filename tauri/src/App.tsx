@@ -54,7 +54,7 @@ export default function App() {
     };
 
     void bind().catch(() => {
-      // Browser shortcuts already fail closed if session ownership cannot be refreshed.
+      // Library shortcuts already fail closed while ownership cannot be refreshed.
     });
 
     return () => {
