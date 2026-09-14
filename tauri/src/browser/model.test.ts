@@ -8,6 +8,7 @@ describe("MAME browser model", () => {
       text: "pac",
       filter: "available",
       filterValue: null,
+      preferredMachine: null,
       limit: 100,
       offset: 10,
     });
@@ -18,6 +19,13 @@ describe("MAME browser model", () => {
       filter: "manufacturer",
       filterValue: "Namco",
     });
+    expect(buildMameBrowserRequest("chdRequired", "", "", 0, "area51")).toMatchObject({
+      filter: "chdRequired",
+      preferredMachine: "area51",
+    });
+    expect(buildMameBrowserRequest("noChdRequired", "", "")).toMatchObject({
+      filter: "noChdRequired",
+    });
   });
 
   it("identifies canonical filters that require a bounded value", () => {
@@ -25,6 +33,7 @@ describe("MAME browser model", () => {
     expect(filterRequiresValue("year")).toBe(true);
     expect(filterRequiresValue("sourceFile")).toBe(true);
     expect(filterRequiresValue("favorites")).toBe(false);
+    expect(filterRequiresValue("chdRequired")).toBe(false);
   });
 
   it("supports bounded row, edge and page navigation", () => {
