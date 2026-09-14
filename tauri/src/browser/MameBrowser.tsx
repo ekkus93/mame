@@ -12,7 +12,7 @@ import type { ArtworkKind } from "../backend/artwork";
 import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
-import { queryMameUiLibrary } from "../backend/mameUi";
+import { exportMameUiDisplayedList, queryMameUiLibrary } from "../backend/mameUi";
 import { getMameUiState, setMameUiState, type MameUiPanelMode } from "../backend/mameUiState";
 import type {
   MachineDetail,
@@ -49,6 +49,12 @@ type LaunchState =
   | { status: "idle" }
   | { status: "launching" }
   | { status: "launched"; session: SessionSnapshot }
+  | { status: "error"; message: string };
+
+type ExportState =
+  | { status: "idle" }
+  | { status: "exporting" }
+  | { status: "success"; message: string }
   | { status: "error"; message: string };
 
 type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
@@ -91,6 +97,7 @@ export function MameBrowser({
     null,
   );
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
+  const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
 
@@ -293,6 +300,29 @@ export function MameBrowser({
     [launchState.status, pendingLaunchOverrides, refreshGameplayOwnership],
   );
 
+  const exportDisplayedList = useCallback(() => {
+    if (exportState.status === "exporting" || (valueRequired && !debouncedFilterValue)) return;
+    setExportState({ status: "exporting" });
+    void exportMameUiDisplayedList({
+      text: debouncedSearch || null,
+      filter,
+      filterValue: debouncedFilterValue || null,
+    })
+      .then((result) => {
+        if (result.canceled) {
+          setExportState({ status: "idle" });
+          return;
+        }
+        setExportState({
+          status: "success",
+          message: `Exported ${result.rows.toLocaleString()} machine${result.rows === 1 ? "" : "s"}.`,
+        });
+      })
+      .catch((reason: unknown) => {
+        setExportState({ status: "error", message: errorMessage(reason) });
+      });
+  }, [debouncedFilterValue, debouncedSearch, exportState.status, filter, valueRequired]);
+
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
       if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
@@ -377,6 +407,7 @@ export function MameBrowser({
       setFilter(next);
       setFilterValue("");
       setPreferredMachine(null);
+      setExportState({ status: "idle" });
     }
   }
 
@@ -404,7 +435,7 @@ export function MameBrowser({
 
   return (
     <section className="mame-browser" aria-label="MAME machine selection">
-      <div className="mame-browser-toolbar">
+      <div className="mame-browser-toolbar" role="toolbar" aria-label="Machine browser actions">
         <label className="mame-search">
           <span className="visually-hidden">Search machines</span>
           <input
@@ -417,12 +448,22 @@ export function MameBrowser({
             onChange={(event) => {
               setSearch(event.target.value);
               setPreferredMachine(null);
+              setExportState({ status: "idle" });
             }}
           />
         </label>
         <span className="mame-browser-range" aria-live="polite">
           {range}
         </span>
+        <button
+          type="button"
+          className="secondary-button"
+          aria-label="Export displayed machine list"
+          disabled={exportState.status === "exporting" || (valueRequired && !debouncedFilterValue)}
+          onClick={exportDisplayedList}
+        >
+          {exportState.status === "exporting" ? "Exporting…" : "Export"}
+        </button>
         <button
           type="button"
           className="secondary-button mame-narrow-details-toggle"
@@ -479,6 +520,16 @@ export function MameBrowser({
           {uiStateError}
         </div>
       )}
+      {exportState.status === "success" && (
+        <div className="mame-browser-banner" role="status">
+          {exportState.message}
+        </div>
+      )}
+      {exportState.status === "error" && (
+        <div className="mame-browser-banner is-error" role="alert">
+          Export failed: {exportState.message}
+        </div>
+      )}
       {launchState.status === "error" && (
         <div className="mame-browser-banner is-error" role="alert">
           {launchState.message}
@@ -498,6 +549,7 @@ export function MameBrowser({
           onFilterValueChange={(value) => {
             setFilterValue(value);
             setPreferredMachine(null);
+            setExportState({ status: "idle" });
           }}
           registerActiveButton={(element) => {
             activeFilterButtonRef.current = element;
