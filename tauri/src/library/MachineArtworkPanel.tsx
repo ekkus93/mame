@@ -12,10 +12,23 @@ import { artworkPreviewCache } from "./artworkPreviewCache";
 import "./MachineArtworkPanel.css";
 
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
-  screenshot: "Screenshot",
+  screenshot: "Snapshot",
   cabinet: "Cabinet",
-  marquee: "Marquee",
+  controlPanel: "Control Panel",
+  pcb: "PCB",
   flyer: "Flyer",
+  titleScreen: "Title Screen",
+  ending: "Ending",
+  artworkPreview: "Artwork Preview",
+  bosses: "Bosses",
+  logo: "Logo",
+  versus: "Versus",
+  gameOver: "Game Over",
+  howTo: "HowTo",
+  scores: "Scores",
+  select: "Select",
+  marquee: "Marquee",
+  covers: "Covers",
   icon: "Icon",
   systemImage: "System image",
 };
