@@ -12,7 +12,9 @@ import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import {
   launchMameSoftware,
+  queryMameBiosChoices,
   queryMameSoftware,
+  type BiosChoice,
   type MameSoftwareItem,
   type MameSoftwarePage,
   type SoftwareListFilter,
@@ -27,8 +29,6 @@ import {
   softwareFilterRequiresValue,
 } from "./softwareModel";
 import "./SoftwareBrowser.css";
-
-type SoftwareMachineDetail = MachineDetail & { canStartEmpty: boolean };
 
 type BrowseState =
   | { status: "awaitingFilterValue" }
@@ -50,7 +50,7 @@ export function SoftwareBrowser({
   onBack,
   onSessionStarted,
 }: {
-  detail: SoftwareMachineDetail;
+  detail: MachineDetail;
   launchOverrides: LaunchPreferences | null;
   panelMode: MameUiPanelMode;
   onPanelModeChange: (mode: MameUiPanelMode) => void;
@@ -60,6 +60,7 @@ export function SoftwareBrowser({
   const searchRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const requestSequence = useRef(0);
+  const biosSequence = useRef(0);
   const [listName, setListName] = useState(detail.softwareLists[0]?.name ?? "");
   const [filter, setFilter] = useState<SoftwareListFilter>("all");
   const [filterValue, setFilterValue] = useState("");
@@ -70,6 +71,9 @@ export function SoftwareBrowser({
   const [browse, setBrowse] = useState<BrowseState>({ status: "loading" });
   const [selected, setSelected] = useState<MameSoftwareItem | null>(null);
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
+  const [biosChoices, setBiosChoices] = useState<BiosChoice[]>([]);
+  const [selectedBios, setSelectedBios] = useState<string | null>(null);
+  const [biosError, setBiosError] = useState<string | null>(null);
   const [launch, setLaunch] = useState<LaunchState>({ status: "idle" });
 
   useEffect(() => {
@@ -88,6 +92,24 @@ export function SoftwareBrowser({
     setSelectedPart(selected?.parts.length === 1 ? (selected.parts[0]?.name ?? null) : null);
     setLaunch({ status: "idle" });
   }, [selected]);
+
+  useEffect(() => {
+    const sequence = ++biosSequence.current;
+    setBiosChoices([]);
+    setSelectedBios(null);
+    setBiosError(null);
+    void queryMameBiosChoices(detail.shortName)
+      .then((response) => {
+        if (biosSequence.current !== sequence) return;
+        setBiosChoices(response.choices);
+        setSelectedBios(response.choices.find((choice) => choice.isDefault)?.name ?? null);
+      })
+      .catch((reason: unknown) => {
+        if (biosSequence.current === sequence) {
+          setBiosError(`BIOS choices unavailable: ${errorMessage(reason)}`);
+        }
+      });
+  }, [detail.shortName]);
 
   const requiresValue = softwareFilterRequiresValue(filter);
   useEffect(() => {
@@ -152,6 +174,7 @@ export function SoftwareBrowser({
         softwareList: listName,
         softwareItem: item.shortName,
         softwarePart: part,
+        bios: selectedBios,
         launchOverrides,
       })
         .then((session) => {
@@ -160,7 +183,14 @@ export function SoftwareBrowser({
         })
         .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
     },
-    [detail.shortName, launch.status, launchOverrides, listName, onSessionStarted],
+    [
+      detail.shortName,
+      launch.status,
+      launchOverrides,
+      listName,
+      onSessionStarted,
+      selectedBios,
+    ],
   );
 
   const launchSelected = useCallback(() => {
@@ -249,6 +279,23 @@ export function SoftwareBrowser({
         <span className="mame-browser-range" aria-live="polite">
           {range}
         </span>
+        {biosChoices.length > 0 && (
+          <label className="mame-bios-selector">
+            <span>BIOS</span>
+            <select
+              value={selectedBios ?? ""}
+              onChange={(event) => setSelectedBios(event.target.value || null)}
+            >
+              <option value="">MAME default</option>
+              {biosChoices.map((choice) => (
+                <option key={choice.name} value={choice.name}>
+                  {choice.description}
+                  {choice.isDefault ? " (default)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {detail.canStartEmpty && (
           <button type="button" className="secondary-button" onClick={startEmpty}>
             Start Empty
@@ -268,6 +315,11 @@ export function SoftwareBrowser({
         </button>
       </div>
 
+      {biosError && (
+        <div className="mame-browser-banner is-error" role="status">
+          {biosError}
+        </div>
+      )}
       {launch.status === "error" && (
         <div className="mame-browser-banner is-error" role="alert">
           {launch.message}
@@ -444,6 +496,12 @@ export function SoftwareBrowser({
                   <dt>Software list</dt>
                   <dd>{listName}</dd>
                 </div>
+                {selectedBios && (
+                  <div>
+                    <dt>BIOS</dt>
+                    <dd>{selectedBios}</dd>
+                  </div>
+                )}
               </dl>
               {selected.parts.length > 1 && (
                 <label className="mame-software-part-selector">
