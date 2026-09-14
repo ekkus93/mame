@@ -180,6 +180,7 @@ pub struct MachineDetail {
     pub is_device: bool,
     pub is_mechanical: bool,
     pub runnable: bool,
+    pub can_start_empty: bool,
     pub driver_status: Option<String>,
     pub driver_emulation: Option<String>,
     pub driver_cocktail: Option<String>,

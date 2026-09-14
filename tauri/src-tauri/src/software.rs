@@ -12,8 +12,8 @@ use crate::{
         MameExecutableSource,
     },
     metadata::{
-        parse_software_list_page, CatalogRepository, MetadataGenerationSummary, SoftwareItemSummary,
-        SoftwareListFilter,
+        parse_software_list_page, CatalogRepository, MetadataGenerationSummary,
+        SoftwareItemSummary, SoftwareListFilter,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -154,7 +154,11 @@ pub fn launch_library_software(
         ));
     }
     if let Some(part) = software_part.as_deref() {
-        if !software_metadata.parts.iter().any(|candidate| candidate.name == part) {
+        if !software_metadata
+            .parts
+            .iter()
+            .any(|candidate| candidate.name == part)
+        {
             return Err(AppError::new(
                 "MAME_SOFTWARE_PART_INVALID",
                 "The selected software part is not present in the requested software item.",
