@@ -49,16 +49,35 @@ export type MameSoftwareQuery = {
   offset?: number;
 };
 
+export type BiosChoice = {
+  name: string;
+  description: string;
+  isDefault: boolean;
+};
+
+export type BiosChoicesResponse = {
+  schemaVersion: 1;
+  machineShortName: string;
+  choices: BiosChoice[];
+};
+
 export type MameSoftwareLaunch = {
   shortName: string;
   softwareList: string;
   softwareItem: string;
   softwarePart?: string | null;
+  bios?: string | null;
   launchOverrides?: LaunchPreferences | null;
 };
 
 export async function queryMameSoftware(request: MameSoftwareQuery): Promise<MameSoftwarePage> {
   return invoke<MameSoftwarePage>("query_mame_software_list", { request });
+}
+
+export async function queryMameBiosChoices(shortName: string): Promise<BiosChoicesResponse> {
+  return invoke<BiosChoicesResponse>("query_mame_bios_choices", {
+    request: { shortName },
+  });
 }
 
 export async function launchMameSoftware(request: MameSoftwareLaunch): Promise<SessionSnapshot> {
