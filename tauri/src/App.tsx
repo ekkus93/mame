@@ -9,27 +9,9 @@ import {
   SESSION_FAILED_EVENT,
   SESSION_STARTED_EVENT,
 } from "./backend/events";
-import type { MameVersionReport } from "./backend/types";
-import { BulkAuditPanel } from "./library/BulkAuditPanel";
-import { CollectionManager } from "./library/CollectionManager";
-import { LibraryBrowser } from "./library/LibraryBrowser";
-import { RecentHistoryPanel } from "./library/RecentHistoryPanel";
-import { SessionControlPanel } from "./session/SessionControlPanel";
-import { DiagnosticsPanel } from "./settings/DiagnosticsPanel";
-import { GeneralSettingsPanel } from "./settings/GeneralSettingsPanel";
+import { MameShell } from "./shell/MameShell";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
-
-function mameVersionLabel(report: MameVersionReport): string {
-  switch (report.status) {
-    case "notConfigured":
-      return "Not configured";
-    case "available":
-      return report.identity.rawVersionLine;
-    case "unavailable":
-      return `Unavailable (${report.errorCode}): ${report.errorMessage}`;
-  }
-}
 
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
@@ -44,14 +26,10 @@ export default function App() {
 
     void getAppInfo()
       .then((info) => {
-        if (!cancelled) {
-          dispatch({ type: "ready", info });
-        }
+        if (!cancelled) dispatch({ type: "ready", info });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          dispatch({ type: "error", message: errorMessage(error) });
-        }
+        if (!cancelled) dispatch({ type: "error", message: errorMessage(error) });
       });
 
     return () => {
@@ -64,9 +42,7 @@ export default function App() {
     const unlisteners: UnlistenFn[] = [];
 
     const refreshShortcutOwnership = () => {
-      if (!disposed) {
-        window.dispatchEvent(new Event("focus"));
-      }
+      if (!disposed) window.dispatchEvent(new Event("focus"));
     };
 
     const bind = async () => {
@@ -78,14 +54,11 @@ export default function App() {
       ] as const) {
         unlisteners.push(await listen(eventName, refreshShortcutOwnership));
       }
-
-      if (disposed) {
-        unlisteners.splice(0).forEach((unlisten) => unlisten());
-      }
+      if (disposed) unlisteners.splice(0).forEach((unlisten) => unlisten());
     };
 
     void bind().catch(() => {
-      // Library shortcuts already fail closed while ownership cannot be refreshed.
+      // Browser shortcuts already fail closed while lifecycle ownership cannot be refreshed.
     });
 
     return () => {
@@ -94,96 +67,35 @@ export default function App() {
     };
   }, []);
 
-  return (
-    <main className="app-shell">
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">MAME Tauri</p>
-          <h1>Machine Library</h1>
-          <p className="summary">
-            Browse the local MAME catalog while emulation, video, audio, timing, and gameplay input
-            remain native.
-          </p>
-        </div>
+  if (state.status === "ready") {
+    return (
+      <MameShell
+        info={state.info}
+        availabilityRevision={availabilityRevision}
+        onAvailabilityChanged={bumpAvailabilityRevision}
+      />
+    );
+  }
 
-        <section className="backend-status" aria-live="polite" aria-label="Backend status">
-          {state.status === "idle" && <span>Waiting for backend</span>}
-          {state.status === "loading" && <span>Connecting…</span>}
-          {state.status === "ready" && (
-            <>
-              <span className="backend-dot" aria-hidden="true" />
-              <span>Rust backend connected</span>
-              <code>
-                app v{state.info.appVersion} · api v{state.info.protocolVersion}
-              </code>
-            </>
-          )}
-          {state.status === "error" && <span className="error-message">{state.message}</span>}
-        </section>
-      </header>
-
-      {state.status === "ready" && (
-        <details className="version-report">
-          <summary>Version information</summary>
-          <dl className="version-grid">
-            <div>
-              <dt>Application</dt>
-              <dd>v{state.info.appVersion}</dd>
-            </div>
-            <div>
-              <dt>Build</dt>
-              <dd>
-                <code>{state.info.build.gitSha ?? "git unavailable"}</code>
-                {" · "}
-                {state.info.build.profile}
-                {" · "}
-                {state.info.build.target}
-              </dd>
-            </div>
-            <div>
-              <dt>MAME</dt>
-              <dd>{mameVersionLabel(state.info.mame)}</dd>
-            </div>
-            <div>
-              <dt>Catalog schema</dt>
-              <dd>v{state.info.databaseSchemaVersion}</dd>
-            </div>
-            <div>
-              <dt>Settings schema</dt>
-              <dd>v{state.info.settingsSchemaVersion}</dd>
-            </div>
-            <div>
-              <dt>Runtime protocol</dt>
-              <dd>v{state.info.runtimeProtocolVersion}</dd>
-            </div>
-          </dl>
-        </details>
-      )}
-
-      {state.status === "ready" ? (
-        <>
-          <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
-          <DiagnosticsPanel />
-          <SessionControlPanel />
-          <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
-          <LibraryBrowser
-            availabilityRevision={availabilityRevision}
-            onAuditResultsChanged={bumpAvailabilityRevision}
-          />
-          <RecentHistoryPanel />
-          <CollectionManager />
-        </>
-      ) : state.status === "error" ? (
+  if (state.status === "error") {
+    return (
+      <main className="app-shell">
         <section className="fatal-error" role="alert">
+          <h1>MAME Tauri frontend</h1>
           <h2>Backend unavailable</h2>
           <p>{state.message}</p>
         </section>
-      ) : (
-        <section className="status-card" aria-live="polite">
-          <h2>Starting application</h2>
-          <p>Connecting to the trusted Rust backend…</p>
-        </section>
-      )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="status-card" aria-live="polite">
+        <h1>MAME Tauri frontend</h1>
+        <h2>Starting application</h2>
+        <p>Connecting to the trusted Rust backend…</p>
+      </section>
     </main>
   );
 }
