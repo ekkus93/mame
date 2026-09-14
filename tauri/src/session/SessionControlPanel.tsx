@@ -20,14 +20,19 @@ import type {
 } from "../backend/types";
 import { SaveStateBrowser } from "./SaveStateBrowser";
 
-type RuntimeOperation = "pause" | "resume" | "reset" | "mute" | "unmute" | "refresh" | null;
+type RuntimeOperation =
+  | "pause"
+  | "resume"
+  | "reset"
+  | "mute"
+  | "unmute"
+  | "refresh"
+  | null;
 
 const TERMINAL_SESSION_STATES = new Set(["exited", "failed", "crashed"]);
 
 function isActiveSession(session: SessionSnapshot | null): session is SessionSnapshot {
-  return (
-    session !== null && ["created", "starting", "running", "stopping"].includes(session.state)
-  );
+  return session !== null && ["created", "starting", "running", "stopping"].includes(session.state);
 }
 
 function isTerminalSession(session: SessionSnapshot): boolean {
