@@ -1,7 +1,4 @@
-import type {
-  MameUiMachineFilter,
-  MameUiMachineSearchRequest,
-} from "../backend/mameUi";
+import type { MameUiMachineFilter, MameUiMachineSearchRequest } from "../backend/mameUi";
 
 export type MameBrowserFilter = MameUiMachineFilter;
 export type MameBrowserFilterValueKind = "manufacturer" | "year" | "sourceFile";

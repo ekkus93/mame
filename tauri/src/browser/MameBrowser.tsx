@@ -12,7 +12,12 @@ import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../b
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import { queryMameUiLibrary } from "../backend/mameUi";
-import type { MachineDetail, MachineListItem, MachinePage, SessionSnapshot } from "../backend/types";
+import type {
+  MachineDetail,
+  MachineListItem,
+  MachinePage,
+  SessionSnapshot,
+} from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { isEditableElement, isGameplaySessionState } from "../library/keyboardNavigation";
 import { MachineFilterPanel } from "./MachineFilterPanel";
