@@ -20,6 +20,8 @@ export type MameUiMachineFilter =
   | "sourceFile"
   | "saveSupported"
   | "saveUnsupported"
+  | "chdRequired"
+  | "noChdRequired"
   | "verticalScreen"
   | "horizontalScreen";
 

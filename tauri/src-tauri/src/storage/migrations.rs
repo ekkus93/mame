@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::errors::{AppError, AppResult};
 
-pub const CATALOG_SCHEMA_VERSION: i64 = 4;
+pub const CATALOG_SCHEMA_VERSION: i64 = 5;
 
 pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
     connection
@@ -31,6 +31,7 @@ pub(crate) fn migrate(connection: &mut Connection) -> AppResult<()> {
             1 => migrate_v1_to_v2(connection)?,
             2 => migrate_v2_to_v3(connection)?,
             3 => migrate_v3_to_v4(connection)?,
+            4 => migrate_v4_to_v5(connection)?,
             unsupported => {
                 return Err(AppError::new(
                     "CATALOG_SCHEMA_MIGRATION_MISSING",
@@ -149,6 +150,26 @@ fn migrate_v3_to_v4(connection: &mut Connection) -> AppResult<()> {
         .execute(
             "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
             [4_i64],
+        )
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .commit()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    Ok(())
+}
+
+fn migrate_v4_to_v5(connection: &mut Connection) -> AppResult<()> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+
+    transaction
+        .execute_batch(CREATE_SCHEMA_V5)
+        .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
+    transaction
+        .execute(
+            "UPDATE app_schema_version SET version = ?1 WHERE singleton = 1",
+            [5_i64],
         )
         .map_err(|error| database_error("CATALOG_SCHEMA_MIGRATION_FAILED", error))?;
     transaction
@@ -402,6 +423,21 @@ CREATE INDEX controller_profile_assignments_scope
     ON controller_profile_assignments(scope_kind, scope_key);
 "#;
 
+const CREATE_SCHEMA_V5: &str = r#"
+-- Presence records preserve the authoritative fact that -listxml reported at
+-- least one <disk> element for a machine without importing or exposing disk
+-- paths/hashes to the browser list payload.
+CREATE TABLE machine_disk_presence (
+    generation_id INTEGER NOT NULL,
+    machine_short_name TEXT NOT NULL,
+    PRIMARY KEY (generation_id, machine_short_name),
+    FOREIGN KEY (generation_id, machine_short_name)
+        REFERENCES machines(generation_id, short_name) ON DELETE CASCADE
+);
+CREATE INDEX machine_disk_presence_machine
+    ON machine_disk_presence(generation_id, machine_short_name);
+"#;
+
 fn database_error(code: &str, error: rusqlite::Error) -> AppError {
     AppError::new(code, "The catalog database operation failed.")
         .with_details(serde_json::json!({ "cause": error.to_string() }))
@@ -429,6 +465,7 @@ mod tests {
             "devices",
             "software_lists",
             "machine_software_lists",
+            "machine_disk_presence",
             "machine_audit_results",
             "machine_launch_preferences",
             "controller_profiles",
@@ -487,6 +524,14 @@ mod tests {
             )
             .expect("machine settings table lookup");
         assert_eq!(machine_settings_table_exists, 1);
+        let disk_presence_table_exists: i64 = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='machine_disk_presence')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("disk presence table lookup");
+        assert_eq!(disk_presence_table_exists, 1);
     }
 
     #[test]

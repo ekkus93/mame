@@ -95,6 +95,7 @@ where
                         .machine
                         .displays
                         .push(parse_display(&attributes)?),
+                    b"disk" => machine_mut(&mut current_machine)?.machine.requires_chd = true,
                     b"device" => machine_mut(&mut current_machine)?
                         .machine
                         .devices
@@ -235,6 +236,7 @@ impl MachineBuilder {
                 is_device: yes_no_attr(&attributes, "isdevice", false)?,
                 is_mechanical: yes_no_attr(&attributes, "ismechanical", false)?,
                 runnable: yes_no_attr(&attributes, "runnable", true)?,
+                requires_chd: false,
                 driver: None,
                 chips: Vec::new(),
                 displays: Vec::new(),
@@ -624,6 +626,25 @@ mod tests {
             .expect("device fixture machine");
         assert!(device.is_device);
         assert!(!device.runnable);
+    }
+
+    #[test]
+    fn disk_elements_mark_machine_as_requiring_chd() {
+        let xml = r#"<mame build="test" mameconfig="10">
+          <machine name="diskgame">
+            <description>Disk Game</description>
+            <disk name="disk0" sha1="0123456789012345678901234567890123456789" region="cdrom" index="0"/>
+          </machine>
+          <machine name="romgame"><description>ROM Game</description></machine>
+        </mame>"#;
+        let mut machines = Vec::new();
+        parse_listxml(Cursor::new(xml.as_bytes()), |machine| {
+            machines.push(machine);
+            Ok(())
+        })
+        .expect("disk metadata must parse");
+        assert!(machines.iter().find(|machine| machine.short_name == "diskgame").unwrap().requires_chd);
+        assert!(!machines.iter().find(|machine| machine.short_name == "romgame").unwrap().requires_chd);
     }
 
     #[test]

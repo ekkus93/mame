@@ -59,6 +59,16 @@ export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
     description: "Systems whose MAME driver does not support save states",
   },
   {
+    id: "chdRequired",
+    label: "CHD Required",
+    description: "Systems whose authoritative MAME metadata contains disk media",
+  },
+  {
+    id: "noChdRequired",
+    label: "No CHD Required",
+    description: "Systems whose authoritative MAME metadata contains no disk media",
+  },
+  {
     id: "verticalScreen",
     label: "Vertical Screen",
     description: "Systems with a rotated vertical display",

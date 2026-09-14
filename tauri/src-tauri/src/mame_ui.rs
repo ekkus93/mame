@@ -35,6 +35,8 @@ pub enum MameUiMachineFilterRequest {
     SourceFile,
     SaveSupported,
     SaveUnsupported,
+    ChdRequired,
+    NoChdRequired,
     VerticalScreen,
     HorizontalScreen,
 }
@@ -149,6 +151,8 @@ fn map_filter(filter: MameUiMachineFilterRequest) -> MameUiMachineFilter {
         MameUiMachineFilterRequest::SourceFile => MameUiMachineFilter::SourceFile,
         MameUiMachineFilterRequest::SaveSupported => MameUiMachineFilter::SaveSupported,
         MameUiMachineFilterRequest::SaveUnsupported => MameUiMachineFilter::SaveUnsupported,
+        MameUiMachineFilterRequest::ChdRequired => MameUiMachineFilter::ChdRequired,
+        MameUiMachineFilterRequest::NoChdRequired => MameUiMachineFilter::NoChdRequired,
         MameUiMachineFilterRequest::VerticalScreen => MameUiMachineFilter::VerticalScreen,
         MameUiMachineFilterRequest::HorizontalScreen => MameUiMachineFilter::HorizontalScreen,
     }
@@ -218,6 +222,10 @@ mod tests {
         assert_eq!(
             map_filter(MameUiMachineFilterRequest::Favorites),
             MameUiMachineFilter::Favorites
+        );
+        assert_eq!(
+            map_filter(MameUiMachineFilterRequest::ChdRequired),
+            MameUiMachineFilter::ChdRequired
         );
         assert_eq!(
             map_filter(MameUiMachineFilterRequest::HorizontalScreen),

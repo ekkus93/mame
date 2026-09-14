@@ -17,6 +17,7 @@ pub struct MachineMetadata {
     pub is_device: bool,
     pub is_mechanical: bool,
     pub runnable: bool,
+    pub requires_chd: bool,
     pub driver: Option<DriverMetadata>,
     pub chips: Vec<ChipMetadata>,
     pub displays: Vec<DisplayMetadata>,
