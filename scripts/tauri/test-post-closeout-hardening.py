@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[2]
 SESSION_PANEL = ROOT / "tauri/src/session/SessionControlPanel.tsx"
 APP = ROOT / "tauri/src/App.tsx"
 TYPES = ROOT / "tauri/src/backend/types.ts"
+EVENTS_TS = ROOT / "tauri/src/backend/events.ts"
+EVENT_NAMES_RS = ROOT / "tauri/src-tauri/src/event_names.rs"
 CONTROL_RS = ROOT / "tauri/src-tauri/src/sessions/control.rs"
 CONTROL_SPLIT_FILES = (
     "control_registry.rs",
@@ -43,6 +46,8 @@ def main() -> int:
     session_panel = read(SESSION_PANEL)
     app = read(APP)
     types = read(TYPES)
+    events_ts = read(EVENTS_TS)
+    event_names_rs = read(EVENT_NAMES_RS)
     control_rs = read(CONTROL_RS)
     control_line_count = len(control_rs.splitlines())
     if control_line_count >= 800:
@@ -98,8 +103,36 @@ def main() -> int:
     require(session_panel, 'aria-label="MAME runtime controls"', "control grouping label")
     require(session_panel, "Runtime:", "runtime-state display")
 
-    for event_name in ("session.started", "session.exited", "session.crashed", "session.failed"):
-        require(app, event_name, "application lifecycle shortcut refresh bridge")
+    for event_constant in (
+        "SESSION_STARTED_EVENT",
+        "SESSION_EXITED_EVENT",
+        "SESSION_CRASHED_EVENT",
+        "SESSION_FAILED_EVENT",
+    ):
+        require(app, event_constant, "application lifecycle shortcut refresh bridge")
+
+    allowed_event_name = re.compile(r"^[A-Za-z0-9/:_-]+$")
+    frontend_event_names = re.findall(
+        r'export const [A-Z0-9_]+_EVENT = "([^"]+)"', events_ts
+    )
+    backend_event_names = re.findall(
+        r'pub const [A-Z0-9_]+_EVENT: &str = "([^"]+)"', event_names_rs
+    )
+    if not frontend_event_names or not backend_event_names:
+        raise SystemExit(
+            "post-closeout hardening regression: centralized Tauri event contract is missing"
+        )
+    for event_name in [*frontend_event_names, *backend_event_names]:
+        if not allowed_event_name.fullmatch(event_name):
+            raise SystemExit(
+                "post-closeout hardening regression: invalid Tauri event name "
+                f"{event_name!r}"
+            )
+    if set(frontend_event_names) != set(backend_event_names):
+        raise SystemExit(
+            "post-closeout hardening regression: Rust and TypeScript Tauri event contracts diverge"
+        )
+
     require(app, 'window.dispatchEvent(new Event("focus"))', "shortcut ownership refresh event")
     require(app, "Library shortcuts already fail closed", "fail-closed listener setup documentation")
 
@@ -113,8 +146,8 @@ def main() -> int:
         "exitCode: number | null;",
         "terminationSignal: number | null;",
         "forcedTermination: boolean;",
-        "stdoutTail: string;",
-        "stderrTail: string;",
+        "stdoutTail: String;",
+        "stderrTail: String;",
         "stdoutTruncated: boolean;",
         "stderrTruncated: boolean;",
         "diagnosticError: string | null;",
