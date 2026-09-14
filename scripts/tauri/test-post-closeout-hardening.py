@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SESSION_PANEL = ROOT / "tauri/src/session/SessionControlPanel.tsx"
@@ -146,8 +146,8 @@ def main() -> int:
         "exitCode: number | null;",
         "terminationSignal: number | null;",
         "forcedTermination: boolean;",
-        "stdoutTail: String;",
-        "stderrTail: String;",
+        "stdoutTail: string;",
+        "stderrTail: string;",
         "stdoutTruncated: boolean;",
         "stderrTruncated: boolean;",
         "diagnosticError: string | null;",
