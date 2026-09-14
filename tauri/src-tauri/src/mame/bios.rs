@@ -212,9 +212,9 @@ fn parse_biosset(attributes: &HashMap<String, String>) -> AppResult<BiosChoice> 
 pub(crate) fn validate_bios_identifier(value: &str) -> AppResult<()> {
     let valid = !value.is_empty()
         && value.len() <= 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.'));
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.')
+        });
     if valid {
         return Ok(());
     }
