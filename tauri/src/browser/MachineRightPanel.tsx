@@ -19,8 +19,21 @@ export type MachineRightView = "images" | "info" | "audit" | "settings" | "softw
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
   cabinet: "Cabinet",
-  marquee: "Marquee",
+  controlPanel: "Control Panel",
+  pcb: "PCB",
   flyer: "Flyer",
+  titleScreen: "Title Screen",
+  ending: "Ending",
+  artworkPreview: "Artwork Preview",
+  bosses: "Bosses",
+  logo: "Logo",
+  versus: "Versus",
+  gameOver: "Game Over",
+  howTo: "HowTo",
+  scores: "Scores",
+  select: "Select",
+  marquee: "Marquee",
+  cover: "Covers",
   icon: "Icon",
   systemImage: "System image",
 };
@@ -185,7 +198,10 @@ function ArtworkPane({
       </div>
       <div className="mame-artwork-frame">
         {asset ? (
-          <img src={asset.dataUrl} alt={`${machine} ${ARTWORK_LABELS[selectedKind]}`} />
+          <img
+            src={asset.dataUrl}
+            alt={`${asset.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
+          />
         ) : (
           <div className="mame-panel-state">
             No {ARTWORK_LABELS[selectedKind].toLowerCase()} artwork found.
