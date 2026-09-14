@@ -7,9 +7,10 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        get_software_list_xml, inspect_executable, validate_short_identifier,
-        validate_software_identifier, validate_software_list_identifier, MameExecutableIdentity,
-        MameExecutableSource,
+        get_machine_bios_choices, get_software_list_xml, inspect_executable,
+        validate_bios_identifier, validate_bios_selection, validate_short_identifier,
+        validate_software_identifier, validate_software_list_identifier, BiosChoice,
+        MameExecutableIdentity, MameExecutableSource,
     },
     metadata::{
         parse_software_list_page, CatalogRepository, MetadataGenerationSummary,
@@ -56,12 +57,28 @@ pub struct SoftwareListPage {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct BiosChoicesRequest {
+    pub short_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BiosChoicesResponse {
+    pub schema_version: u32,
+    pub machine_short_name: String,
+    pub choices: Vec<BiosChoice>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct LaunchLibrarySoftwareRequest {
     pub short_name: String,
     pub software_list: String,
     pub software_item: String,
     #[serde(default)]
     pub software_part: Option<String>,
+    #[serde(default)]
+    pub bios: Option<String>,
     #[serde(default)]
     pub launch_overrides: Option<LaunchPreferencesV1>,
 }
@@ -110,6 +127,30 @@ pub async fn query_mame_software_list(
 }
 
 #[tauri::command]
+pub async fn query_mame_bios_choices(
+    request: BiosChoicesRequest,
+    app: AppHandle,
+) -> AppResult<BiosChoicesResponse> {
+    let short_name = validated_short_identifier("machine", request.short_name)?;
+    let catalog_path = storage::catalog_path(&app)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let repository = CatalogRepository::open(&catalog_path)?;
+        repository.machine_detail(&short_name)?;
+        let generation = active_generation(&repository)?;
+        let source = validated_generation_source(&generation)?;
+        let choices = get_machine_bios_choices(&source, &short_name)?;
+        Ok(BiosChoicesResponse {
+            schema_version: 1,
+            machine_short_name: short_name,
+            choices,
+        })
+    })
+    .await
+    .map_err(software_worker_error)?
+}
+
+#[tauri::command]
 pub fn launch_library_software(
     request: LaunchLibrarySoftwareRequest,
     app: AppHandle,
@@ -122,11 +163,23 @@ pub fn launch_library_software(
         .software_part
         .map(|part| validated_short_identifier("softwarePart", part))
         .transpose()?;
+    let bios = request
+        .bios
+        .map(|bios| {
+            let bios = bios.trim().to_owned();
+            validate_bios_identifier(&bios)?;
+            Ok::<String, AppError>(bios)
+        })
+        .transpose()?;
     let catalog_path = storage::catalog_path(&app)?;
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
     let source = validated_generation_source(&generation)?;
+    if let Some(selected_bios) = bios.as_deref() {
+        let choices = get_machine_bios_choices(&source, &short_name)?;
+        validate_bios_selection(&choices, selected_bios)?;
+    }
     let xml = get_software_list_xml(&source, &software_list)?;
     let page = parse_software_list_page(
         Cursor::new(xml.as_bytes()),
@@ -172,10 +225,11 @@ pub fn launch_library_software(
         None => format!("{software_list}:{software_item}"),
     };
     validate_software_identifier(&software)?;
-    sessions::launch_mame_with_source(
+    sessions::launch_mame_with_source_and_bios(
         source,
         short_name,
         Some(software),
+        bios,
         Vec::new(),
         request.launch_overrides,
         supervisor,
