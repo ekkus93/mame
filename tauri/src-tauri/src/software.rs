@@ -13,6 +13,7 @@ use crate::{
     },
     metadata::{
         parse_software_list_page, CatalogRepository, MetadataGenerationSummary, SoftwareItemSummary,
+        SoftwareListFilter,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -21,6 +22,7 @@ use crate::{
 const DEFAULT_SOFTWARE_PAGE_SIZE: u32 = 50;
 const MAX_SOFTWARE_PAGE_SIZE: u32 = 200;
 const MAX_SOFTWARE_SEARCH_LENGTH: usize = 256;
+const MAX_SOFTWARE_FILTER_VALUE_LENGTH: usize = 256;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +31,10 @@ pub struct SoftwareListQueryRequest {
     pub software_list: String,
     #[serde(default)]
     pub text: Option<String>,
+    #[serde(default)]
+    pub filter: SoftwareListFilter,
+    #[serde(default)]
+    pub filter_value: Option<String>,
     #[serde(default = "default_software_page_size")]
     pub limit: u32,
     #[serde(default)]
@@ -55,6 +61,8 @@ pub struct LaunchLibrarySoftwareRequest {
     pub software_list: String,
     pub software_item: String,
     #[serde(default)]
+    pub software_part: Option<String>,
+    #[serde(default)]
     pub launch_overrides: Option<LaunchPreferencesV1>,
 }
 
@@ -80,6 +88,8 @@ pub async fn query_mame_software_list(
             Cursor::new(xml.as_bytes()),
             &request.software_list,
             request.text.as_deref(),
+            request.filter,
+            request.filter_value.as_deref(),
             request.limit,
             request.offset,
         )?;
@@ -108,13 +118,58 @@ pub fn launch_library_software(
     let short_name = validated_short_identifier("machine", request.short_name)?;
     let software_list = validated_software_list(request.software_list)?;
     let software_item = validated_short_identifier("softwareItem", request.software_item)?;
+    let software_part = request
+        .software_part
+        .map(|value| validated_short_identifier("softwarePart", value))
+        .transpose()?;
     let catalog_path = storage::catalog_path(&app)?;
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
     let source = validated_generation_source(&generation)?;
 
-    let software = format!("{software_list}:{software_item}");
+    let xml = get_software_list_xml(&source, &software_list)?;
+    let parsed = parse_software_list_page(
+        Cursor::new(xml.as_bytes()),
+        &software_list,
+        Some(&software_item),
+        SoftwareListFilter::All,
+        None,
+        MAX_SOFTWARE_PAGE_SIZE,
+        0,
+    )?;
+    let item = parsed
+        .items
+        .iter()
+        .find(|candidate| candidate.short_name == software_item)
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_SOFTWARE_ITEM_NOT_FOUND",
+                "The selected software item is not present in the authoritative MAME software list.",
+            )
+        })?;
+    if let Some(part) = software_part.as_deref() {
+        if !item.parts.iter().any(|candidate| candidate.name == part) {
+            return Err(AppError::new(
+                "MAME_SOFTWARE_PART_NOT_FOUND",
+                "The selected software part is not present in the authoritative MAME software item.",
+            )
+            .with_details(serde_json::json!({
+                "softwareItem": software_item,
+                "softwarePart": part
+            })));
+        }
+    } else if item.parts.len() > 1 {
+        return Err(AppError::new(
+            "MAME_SOFTWARE_PART_REQUIRED",
+            "The selected software item exposes multiple launchable parts and requires an explicit part selection.",
+        ));
+    }
+
+    let software = match software_part {
+        Some(part) => format!("{software_list}:{software_item}:{part}"),
+        None => format!("{software_list}:{software_item}"),
+    };
     validate_software_identifier(&software)?;
     sessions::launch_mame_with_source(
         source,
@@ -132,21 +187,17 @@ fn validate_query_request(
 ) -> AppResult<SoftwareListQueryRequest> {
     let short_name = validated_short_identifier("machine", request.short_name)?;
     let software_list = validated_software_list(request.software_list)?;
-    let text = request
-        .text
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty());
-    if text
-        .as_ref()
-        .is_some_and(|value| value.chars().count() > MAX_SOFTWARE_SEARCH_LENGTH)
-    {
+    let text = normalize_optional(request.text, MAX_SOFTWARE_SEARCH_LENGTH, "text")?;
+    let filter_value = normalize_optional(
+        request.filter_value,
+        MAX_SOFTWARE_FILTER_VALUE_LENGTH,
+        "filterValue",
+    )?;
+    if request.filter.requires_value() && filter_value.is_none() {
         return Err(AppError::new(
-            "MAME_SOFTWARE_SEARCH_TOO_LONG",
-            "The software-list search text exceeds the supported length.",
-        )
-        .with_details(serde_json::json!({
-            "maxLength": MAX_SOFTWARE_SEARCH_LENGTH
-        })));
+            "MAME_SOFTWARE_FILTER_VALUE_REQUIRED",
+            "The selected software filter requires a value.",
+        ));
     }
     if request.limit == 0 || request.limit > MAX_SOFTWARE_PAGE_SIZE {
         return Err(AppError::new(
@@ -162,9 +213,26 @@ fn validate_query_request(
         short_name,
         software_list,
         text,
+        filter: request.filter,
+        filter_value,
         limit: request.limit,
         offset: request.offset,
     })
+}
+
+fn normalize_optional(value: Option<String>, max_length: usize, field: &str) -> AppResult<Option<String>> {
+    let value = value.map(|value| value.trim().to_owned()).filter(|value| !value.is_empty());
+    if value
+        .as_ref()
+        .is_some_and(|value| value.chars().count() > max_length)
+    {
+        return Err(AppError::new(
+            "MAME_SOFTWARE_QUERY_VALUE_TOO_LONG",
+            "A software-list query field exceeds the supported length.",
+        )
+        .with_details(serde_json::json!({ "field": field, "maxLength": max_length })));
+    }
+    Ok(value)
 }
 
 fn validated_short_identifier(field: &str, value: String) -> AppResult<String> {
@@ -285,6 +353,7 @@ fn software_worker_error(error: impl std::fmt::Display) -> AppError {
 #[cfg(test)]
 mod tests {
     use super::{validate_query_request, SoftwareListQueryRequest};
+    use crate::metadata::SoftwareListFilter;
 
     #[test]
     fn query_validation_is_bounded_and_normalizes_search_text() {
@@ -292,6 +361,8 @@ mod tests {
             short_name: " apple2e ".to_owned(),
             software_list: " apple2_flop_clcracked ".to_owned(),
             text: Some("  archon  ".to_owned()),
+            filter: SoftwareListFilter::Publisher,
+            filter_value: Some(" Electronic Arts ".to_owned()),
             limit: 50,
             offset: 0,
         })
@@ -299,6 +370,7 @@ mod tests {
         assert_eq!(request.short_name, "apple2e");
         assert_eq!(request.software_list, "apple2_flop_clcracked");
         assert_eq!(request.text.as_deref(), Some("archon"));
+        assert_eq!(request.filter_value.as_deref(), Some("Electronic Arts"));
     }
 
     #[test]
@@ -307,10 +379,27 @@ mod tests {
             short_name: "apple2e".to_owned(),
             software_list: "apple2_flop_orig".to_owned(),
             text: None,
+            filter: SoftwareListFilter::All,
+            filter_value: None,
             limit: 201,
             offset: 0,
         })
         .expect_err("oversized page must fail");
         assert_eq!(error.code, "MAME_SOFTWARE_PAGE_LIMIT_INVALID");
+    }
+
+    #[test]
+    fn value_filters_fail_closed_without_a_value() {
+        let error = validate_query_request(SoftwareListQueryRequest {
+            short_name: "apple2e".to_owned(),
+            software_list: "apple2_flop_orig".to_owned(),
+            text: None,
+            filter: SoftwareListFilter::Year,
+            filter_value: None,
+            limit: 50,
+            offset: 0,
+        })
+        .expect_err("missing value must fail");
+        assert_eq!(error.code, "MAME_SOFTWARE_FILTER_VALUE_REQUIRED");
     }
 }
