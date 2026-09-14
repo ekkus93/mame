@@ -5,7 +5,7 @@ use crate::{
     config::settings_path,
     errors::{AppError, AppResult},
     library::audit::resolve_bulk_audit_context,
-    metadata::{CatalogRepository, MameUiMachineFilter, MameUiMachineQuery, MachinePage},
+    metadata::{CatalogRepository, MachinePage, MameUiMachineFilter, MameUiMachineQuery},
     storage,
 };
 
@@ -81,11 +81,8 @@ fn validated_query(
     settings_path: &std::path::Path,
 ) -> AppResult<MameUiMachineQuery> {
     let text = normalize_optional(request.text, "text", MAX_SEARCH_TEXT_LENGTH)?;
-    let filter_value = normalize_optional(
-        request.filter_value,
-        "filterValue",
-        MAX_FILTER_VALUE_LENGTH,
-    )?;
+    let filter_value =
+        normalize_optional(request.filter_value, "filterValue", MAX_FILTER_VALUE_LENGTH)?;
     let filter = map_filter(request.filter);
     let needs_value = matches!(
         filter,

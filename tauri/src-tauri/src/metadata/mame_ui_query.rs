@@ -331,8 +331,11 @@ fn machine_availability_from_token(value: &str) -> AppResult<MachineAvailability
 }
 
 fn database_error(error: rusqlite::Error) -> AppError {
-    AppError::new("CATALOG_QUERY_FAILED", "The catalog database operation failed.")
-        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    AppError::new(
+        "CATALOG_QUERY_FAILED",
+        "The catalog database operation failed.",
+    )
+    .with_details(serde_json::json!({ "cause": error.to_string() }))
 }
 
 #[cfg(test)]
