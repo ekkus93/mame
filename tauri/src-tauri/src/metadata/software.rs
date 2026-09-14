@@ -5,9 +5,36 @@ use quick_xml::{
     events::{BytesCData, BytesRef, BytesStart, BytesText, Event},
     Reader, XmlVersion,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::errors::{AppError, AppResult};
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum SoftwareListFilter {
+    #[default]
+    All,
+    Parents,
+    Clones,
+    Year,
+    Publisher,
+    Supported,
+    PartiallySupported,
+    Unsupported,
+}
+
+impl SoftwareListFilter {
+    pub(crate) fn requires_value(self) -> bool {
+        matches!(self, Self::Year | Self::Publisher)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SoftwarePartSummary {
+    pub name: String,
+    pub interface: String,
+}
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -18,6 +45,7 @@ pub struct SoftwareItemSummary {
     pub publisher: String,
     pub clone_of: Option<String>,
     pub supported: String,
+    pub parts: Vec<SoftwarePartSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,13 +60,23 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
     input: R,
     expected_list: &str,
     text_filter: Option<&str>,
+    filter: SoftwareListFilter,
+    filter_value: Option<&str>,
     limit: u32,
     offset: u32,
 ) -> AppResult<ParsedSoftwareList> {
+    if filter.requires_value() && filter_value.is_none() {
+        return Err(AppError::new(
+            "MAME_SOFTWARE_FILTER_VALUE_REQUIRED",
+            "The selected software filter requires a value.",
+        ));
+    }
+
     let mut reader = Reader::from_reader(input);
     reader.config_mut().trim_text(true);
 
-    let filter = text_filter.map(|value| value.to_lowercase());
+    let text_filter = text_filter.map(|value| value.to_lowercase());
+    let normalized_filter_value = filter_value.map(str::trim).filter(|value| !value.is_empty());
     let page_start = u64::from(offset);
     let page_end = page_start.saturating_add(u64::from(limit));
     let mut buffer = Vec::new();
@@ -101,8 +139,20 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
                 b"publisher" => {
                     set_text_target(&current_item, &mut text_target, TextTarget::Publisher)?
                 }
+                b"part" => {
+                    item_mut(&mut current_item)?
+                        .parts
+                        .push(parse_part(&attributes(&start)?)?);
+                }
                 _ => {}
             },
+            Event::Empty(empty) => {
+                if empty.name().as_ref() == b"part" {
+                    item_mut(&mut current_item)?
+                        .parts
+                        .push(parse_part(&attributes(&empty)?)?);
+                }
+            }
             Event::Text(text) => {
                 if let Some(target) = text_target {
                     append_text(item_mut(&mut current_item)?, target, decode_text(&text)?);
@@ -140,7 +190,12 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
                             structure_error("MAME closed a software item that was not open.")
                         })?
                         .finish()?;
-                    if item_matches(&item, filter.as_deref()) {
+                    if item_matches(
+                        &item,
+                        text_filter.as_deref(),
+                        filter,
+                        normalized_filter_value,
+                    ) {
                         if total >= page_start && total < page_end {
                             items.push(item);
                         }
@@ -171,11 +226,7 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
                 _ => {}
             },
             Event::Eof => break,
-            Event::Empty(_)
-            | Event::Decl(_)
-            | Event::DocType(_)
-            | Event::Comment(_)
-            | Event::PI(_) => {}
+            Event::Decl(_) | Event::DocType(_) | Event::Comment(_) | Event::PI(_) => {}
         }
     }
 
@@ -201,6 +252,7 @@ struct SoftwareItemBuilder {
     publisher: String,
     clone_of: Option<String>,
     supported: String,
+    parts: Vec<SoftwarePartSummary>,
 }
 
 impl SoftwareItemBuilder {
@@ -223,6 +275,7 @@ impl SoftwareItemBuilder {
             publisher: String::new(),
             clone_of: attributes.get("cloneof").cloned(),
             supported: supported.to_owned(),
+            parts: Vec::new(),
         })
     }
 
@@ -244,6 +297,7 @@ impl SoftwareItemBuilder {
             publisher: self.publisher,
             clone_of: self.clone_of,
             supported: self.supported,
+            parts: self.parts,
         })
     }
 }
@@ -291,18 +345,45 @@ fn append_text(item: &mut SoftwareItemBuilder, target: TextTarget, value: String
     destination.push_str(value);
 }
 
-fn item_matches(item: &SoftwareItemSummary, filter: Option<&str>) -> bool {
-    let Some(filter) = filter else {
-        return true;
+fn parse_part(attributes: &HashMap<String, String>) -> AppResult<SoftwarePartSummary> {
+    Ok(SoftwarePartSummary {
+        name: required_attr(attributes, "name")?.to_owned(),
+        interface: required_attr(attributes, "interface")?.to_owned(),
+    })
+}
+
+fn item_matches(
+    item: &SoftwareItemSummary,
+    text_filter: Option<&str>,
+    filter: SoftwareListFilter,
+    filter_value: Option<&str>,
+) -> bool {
+    let text_matches = match text_filter {
+        None => true,
+        Some(text_filter) => [
+            item.short_name.as_str(),
+            item.description.as_str(),
+            item.year.as_str(),
+            item.publisher.as_str(),
+        ]
+        .iter()
+        .any(|value| value.to_lowercase().contains(text_filter)),
     };
-    [
-        item.short_name.as_str(),
-        item.description.as_str(),
-        item.year.as_str(),
-        item.publisher.as_str(),
-    ]
-    .iter()
-    .any(|value| value.to_lowercase().contains(filter))
+    if !text_matches {
+        return false;
+    }
+
+    match filter {
+        SoftwareListFilter::All => true,
+        SoftwareListFilter::Parents => item.clone_of.is_none(),
+        SoftwareListFilter::Clones => item.clone_of.is_some(),
+        SoftwareListFilter::Year => filter_value.is_some_and(|value| item.year == value),
+        SoftwareListFilter::Publisher => filter_value
+            .is_some_and(|value| item.publisher.eq_ignore_ascii_case(value)),
+        SoftwareListFilter::Supported => item.supported == "yes",
+        SoftwareListFilter::PartiallySupported => item.supported == "partial",
+        SoftwareListFilter::Unsupported => item.supported == "no",
+    }
 }
 
 fn attributes(start: &BytesStart<'_>) -> AppResult<HashMap<String, String>> {
@@ -411,7 +492,7 @@ fn structure_error(message: &str) -> AppError {
 mod tests {
     use std::io::Cursor;
 
-    use super::parse_software_list_page;
+    use super::{parse_software_list_page, SoftwareListFilter};
 
     const FIXTURE: &str = r#"<?xml version="1.0"?>
 <softwarelists>
@@ -420,13 +501,16 @@ mod tests {
       <description>Agent U.S.A.</description>
       <year>1984</year>
       <publisher>Scholastic</publisher>
+      <part name="flop1" interface="floppy_5_25"><dataarea name="flop" size="1"/></part>
     </software>
     <software name="airheart" supported="partial">
       <description>Airheart</description>
       <year>1986</year>
       <publisher>Broderbund</publisher>
+      <part name="flop1" interface="floppy_5_25"/>
+      <part name="flop2" interface="floppy_5_25"/>
     </software>
-    <software name="archon2" cloneof="archon">
+    <software name="archon2" cloneof="archon" supported="no">
       <description>Archon II: Adept</description>
       <year>1984</year>
       <publisher>Electronic Arts</publisher>
@@ -435,11 +519,13 @@ mod tests {
 </softwarelists>"#;
 
     #[test]
-    fn parses_filters_and_pages_known_software_metadata() {
+    fn parses_filters_pages_and_parts() {
         let parsed = parse_software_list_page(
             Cursor::new(FIXTURE.as_bytes()),
             "apple2_flop_orig",
             Some("1984"),
+            SoftwareListFilter::All,
+            None,
             1,
             1,
         )
@@ -455,10 +541,57 @@ mod tests {
     }
 
     #[test]
+    fn applies_exact_mame_software_filters_before_pagination() {
+        let parsed = parse_software_list_page(
+            Cursor::new(FIXTURE.as_bytes()),
+            "apple2_flop_orig",
+            None,
+            SoftwareListFilter::PartiallySupported,
+            None,
+            20,
+            0,
+        )
+        .expect("support filter");
+        assert_eq!(parsed.total, 1);
+        assert_eq!(parsed.items[0].short_name, "airheart");
+        assert_eq!(parsed.items[0].parts.len(), 2);
+
+        let publisher = parse_software_list_page(
+            Cursor::new(FIXTURE.as_bytes()),
+            "apple2_flop_orig",
+            None,
+            SoftwareListFilter::Publisher,
+            Some("electronic arts"),
+            20,
+            0,
+        )
+        .expect("publisher filter");
+        assert_eq!(publisher.total, 1);
+        assert_eq!(publisher.items[0].short_name, "archon2");
+    }
+
+    #[test]
+    fn rejects_missing_filter_values() {
+        let error = parse_software_list_page(
+            Cursor::new(FIXTURE.as_bytes()),
+            "apple2_flop_orig",
+            None,
+            SoftwareListFilter::Year,
+            None,
+            20,
+            0,
+        )
+        .expect_err("value filter must fail closed");
+        assert_eq!(error.code, "MAME_SOFTWARE_FILTER_VALUE_REQUIRED");
+    }
+
+    #[test]
     fn rejects_a_different_list_than_requested() {
         let error = parse_software_list_page(
             Cursor::new(FIXTURE.as_bytes()),
             "different_list",
+            None,
+            SoftwareListFilter::All,
             None,
             50,
             0,
