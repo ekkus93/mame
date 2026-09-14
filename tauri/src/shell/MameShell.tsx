@@ -22,6 +22,7 @@ import { SessionControlPanel } from "../session/SessionControlPanel";
 import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
 import { GeneralSettingsPanel } from "../settings/GeneralSettingsPanel";
 import "./MameShell.css";
+import "./ContextualSurfaces.css";
 
 type ShellView =
   | "library"

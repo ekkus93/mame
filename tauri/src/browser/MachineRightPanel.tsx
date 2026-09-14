@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
+} from "react";
 
 import {
   discoverMachineArtwork,
@@ -62,7 +69,7 @@ export function MachineRightPanel({
   onNavigateToMachines: () => void;
   onSettingsClose: () => void;
 }) {
-  const handleRegionKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const handleRegionKey = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       onNavigateToMachines();
