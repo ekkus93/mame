@@ -13,11 +13,7 @@ import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../b
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import { queryMameUiLibrary } from "../backend/mameUi";
-import {
-  getMameUiState,
-  setMameUiState,
-  type MameUiPanelMode,
-} from "../backend/mameUiState";
+import { getMameUiState, setMameUiState, type MameUiPanelMode } from "../backend/mameUiState";
 import type {
   MachineDetail,
   MachineListItem,
@@ -398,7 +394,11 @@ export function MameBrowser({
               revision={favoriteRevision}
               onChanged={bumpFavoriteRevision}
             />
-            <button type="button" className="secondary-button" onClick={() => changeRightView("audit")}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => changeRightView("audit")}
+            >
               Audit
             </button>
             <button
