@@ -38,10 +38,10 @@ Library keyboard shortcuts deliberately fail closed while MAME owns gameplay inp
 
 Acceptance criteria:
 
-- `LibraryBrowser` listens for `session.started`, `session.exited`, `session.crashed`, and `session.failed`.
-- `session.started` refreshes ownership from Rust instead of guessing.
-- Terminal session events immediately release application shortcuts locally.
-- Event-listener setup failures preserve fail-closed behavior.
+- The application shell listens for `session.started`, `session.exited`, `session.crashed`, and `session.failed`.
+- Session lifecycle events trigger the existing library shortcut ownership refresh path instead of waiting for user focus changes.
+- Terminal session events therefore clear stale gameplay-input ownership as soon as Rust emits the lifecycle event.
+- Event-listener setup failures preserve the existing fail-closed shortcut behavior.
 
 ### PCH-003 — Bootstrap-file permission semantics
 
@@ -50,8 +50,8 @@ The runtime-control bootstrap script contains an unguessable per-session frame t
 Acceptance criteria:
 
 - Unix `0600` behavior remains intact.
-- Non-Unix behavior is explicitly documented in code as relying on per-user temporary-directory ACLs, per-session token entropy, and RAII cleanup.
-- Regression coverage prevents this from silently degrading into an undocumented no-op.
+- Non-Unix behavior is explicitly documented as relying on user TEMP directory ACLs, per-session frame-token entropy, and RAII cleanup.
+- Regression coverage prevents this from silently degrading into an undocumented platform boundary.
 
 ### PCH-004 — Runtime-control source-composition guardrails
 
@@ -93,11 +93,12 @@ Acceptance criteria:
 
 Primary implementation files:
 
+- `tauri/src/App.tsx`
 - `tauri/src/session/SessionControlPanel.tsx`
-- `tauri/src/library/LibraryBrowser.tsx`
 - `tauri/src/backend/types.ts`
+- `tauri/src/session/saveStateCompatibility.ts`
 - `tauri/src/session/saveStateCompatibility.test.ts`
-- `tauri/src-tauri/src/sessions/control.rs`
+- `tauri/src-tauri/src/sessions/control.rs` (read by regression coverage; no behavior change required for this batch)
 
 Regression and CI files:
 

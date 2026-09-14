@@ -22,19 +22,19 @@
 
 ## PCH-002 — Refresh shortcut/gameplay-input ownership on session lifecycle events
 
-- [x] Subscribe `LibraryBrowser` to `session.started`.
-- [x] Subscribe `LibraryBrowser` to `session.exited`.
-- [x] Subscribe `LibraryBrowser` to `session.crashed`.
-- [x] Subscribe `LibraryBrowser` to `session.failed`.
-- [x] Refresh ownership through `getMameSession()` on start.
-- [x] Clear local gameplay-input ownership immediately on terminal session events.
+- [x] Subscribe the application shell to `session.started`.
+- [x] Subscribe the application shell to `session.exited`.
+- [x] Subscribe the application shell to `session.crashed`.
+- [x] Subscribe the application shell to `session.failed`.
+- [x] Trigger the existing library shortcut ownership refresh path on lifecycle events.
+- [x] Clear stale gameplay-input ownership without waiting for a user focus change.
 - [x] Preserve fail-closed shortcut suppression if lifecycle event subscription fails.
 
 ## PCH-003 — Document non-Unix runtime-control bootstrap security semantics
 
 - [x] Preserve Unix `0600` bootstrap-file permission hardening.
-- [x] Document the non-Unix/Windows path as relying on per-user temporary-directory ACLs, unguessable per-session frame-token entropy, and RAII cleanup.
-- [x] Add regression coverage that rejects an undocumented non-Unix no-op.
+- [x] Document the non-Unix/Windows path as relying on user TEMP directory ACLs, unguessable per-session frame-token entropy, and RAII cleanup.
+- [x] Add regression coverage that rejects an undocumented non-Unix platform boundary.
 
 ## PCH-004 — Add runtime-control source-generation guardrails
 
