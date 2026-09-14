@@ -17,9 +17,9 @@ import {
   type MameSoftwarePage,
   type SoftwareListFilter,
 } from "../backend/mameSoftware";
+import type { MameUiPanelMode } from "../backend/mameUiState";
 import type { MachineDetail, SessionSnapshot } from "../backend/types";
 import { isEditableElement } from "../library/keyboardNavigation";
-import type { MameUiPanelMode } from "../backend/mameUiState";
 import {
   nextSoftwareIndex,
   SOFTWARE_FILTERS,
@@ -134,23 +134,31 @@ export function SoftwareBrowser({
     ).toLocaleString()} of ${page.total.toLocaleString()}`;
   }, [page]);
 
-  const launchSelected = useCallback(() => {
-    if (!selected || !listName || launch.status === "launching") return;
-    if (selected.parts.length > 1 && !selectedPart) return;
-    setLaunch({ status: "launching", target: selected.shortName });
-    void launchMameSoftware({
-      shortName: detail.shortName,
-      softwareList: listName,
-      softwareItem: selected.shortName,
-      softwarePart: selectedPart,
-      launchOverrides,
-    })
-      .then((session) => {
-        setLaunch({ status: "launched", session });
-        onSessionStarted(session);
+  const launchItem = useCallback(
+    (item: MameSoftwareItem, part: string | null) => {
+      if (!listName || launch.status === "launching") return;
+      if (item.parts.length > 1 && !part) return;
+      setLaunch({ status: "launching", target: item.shortName });
+      void launchMameSoftware({
+        shortName: detail.shortName,
+        softwareList: listName,
+        softwareItem: item.shortName,
+        softwarePart: part,
+        launchOverrides,
       })
-      .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
-  }, [detail.shortName, launch.status, launchOverrides, listName, onSessionStarted, selected, selectedPart]);
+        .then((session) => {
+          setLaunch({ status: "launched", session });
+          onSessionStarted(session);
+        })
+        .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
+    },
+    [detail.shortName, launch.status, launchOverrides, listName, onSessionStarted],
+  );
+
+  const launchSelected = useCallback(() => {
+    if (!selected) return;
+    launchItem(selected, selectedPart);
+  }, [launchItem, selected, selectedPart]);
 
   const startEmpty = useCallback(() => {
     if (!detail.canStartEmpty || launch.status === "launching") return;
@@ -163,15 +171,19 @@ export function SoftwareBrowser({
       .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
   }, [detail.canStartEmpty, detail.shortName, launch.status, launchOverrides, onSessionStarted]);
 
+  function activateItem(item: MameSoftwareItem) {
+    setSelected(item);
+    if (item.parts.length <= 1) {
+      launchItem(item, item.parts[0]?.name ?? null);
+    }
+  }
+
   function handleRowKey(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
     if (!page) return;
     if (event.key === "Enter") {
       event.preventDefault();
       const item = page.items[index];
-      if (item) {
-        setSelected(item);
-        if (item.parts.length <= 1) queueMicrotask(launchSelected);
-      }
+      if (item) activateItem(item);
       return;
     }
     const nextIndex = nextSoftwareIndex(event.key, index, page.items.length);
@@ -300,7 +312,11 @@ export function SoftwareBrowser({
           )}
         </aside>
 
-        <section className="mame-list-region" aria-label="Software list" aria-busy={browse.status === "loading"}>
+        <section
+          className="mame-list-region"
+          aria-label="Software list"
+          aria-busy={browse.status === "loading"}
+        >
           <div className="mame-region-heading">Software</div>
           {browse.status === "awaitingFilterValue" && (
             <div className="mame-panel-state">Enter a value for the selected filter.</div>
@@ -324,10 +340,7 @@ export function SoftwareBrowser({
                     className={`mame-software-row ${selected?.shortName === item.shortName ? "is-selected" : ""}`}
                     aria-current={selected?.shortName === item.shortName ? "true" : undefined}
                     onClick={() => setSelected(item)}
-                    onDoubleClick={() => {
-                      setSelected(item);
-                      if (item.parts.length <= 1) launchSelected();
-                    }}
+                    onDoubleClick={() => activateItem(item)}
                     onKeyDown={(event) => handleRowKey(event, index)}
                   >
                     <span className="mame-software-title">{item.description}</span>
@@ -395,16 +408,34 @@ export function SoftwareBrowser({
               <h2>{selected.description}</h2>
               <p className="mame-info-short">{selected.shortName}</p>
               <dl>
-                <div><dt>Year</dt><dd>{selected.year}</dd></div>
-                <div><dt>Publisher</dt><dd>{selected.publisher}</dd></div>
-                <div><dt>Support</dt><dd>{selected.supported}</dd></div>
-                <div><dt>Parent</dt><dd>{selected.cloneOf ?? "Parent"}</dd></div>
-                <div><dt>Software list</dt><dd>{listName}</dd></div>
+                <div>
+                  <dt>Year</dt>
+                  <dd>{selected.year}</dd>
+                </div>
+                <div>
+                  <dt>Publisher</dt>
+                  <dd>{selected.publisher}</dd>
+                </div>
+                <div>
+                  <dt>Support</dt>
+                  <dd>{selected.supported}</dd>
+                </div>
+                <div>
+                  <dt>Parent</dt>
+                  <dd>{selected.cloneOf ?? "Parent"}</dd>
+                </div>
+                <div>
+                  <dt>Software list</dt>
+                  <dd>{listName}</dd>
+                </div>
               </dl>
               {selected.parts.length > 1 && (
                 <label className="mame-software-part-selector">
                   <span>Launch part</span>
-                  <select value={selectedPart ?? ""} onChange={(event) => setSelectedPart(event.target.value || null)}>
+                  <select
+                    value={selectedPart ?? ""}
+                    onChange={(event) => setSelectedPart(event.target.value || null)}
+                  >
                     <option value="">Choose a part…</option>
                     {selected.parts.map((part) => (
                       <option key={`${part.name}:${part.interface}`} value={part.name}>
