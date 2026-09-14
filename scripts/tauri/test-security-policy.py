@@ -112,6 +112,7 @@ def main() -> int:
             "control_bootstrap.rs",
             "control_channel.rs",
             "control_requests.rs",
+            "control_wait.rs",
             "control_correlation.rs",
             "control_parser.rs",
             "control_events.rs",

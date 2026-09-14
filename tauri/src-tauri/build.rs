@@ -20,6 +20,7 @@ fn compose_runtime_control() {
     println!("cargo:rerun-if-changed=src/sessions/control_bootstrap.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_channel.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_requests.rs");
+    println!("cargo:rerun-if-changed=src/sessions/control_wait.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_correlation.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_parser.rs");
     println!("cargo:rerun-if-changed=src/sessions/control_events.rs");

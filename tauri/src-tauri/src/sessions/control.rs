@@ -74,6 +74,7 @@ include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_registry.rs"
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_bootstrap.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_channel.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_requests.rs"));
+include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_wait.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_correlation.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_parser.rs"));
 include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/sessions/control_events.rs"));
