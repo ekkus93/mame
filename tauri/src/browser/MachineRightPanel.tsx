@@ -110,12 +110,19 @@ export function MachineRightPanel({
         />
       )}
       {view === "settings" && (
-        <MachineSettingsPanel
-          shortName={detail.shortName}
-          pendingLaunchOverrides={pendingLaunchOverrides}
-          onPendingLaunchOverridesChanged={onPendingLaunchOverridesChanged}
-          onClose={onSettingsClose}
-        />
+        <div className="mame-context-subview" aria-label="Selected machine configuration">
+          <div className="mame-context-subview-toolbar">
+            <button type="button" className="secondary-button" autoFocus onClick={onSettingsClose}>
+              ← Machine details
+            </button>
+            <span>Configure {detail.description}</span>
+          </div>
+          <MachineSettingsPanel
+            shortName={detail.shortName}
+            pendingLaunchOverrides={pendingLaunchOverrides}
+            onPendingLaunchOverridesChanged={onPendingLaunchOverridesChanged}
+          />
+        </div>
       )}
     </aside>
   );
