@@ -28,7 +28,7 @@ const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   scores: "Scores",
   select: "Select",
   marquee: "Marquee",
-  covers: "Covers",
+  cover: "Covers",
   icon: "Icon",
   systemImage: "System image",
 };
