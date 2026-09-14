@@ -30,7 +30,28 @@ const session: SessionSnapshot = {
   state: "running",
   machine: "pacman",
   software: null,
+  executable: {
+    source: "external",
+    trust: "userConfigured",
+    path: "/usr/bin/mame",
+    version: "0.281",
+    build: "mame0281",
+    rawVersionLine: "MAME v0.281",
+  },
+  effectiveArgv: ["/usr/bin/mame", "pacman"],
+  effectiveConfig: { projectPaths: [] },
+  createdAtEpochMs: 1,
+  startedAtEpochMs: 2,
+  endedAtEpochMs: null,
   pid: 123,
+  exitCode: null,
+  terminationSignal: null,
+  forcedTermination: false,
+  stdoutTail: "",
+  stderrTail: "",
+  stdoutTruncated: false,
+  stderrTruncated: false,
+  diagnosticError: null,
 };
 
 describe("saveStateCompatibility", () => {
@@ -46,14 +67,15 @@ describe("saveStateCompatibility", () => {
   });
 
   it("warns about an observed different MAME build but still defers to the probe", () => {
-    const current = {
+    const current: SessionSnapshot = {
       ...session,
       executable: {
+        ...session.executable,
         rawVersionLine: "MAME v0.282",
         version: "0.282",
         build: "mame0282",
       },
-    } as SessionSnapshot;
+    };
     const result = saveStateCompatibility(record, current);
     expect(result.loadable).toBe(true);
     expect(result.tone).toBe("warning");

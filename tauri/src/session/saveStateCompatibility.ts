@@ -7,14 +7,6 @@ export type SaveStateCompatibility = {
   message: string;
 };
 
-type SessionWithExecutable = SessionSnapshot & {
-  executable?: {
-    version?: string;
-    build?: string | null;
-    rawVersionLine?: string;
-  };
-};
-
 export function saveStateCompatibility(
   item: StoredSaveStateRecord,
   session: SessionSnapshot | null,
@@ -41,8 +33,8 @@ export function saveStateCompatibility(
     };
   }
 
-  const executable = (session as SessionWithExecutable).executable;
-  if (executable?.rawVersionLine && executable.rawVersionLine !== item.record.mame.rawVersionLine) {
+  const executable = session.executable;
+  if (executable.rawVersionLine !== item.record.mame.rawVersionLine) {
     return {
       loadable: true,
       tone: "warning",

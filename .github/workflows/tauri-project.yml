@@ -36,6 +36,9 @@ jobs:
             /docs/legal/
             /docs/MAME_TAURI_TODO_2026-09-08.md
             /docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md
+            /docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md
+            /docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md
+            /.github/workflows/tauri-project.yml
             /tauri/
             /scripts/tauri/
 
@@ -66,6 +69,10 @@ jobs:
       - name: MT-2200 TODO reconciliation regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-mt2200-todo-reconciliation.py
+
+      - name: Post-closeout hardening regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-post-closeout-hardening.py
 
       - name: Install Tauri Linux build prerequisites
         run: |

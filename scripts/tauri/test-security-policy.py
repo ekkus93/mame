@@ -104,6 +104,21 @@ def main() -> int:
         "project Rust crate must retain explicit GPL-2.0-only package metadata",
     )
 
+    control_rs = (TAURI_ROOT / "src-tauri/src/sessions/control.rs").read_text(encoding="utf-8")
+    require(
+        "std::fs::Permissions::from_mode(0o600)" in control_rs,
+        "runtime-control bootstrap files must remain private on Unix",
+    )
+    hardening_spec = (
+        REPO_ROOT / "docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md"
+    ).read_text(encoding="utf-8")
+    require(
+        "TEMP directory ACLs" in hardening_spec
+        and "per-session frame-token entropy" in hardening_spec
+        and "RAII cleanup" in hardening_spec,
+        "non-Unix runtime-control bootstrap security assumptions must stay documented",
+    )
+
     print("MT-1500 static security policy regression passed")
     return 0
 
