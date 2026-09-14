@@ -19,7 +19,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
 
 jobs:
   security-regression:
@@ -44,8 +43,9 @@ jobs:
         working-directory: tauri
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Install pinned Rust advisory auditor
+        run: cargo install cargo-audit --version 0.22.2 --locked
+
       - name: Audit Rust dependency advisories
-        uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: tauri/src-tauri
+        working-directory: tauri/src-tauri
+        run: cargo audit --file Cargo.lock
