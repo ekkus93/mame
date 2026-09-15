@@ -337,7 +337,7 @@ mod tests {
             audio: AudioPreference::Disabled,
         };
 
-        let argv = build_launch_argv_with_preferences(target.borrow(), &preferences)
+        let argv = build_launch_argv_with_preferences(&target, &preferences)
             .expect("bounded preferences must produce safe argv");
         assert_eq!(
             argv.as_slice(),
