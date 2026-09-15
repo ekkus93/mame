@@ -41,13 +41,6 @@ body,
   background: var(--mame-bg);
 }
 
-body {
-  background:
-    radial-gradient(circle at 16% 0%, rgba(69, 163, 255, 0.18), transparent 30rem),
-    radial-gradient(circle at 90% 12%, rgba(244, 196, 92, 0.1), transparent 24rem),
-    var(--mame-bg);
-}
-
 ::selection {
   color: var(--mame-accent-contrast);
   background: var(--mame-accent);
@@ -57,9 +50,7 @@ body {
 .mame-shell,
 .mame-software-browser {
   color: var(--mame-text);
-  background:
-    linear-gradient(180deg, rgba(69, 163, 255, 0.08), transparent 18rem),
-    var(--mame-bg);
+  background: var(--mame-bg);
 }
 
 .status-card,
@@ -76,7 +67,7 @@ body {
 button {
   border-color: var(--mame-border-strong);
   color: var(--mame-accent-contrast);
-  background: linear-gradient(180deg, var(--mame-accent-strong), var(--mame-accent));
+  background: var(--mame-accent);
 }
 
 button:focus-visible,
@@ -114,7 +105,7 @@ textarea:focus-visible,
 .mame-browser-toolbar,
 .mame-software-toolbar {
   border-color: var(--mame-border);
-  background: linear-gradient(180deg, var(--mame-surface-raised), var(--mame-surface));
+  background: var(--mame-surface);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
@@ -146,7 +137,7 @@ textarea:focus-visible,
 .mame-right-tabs button.is-selected,
 .mame-artwork-categories button.is-selected {
   color: var(--mame-text);
-  background: linear-gradient(180deg, rgba(69, 163, 255, 0.22), rgba(69, 163, 255, 0.1));
+  background: color-mix(in srgb, var(--mame-accent) 22%, var(--mame-surface));
 }
 
 .mame-shell-nav button[aria-current="page"],
@@ -186,7 +177,7 @@ textarea:focus-visible,
 .mame-right-tabs,
 .mame-pager {
   color: var(--mame-accent-strong);
-  background: linear-gradient(180deg, var(--mame-surface-raised), var(--mame-surface));
+  background: var(--mame-surface-raised);
 }
 
 .mame-search input,
@@ -218,14 +209,14 @@ textarea:focus-visible,
 .mame-software-row.is-selected,
 .machine-row-selected {
   color: var(--mame-text);
-  background: linear-gradient(90deg, var(--mame-surface-selected), var(--mame-surface-hover));
+  background: var(--mame-surface-selected);
   box-shadow: inset 3px 0 var(--mame-accent);
 }
 
 .mame-start-button {
   border-color: var(--mame-accent-strong);
   color: var(--mame-accent-contrast);
-  background: linear-gradient(180deg, var(--mame-accent-strong), var(--mame-accent));
+  background: var(--mame-accent);
 }
 
 .mame-browser-banner.is-error,
