@@ -70,13 +70,20 @@ describe("MAME software browser model", () => {
     expect(shortcut({ key: "/", editableTarget: true })).toBe("none");
     expect(shortcut({ key: "Escape", editableTarget: true })).toBe("none");
     expect(
-      shortcut({ key: "Escape", editableTarget: true, searchTarget: true, searchHasValue: true }),
+      shortcut({
+        key: "Escape",
+        editableTarget: true,
+        searchTarget: true,
+        searchHasValue: true,
+      }),
     ).toBe("clearSearch");
   });
 
   it("auto-selects only a single software part", () => {
     expect(selectedPartForSoftware(software([]))).toBeNull();
-    expect(selectedPartForSoftware(software([{ name: "cart", interface: "cart" }]))).toBe("cart");
+    expect(
+      selectedPartForSoftware(software([{ name: "cart", interface: "cart" }])),
+    ).toBe("cart");
     expect(
       selectedPartForSoftware(
         software([
@@ -99,7 +106,11 @@ describe("MAME software browser model", () => {
       }),
     ).toMatchObject({ softwareItem: "game", softwarePart: "cart", bios: null });
     expect(
-      buildEmptyLaunchRequest({ shortName: "machine", bios: null, launchOverrides: null }),
+      buildEmptyLaunchRequest({
+        shortName: "machine",
+        bios: null,
+        launchOverrides: null,
+      }),
     ).toEqual({ shortName: "machine", bios: null, launchOverrides: null });
   });
 
@@ -115,7 +126,11 @@ describe("MAME software browser model", () => {
       }).bios,
     ).toBe("rev3");
     expect(
-      buildEmptyLaunchRequest({ shortName: "machine", bios: "rev3", launchOverrides: null }).bios,
+      buildEmptyLaunchRequest({
+        shortName: "machine",
+        bios: "rev3",
+        launchOverrides: null,
+      }).bios,
     ).toBe("rev3");
   });
 
@@ -124,10 +139,20 @@ describe("MAME software browser model", () => {
     expect(shouldPreserveLaunchOnSelection("launching")).toBe(true);
     expect(shouldPreserveLaunchOnSelection("launched")).toBe(false);
     expect(
-      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: "cart" }),
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: "cart",
+      }),
     ).toBe(true);
     expect(
-      canBeginSoftwareLaunch({ listName: "list", launchInFlight: true, item, softwarePart: "cart" }),
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: true,
+        item,
+        softwarePart: "cart",
+      }),
     ).toBe(false);
   });
 
@@ -137,10 +162,20 @@ describe("MAME software browser model", () => {
       { name: "flop", interface: "floppy" },
     ]);
     expect(
-      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: null }),
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: null,
+      }),
     ).toBe(false);
     expect(
-      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: "flop" }),
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: "flop",
+      }),
     ).toBe(true);
   });
 });
