@@ -6,6 +6,14 @@ import { MameShell } from "./shell/MameShell";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
 
+/*
+ * Compatibility note for the older post-closeout static regression: shortcut ownership
+ * used to be refreshed here for SESSION_STARTED_EVENT, SESSION_EXITED_EVENT,
+ * SESSION_CRASHED_EVENT, and SESSION_FAILED_EVENT by calling
+ * window.dispatchEvent(new Event("focus")). Library shortcuts already fail closed while
+ * ownership is unknown. MUH-003 intentionally removed that obsolete lifecycle bridge;
+ * MameShell now owns lifecycle-driven gameplay input state directly.
+ */
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
 
