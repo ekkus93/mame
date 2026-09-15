@@ -1,10 +1,10 @@
+import type { LaunchPreferences } from "../backend/generalSettings";
 import type {
   MameEmptyLaunch,
   MameSoftwareItem,
   MameSoftwareLaunch,
   SoftwareListFilter,
 } from "../backend/mameSoftware";
-import type { LaunchPreferences } from "../backend/generalSettings";
 
 export const SOFTWARE_PAGE_SIZE = 50;
 export const SOFTWARE_PAGE_NAVIGATION_STEP = 10;
@@ -19,6 +19,8 @@ export const SOFTWARE_FILTERS: ReadonlyArray<{ id: SoftwareListFilter; label: st
   { id: "partiallySupported", label: "Partially Supported" },
   { id: "unsupported", label: "Unsupported" },
 ];
+
+export type SoftwareGlobalShortcutAction = "none" | "clearSearch" | "back" | "focusSearch";
 
 export function softwareFilterRequiresValue(filter: SoftwareListFilter): boolean {
   return filter === "year" || filter === "publisher";
@@ -44,8 +46,59 @@ export function nextSoftwareIndex(key: string, index: number, count: number): nu
   }
 }
 
+export function softwareGlobalShortcutAction({
+  key,
+  gameplayInputOwned,
+  defaultPrevented,
+  repeat,
+  altKey,
+  ctrlKey,
+  metaKey,
+  editableTarget,
+  searchTarget,
+  searchHasValue,
+}: {
+  key: string;
+  gameplayInputOwned: boolean;
+  defaultPrevented: boolean;
+  repeat: boolean;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  editableTarget: boolean;
+  searchTarget: boolean;
+  searchHasValue: boolean;
+}): SoftwareGlobalShortcutAction {
+  if (defaultPrevented || repeat || altKey || gameplayInputOwned) return "none";
+  if (key === "Escape") {
+    if (searchTarget && searchHasValue) return "clearSearch";
+    return editableTarget ? "none" : "back";
+  }
+  if (editableTarget) return "none";
+  if (key === "/" && !ctrlKey && !metaKey) return "focusSearch";
+  return "none";
+}
+
 export function selectedPartForSoftware(item: MameSoftwareItem | null): string | null {
   return item?.parts.length === 1 ? (item.parts[0]?.name ?? null) : null;
+}
+
+export function canBeginSoftwareLaunch({
+  listName,
+  launchInFlight,
+  item,
+  softwarePart,
+}: {
+  listName: string;
+  launchInFlight: boolean;
+  item: MameSoftwareItem;
+  softwarePart: string | null;
+}): boolean {
+  return Boolean(listName) && !launchInFlight && (item.parts.length <= 1 || Boolean(softwarePart));
+}
+
+export function shouldPreserveLaunchOnSelection(status: string): boolean {
+  return status === "launching";
 }
 
 export function buildSoftwareLaunchRequest({

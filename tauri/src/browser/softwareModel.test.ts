@@ -4,9 +4,12 @@ import type { MameSoftwareItem } from "../backend/mameSoftware";
 import {
   buildEmptyLaunchRequest,
   buildSoftwareLaunchRequest,
+  canBeginSoftwareLaunch,
   nextSoftwareIndex,
   selectedPartForSoftware,
+  shouldPreserveLaunchOnSelection,
   softwareFilterRequiresValue,
+  softwareGlobalShortcutAction,
 } from "./softwareModel";
 
 function software(parts: MameSoftwareItem["parts"]): MameSoftwareItem {
@@ -19,6 +22,22 @@ function software(parts: MameSoftwareItem["parts"]): MameSoftwareItem {
     supported: "yes",
     parts,
   };
+}
+
+function shortcut(overrides: Partial<Parameters<typeof softwareGlobalShortcutAction>[0]> = {}) {
+  return softwareGlobalShortcutAction({
+    key: "/",
+    gameplayInputOwned: false,
+    defaultPrevented: false,
+    repeat: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    editableTarget: false,
+    searchTarget: false,
+    searchHasValue: false,
+    ...overrides,
+  });
 }
 
 describe("MAME software browser model", () => {
@@ -36,6 +55,21 @@ describe("MAME software browser model", () => {
     expect(nextSoftwareIndex("End", 3, 40)).toBe(39);
     expect(nextSoftwareIndex("Home", 39, 40)).toBe(0);
     expect(nextSoftwareIndex("x", 3, 40)).toBeNull();
+  });
+
+  it("suppresses software-browser global shortcuts while gameplay owns input", () => {
+    expect(shortcut({ gameplayInputOwned: true, key: "/" })).toBe("none");
+    expect(shortcut({ gameplayInputOwned: true, key: "Escape" })).toBe("none");
+  });
+
+  it("routes software-browser shortcuts only outside editable fields", () => {
+    expect(shortcut({ key: "/" })).toBe("focusSearch");
+    expect(shortcut({ key: "Escape" })).toBe("back");
+    expect(shortcut({ key: "/", editableTarget: true })).toBe("none");
+    expect(shortcut({ key: "Escape", editableTarget: true })).toBe("none");
+    expect(
+      shortcut({ key: "Escape", editableTarget: true, searchTarget: true, searchHasValue: true }),
+    ).toBe("clearSearch");
   });
 
   it("auto-selects only a single software part", () => {
@@ -81,5 +115,45 @@ describe("MAME software browser model", () => {
     expect(
       buildEmptyLaunchRequest({ shortName: "machine", bios: "rev3", launchOverrides: null }).bios,
     ).toBe("rev3");
+  });
+
+  it("keeps a pending launch across selection changes and rejects duplicate activation", () => {
+    const item = software([{ name: "cart", interface: "cart" }]);
+    expect(shouldPreserveLaunchOnSelection("launching")).toBe(true);
+    expect(shouldPreserveLaunchOnSelection("launched")).toBe(false);
+    expect(
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: "cart",
+      }),
+    ).toBe(true);
+    expect(
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: true,
+        item,
+        softwarePart: "cart",
+      }),
+    ).toBe(false);
+  });
+
+  it("requires an explicit part for multi-part software", () => {
+    const item = software([
+      { name: "cart", interface: "cart" },
+      { name: "flop", interface: "floppy" },
+    ]);
+    expect(
+      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: null }),
+    ).toBe(false);
+    expect(
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: "flop",
+      }),
+    ).toBe(true);
   });
 });

@@ -294,6 +294,24 @@ mod tests {
     }
 
     #[test]
+    fn omitted_bios_adds_no_bios_arguments() {
+        for software in [None, Some("list_name:item_name:cart".to_owned())] {
+            let target = MameLaunchTarget {
+                machine: "pc".to_owned(),
+                software,
+                bios: None,
+                project_paths: Vec::new(),
+            };
+            let argv = build_launch_argv(&target).expect("omitted BIOS must validate");
+            assert!(
+                !argv.as_slice().iter().any(|arg| arg == "-bios"),
+                "omitted BIOS must remain omitted from MAME argv: {:?}",
+                argv.as_slice()
+            );
+        }
+    }
+
+    #[test]
     fn launch_arguments_include_only_typed_bios_option() {
         let target = MameLaunchTarget {
             machine: "pc".to_owned(),

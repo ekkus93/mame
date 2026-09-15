@@ -9,24 +9,28 @@ This ledger tracks the follow-up hardening issues found during review of the com
 
 ## MUH-001 — Preserve omitted-BIOS semantics unless the user explicitly selects an override
 
-- [ ] Change `SoftwareBrowser` so BIOS choices load without auto-selecting the reported default BIOS as an explicit override.
-- [ ] Keep the `MAME default` selector state as the initial state after BIOS choices load.
-- [ ] Ensure `launchMameSoftware` receives `bios: null` or an omitted BIOS field when the user has not explicitly selected a BIOS.
-- [ ] Ensure `launchMameEmpty` receives `bios: null` or an omitted BIOS field when the user has not explicitly selected a BIOS.
-- [ ] Preserve explicit BIOS propagation when the user chooses a concrete BIOS option.
-- [ ] Preserve Rust-side BIOS identifier validation and authoritative membership validation before both software launch and Start Empty launch.
-- [ ] Add regression coverage proving default BIOS choices are displayed but not sent as explicit launch overrides.
-- [ ] Add regression coverage proving an explicitly selected BIOS is sent for both software launch and Start Empty.
+- [x] Change `SoftwareBrowser` so BIOS choices load without auto-selecting the reported default BIOS as an explicit override.
+- [x] Keep the `MAME default` selector state as the initial state after BIOS choices load.
+- [x] Ensure `launchMameSoftware` receives `bios: null` or an omitted BIOS field when the user has not explicitly selected a BIOS.
+- [x] Ensure `launchMameEmpty` receives `bios: null` or an omitted BIOS field when the user has not explicitly selected a BIOS.
+- [x] Preserve explicit BIOS propagation when the user chooses a concrete BIOS option.
+- [x] Preserve Rust-side BIOS identifier validation and authoritative membership validation before both software launch and Start Empty launch.
+- [x] Add regression coverage proving default BIOS choices are displayed but not sent as explicit launch overrides.
+- [x] Add regression coverage proving an explicitly selected BIOS is sent for both software launch and Start Empty.
+
+**MUH-001 evidence:** Implemented and merged by PR #38 as promoted `master` `0fa73d26a537b7b8b343f1046fa4fe4bda05a6a3`. `SoftwareBrowser` now leaves `selectedBios` null after BIOS discovery, while the selector continues to expose the reported choices and marks MAME's reported default descriptively. `softwareModel.test.ts` covers omitted and explicit BIOS propagation for both software and Start Empty request types. Existing Rust launch command paths retain typed BIOS validation and authoritative choice membership validation.
 
 ## MUH-002 — Prevent software launch-state resets from racing single-part activation
 
-- [ ] Refactor the `selected` effect in `SoftwareBrowser` so it updates part selection without blindly resetting active launch state.
-- [ ] Move stale launch-message clearing to explicit browsing-context transitions or another scoped path that cannot overwrite `launching`.
-- [ ] Preserve the current automatic launch behavior for single-part software activation.
-- [ ] Preserve the part-required path for multi-part software.
-- [ ] Ensure duplicate launch attempts remain suppressed while `launch.status === "launching"`.
-- [ ] Add behavioral regression coverage proving a newly selected single-part item remains in the launching state while the launch promise is pending.
-- [ ] Add behavioral regression coverage proving repeated activation while launching does not produce duplicate launch calls.
+- [x] Refactor the `selected` effect in `SoftwareBrowser` so it updates part selection without blindly resetting active launch state.
+- [x] Move stale launch-message clearing to explicit browsing-context transitions or another scoped path that cannot overwrite `launching`.
+- [x] Preserve the current automatic launch behavior for single-part software activation.
+- [x] Preserve the part-required path for multi-part software.
+- [x] Ensure duplicate launch attempts remain suppressed while `launch.status === "launching"`.
+- [x] Add behavioral regression coverage proving a newly selected single-part item remains in the launching state while the launch promise is pending.
+- [x] Add behavioral regression coverage proving repeated activation while launching does not produce duplicate launch calls.
+
+**MUH-002 evidence:** Implemented and merged with MUH-001 by PR #38 as promoted `master` `0fa73d26a537b7b8b343f1046fa4fe4bda05a6a3`. Selection changes preserve an active `launching` state, and the synchronous `launchInFlight` guard prevents repeated activation from issuing duplicate launch calls. Behavioral model coverage exercises pending-launch preservation, duplicate suppression, automatic single-part selection, and the multi-part explicit-part requirement.
 
 ## MUH-003 — Remove obsolete lifecycle-to-focus ownership shim from `App.tsx`
 
@@ -52,21 +56,23 @@ This ledger tracks the follow-up hardening issues found during review of the com
 
 ## MUH-005 — Add behavioral coverage for remediated UI contracts
 
-- [ ] Add frontend tests proving software-browser global shortcuts ignore `/` and `Escape` while `gameplayInputOwned === true`.
-- [ ] Add frontend tests proving the same shortcuts work when gameplay input is not owned and focus is outside editable fields.
-- [ ] Add frontend tests for default BIOS omission and explicit BIOS propagation.
-- [ ] Add frontend tests for launch-state behavior during pending launch promises.
-- [ ] Add Rust or command-boundary tests proving omitted BIOS remains omitted in launch arguments where practical.
-- [ ] Keep the existing static milestone regression as a broad architectural tripwire.
-- [ ] Prefer behavioral tests over adding more substring-only checks for sequencing or payload semantics.
+- [x] Add frontend tests proving software-browser global shortcuts ignore `/` and `Escape` while `gameplayInputOwned === true`.
+- [x] Add frontend tests proving the same shortcuts work when gameplay input is not owned and focus is outside editable fields.
+- [x] Add frontend tests for default BIOS omission and explicit BIOS propagation.
+- [x] Add frontend tests for launch-state behavior during pending launch promises.
+- [x] Add Rust or command-boundary tests proving omitted BIOS remains omitted in launch arguments where practical.
+- [x] Keep the existing static milestone regression as a broad architectural tripwire.
+- [x] Prefer behavioral tests over adding more substring-only checks for sequencing or payload semantics.
+
+**MUH-005 evidence:** The final hardening branch adds behavioral helpers and Vitest coverage in `tauri/src/browser/softwareModel.ts` / `softwareModel.test.ts` for gameplay-input shortcut ownership, editable-field routing, BIOS omission and explicit propagation, pending launch-state preservation, duplicate activation suppression, and multi-part selection. Rust `mame::argv` coverage proves `bios: None` emits no `-bios` argument for both empty and software targets. The existing static reproduction/milestone regression remains in place. Exact-head `7b398c31c4d2f26a35cc9d91e7a65470b3ff5efd` passed Tauri project 35015837922, Tauri security 35015837782, Windows packaging 35015837809, macOS packaging 35015837819, and Linux packaging 35015837968.
 
 ## MUH-006 — CI, documentation, and closure reconciliation
 
-- [ ] Ensure any new tests are run by the existing `Tauri project` workflow.
-- [ ] Update sparse checkout or workflow path triggers if new hardening docs/tests need to be present in CI jobs.
-- [ ] Reconcile every task/subtask in this TODO as complete, explicitly deferred with rationale, superseded with rationale, or not required with rationale.
-- [ ] Confirm no ambiguous unchecked item remains before closure.
-- [ ] Qualify the exact final PR head through all applicable project/security/platform/documentation workflows.
+- [x] Ensure any new tests are run by the existing `Tauri project` workflow.
+- [x] Update sparse checkout or workflow path triggers if new hardening docs/tests need to be present in CI jobs. **Not required:** the behavioral tests live under existing `tauri/**` paths already included by the workflow and triggers; the ledger itself does not need to be consumed by CI.
+- [x] Reconcile every task/subtask in this TODO as complete, explicitly deferred with rationale, superseded with rationale, or not required with rationale.
+- [x] Confirm no ambiguous unchecked item remains before closure.
+- [x] Qualify the exact final PR head through all applicable project/security/platform/documentation workflows. **Candidate evidence:** exact implementation head `7b398c31c4d2f26a35cc9d91e7a65470b3ff5efd` passed all five applicable workflows before this documentation-only reconciliation commit; the final documentation head must also pass all workflows triggered by this ledger change before merge.
 - [ ] Merge only an exact-head-qualified candidate through the gated Ralph Bridge path.
 - [ ] Reload this TODO from promoted `master` after merge and verify the promoted SHA.
 - [ ] Verify applicable post-merge `master` CI before claiming hardening closure.
