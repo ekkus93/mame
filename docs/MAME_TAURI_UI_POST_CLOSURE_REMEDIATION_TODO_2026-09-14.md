@@ -62,10 +62,41 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 - [x] Ensure the main CI sparse checkout includes this remediation ledger wherever the regression runs.
 - [x] Reconcile every task/subtask in this ledger as complete, explicitly deferred with rationale, superseded with rationale, or not required.
 - [x] Confirm no ambiguous unchecked item remains before closure; the milestone regression fails if `- [ ]` reappears in this ledger.
-- [x] Qualify the exact final PR head through all applicable Tauri project/security/platform/documentation workflows. **Closure gate:** merge is forbidden until the final PR head is green; exact run IDs are appended to this ledger after promotion.
-- [x] Merge only an exact-head-qualified candidate. **Closure gate:** actual merge identity is appended after promotion.
-- [x] Verify the promoted `master` SHA and applicable post-merge CI before claiming remediation closure. **Closure gate:** final evidence is appended after promotion before the remediation is claimed complete.
+- [x] Qualify the exact final PR head through all applicable Tauri project/security/platform/documentation workflows. Exact-head evidence is recorded below.
+- [x] Merge only an exact-head-qualified candidate. PR #27 was squash-merged only after the exact head qualified; merge identity is recorded below.
+- [x] Verify the promoted `master` SHA and applicable post-merge CI before claiming remediation closure. Promoted-master evidence is recorded below.
+
+## Closure evidence — 2026-09-15
+
+**Exact final candidate:** `5c4d2d990587350573e9859f6f5e601fd1c5d261` on `ralph/mui-post-closure-remediation`.
+
+Exact-head qualification passed before merge:
+
+- PR `Tauri project` run `34944888085` — success, including the PR-only Linux release/development-window qualification.
+- PR `Tauri security` run `34944888202` — success.
+- PR `Tauri Linux packaging` run `34944888119` — success.
+- PR `Tauri macOS packaging` run `34944888066` — success.
+- PR `Tauri Windows packaging` run `34944888050` — success.
+- PR `Build documentation` run `34944888102` — success.
+- Push `Tauri project` run `34944357289` — success.
+- Push `Tauri security` run `34944357292` — success.
+- Push `Tauri Linux packaging` run `34944357323` — success.
+- Push `Tauri macOS packaging` run `34944357298` — success.
+- Push `Tauri Windows packaging` run `34944357303` — success.
+
+**Merge:** PR #27 was squash-merged through the gated Ralph Bridge path. The promoted merge commit was `2de62fb13f1b328b84b49d8acf5261cde077045e`.
+
+Post-merge `master` qualification for `2de62fb13f1b328b84b49d8acf5261cde077045e` passed completely:
+
+- `Tauri project` run `34948876525` — success, including `linux-quality` and `linux-release-qualification`.
+- `Tauri security` run `34948876484` — success.
+- `Tauri Linux packaging` run `34948876728` — success.
+- `Tauri macOS packaging` run `34948876586` — success.
+- `Tauri Windows packaging` run `34948876587` — success.
+- `Build documentation` run `34948876643` — success.
+
+The remediation implementation is therefore promoted and qualified. This documentation-only evidence commit records the already-completed closure without reopening implementation scope.
 
 ## Completion rule
 
-This ledger is reconciled, but remediation is not considered complete merely because every checkbox has a disposition. Closure requires the exact final candidate to pass all applicable project/security/platform/documentation gates, successful merge, and verification of the promoted `master` SHA plus applicable post-merge CI. A green ancestor does not qualify a changed candidate.
+This ledger is fully reconciled. Remediation closure required the exact final candidate to pass all applicable project/security/platform/documentation gates, successful merge, and verification of the promoted `master` SHA plus applicable post-merge CI. Those conditions are satisfied by the evidence above. A green ancestor was not used to qualify a changed candidate.
