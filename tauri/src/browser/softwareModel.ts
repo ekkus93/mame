@@ -37,3 +37,15 @@ export function nextSoftwareIndex(key: string, index: number, count: number): nu
       return null;
   }
 }
+
+export function shouldSuppressSoftwareLaunch(status: string): boolean {
+  return status === "launching";
+}
+
+export function shouldClearSoftwareLaunchOnSelection(status: string): boolean {
+  return status !== "launching";
+}
+
+export function explicitBiosOverride(value: string): string | null {
+  return value || null;
+}

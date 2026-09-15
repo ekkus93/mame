@@ -23,7 +23,10 @@ import type { MameUiPanelMode } from "../backend/mameUiState";
 import type { MachineDetail, SessionSnapshot } from "../backend/types";
 import { isEditableElement } from "../library/keyboardNavigation";
 import {
+  explicitBiosOverride,
   nextSoftwareIndex,
+  shouldClearSoftwareLaunchOnSelection,
+  shouldSuppressSoftwareLaunch,
   SOFTWARE_FILTERS,
   SOFTWARE_PAGE_SIZE,
   softwareFilterRequiresValue,
@@ -92,7 +95,9 @@ export function SoftwareBrowser({
 
   useEffect(() => {
     setSelectedPart(selected?.parts.length === 1 ? (selected.parts[0]?.name ?? null) : null);
-    setLaunch({ status: "idle" });
+    setLaunch((current) =>
+      shouldClearSoftwareLaunchOnSelection(current.status) ? { status: "idle" } : current,
+    );
   }, [selected]);
 
   useEffect(() => {
@@ -104,7 +109,6 @@ export function SoftwareBrowser({
       .then((response) => {
         if (biosSequence.current !== sequence) return;
         setBiosChoices(response.choices);
-        setSelectedBios(response.choices.find((choice) => choice.isDefault)?.name ?? null);
       })
       .catch((reason: unknown) => {
         if (biosSequence.current === sequence) {
@@ -147,28 +151,17 @@ export function SoftwareBrowser({
         setBrowse({ status: "error", message: errorMessage(reason) });
         setSelected(null);
       });
-  }, [
-    debouncedFilterValue,
-    debouncedSearch,
-    detail.shortName,
-    filter,
-    listName,
-    offset,
-    requiresValue,
-  ]);
+  }, [debouncedFilterValue, debouncedSearch, detail.shortName, filter, listName, offset, requiresValue]);
 
   const page = browse.status === "ready" ? browse.page : null;
   const range = useMemo(() => {
     if (!page || page.total === 0) return "0 software items";
-    return `${(page.offset + 1).toLocaleString()}–${Math.min(
-      page.offset + page.items.length,
-      page.total,
-    ).toLocaleString()} of ${page.total.toLocaleString()}`;
+    return `${(page.offset + 1).toLocaleString()}–${Math.min(page.offset + page.items.length, page.total).toLocaleString()} of ${page.total.toLocaleString()}`;
   }, [page]);
 
   const launchItem = useCallback(
     (item: MameSoftwareItem, part: string | null) => {
-      if (!listName || launch.status === "launching") return;
+      if (!listName || shouldSuppressSoftwareLaunch(launch.status)) return;
       if (item.parts.length > 1 && !part) return;
       setLaunch({ status: "launching", target: item.shortName });
       void launchMameSoftware({
@@ -194,32 +187,19 @@ export function SoftwareBrowser({
   }, [launchItem, selected, selectedPart]);
 
   const startEmpty = useCallback(() => {
-    if (!detail.canStartEmpty || launch.status === "launching") return;
+    if (!detail.canStartEmpty || shouldSuppressSoftwareLaunch(launch.status)) return;
     setLaunch({ status: "launching", target: "empty" });
-    void launchMameEmpty({
-      shortName: detail.shortName,
-      bios: selectedBios,
-      launchOverrides,
-    })
+    void launchMameEmpty({ shortName: detail.shortName, bios: selectedBios, launchOverrides })
       .then((session) => {
         setLaunch({ status: "launched", session });
         onSessionStarted(session);
       })
       .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
-  }, [
-    detail.canStartEmpty,
-    detail.shortName,
-    launch.status,
-    launchOverrides,
-    onSessionStarted,
-    selectedBios,
-  ]);
+  }, [detail.canStartEmpty, detail.shortName, launch.status, launchOverrides, onSessionStarted, selectedBios]);
 
   function activateItem(item: MameSoftwareItem) {
     setSelected(item);
-    if (item.parts.length <= 1) {
-      launchItem(item, item.parts[0]?.name ?? null);
-    }
+    if (item.parts.length <= 1) launchItem(item, item.parts[0]?.name ?? null);
   }
 
   function handleRowKey(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
@@ -267,92 +247,40 @@ export function SoftwareBrowser({
   return (
     <section className="mame-software-browser" aria-label={`Software for ${detail.description}`}>
       <div className="mame-software-toolbar">
-        <button type="button" className="secondary-button" onClick={onBack}>
-          ← Machines
-        </button>
+        <button type="button" className="secondary-button" onClick={onBack}>← Machines</button>
         <strong>{detail.description}</strong>
         <label className="mame-search">
           <span className="visually-hidden">Search software</span>
-          <input
-            ref={searchRef}
-            type="search"
-            value={search}
-            placeholder="Search software..."
-            autoComplete="off"
-            onChange={(event) => setSearch(event.target.value)}
-          />
+          <input ref={searchRef} type="search" value={search} placeholder="Search software..." autoComplete="off" onChange={(event) => setSearch(event.target.value)} />
         </label>
-        <span className="mame-browser-range" aria-live="polite">
-          {range}
-        </span>
+        <span className="mame-browser-range" aria-live="polite">{range}</span>
         {biosChoices.length > 0 && (
           <label className="mame-bios-selector">
             <span>BIOS</span>
-            <select
-              value={selectedBios ?? ""}
-              onChange={(event) => setSelectedBios(event.target.value || null)}
-            >
+            <select value={selectedBios ?? ""} onChange={(event) => setSelectedBios(explicitBiosOverride(event.target.value))}>
               <option value="">MAME default</option>
               {biosChoices.map((choice) => (
-                <option key={choice.name} value={choice.name}>
-                  {choice.description}
-                  {choice.isDefault ? " (default)" : ""}
-                </option>
+                <option key={choice.name} value={choice.name}>{choice.description}{choice.isDefault ? " (default)" : ""}</option>
               ))}
             </select>
           </label>
         )}
-        {detail.canStartEmpty && (
-          <button type="button" className="secondary-button" onClick={startEmpty}>
-            Start Empty
-          </button>
-        )}
-        <button
-          type="button"
-          className="mame-start-button"
-          disabled={
-            !selected ||
-            (selected.parts.length > 1 && !selectedPart) ||
-            launch.status === "launching"
-          }
-          onClick={launchSelected}
-        >
+        {detail.canStartEmpty && <button type="button" className="secondary-button" onClick={startEmpty}>Start Empty</button>}
+        <button type="button" className="mame-start-button" disabled={!selected || (selected.parts.length > 1 && !selectedPart) || launch.status === "launching"} onClick={launchSelected}>
           {launch.status === "launching" ? "Starting…" : "Start"}
         </button>
       </div>
 
-      {biosError && (
-        <div className="mame-browser-banner is-error" role="status">
-          {biosError}
-        </div>
-      )}
-      {launch.status === "error" && (
-        <div className="mame-browser-banner is-error" role="alert">
-          {launch.message}
-        </div>
-      )}
-      {launch.status === "launched" && (
-        <div className="mame-browser-banner" role="status">
-          Session {launch.session.sessionId} started.
-        </div>
-      )}
+      {biosError && <div className="mame-browser-banner is-error" role="status">{biosError}</div>}
+      {launch.status === "error" && <div className="mame-browser-banner is-error" role="alert">{launch.message}</div>}
+      {launch.status === "launched" && <div className="mame-browser-banner" role="status">Session {launch.session.sessionId} started.</div>}
 
       <div className="mame-software-grid">
         <aside className="mame-filter-panel" aria-label="Software filters">
           <div className="mame-region-heading">Software List</div>
           <div className="mame-filter-list">
             {detail.softwareLists.map((list) => (
-              <button
-                key={`${list.tag}:${list.name}`}
-                type="button"
-                className={`mame-filter ${list.name === listName ? "is-selected" : ""}`}
-                aria-pressed={list.name === listName}
-                onClick={() => {
-                  setListName(list.name);
-                  setSelected(null);
-                  setOffset(0);
-                }}
-              >
+              <button key={`${list.tag}:${list.name}`} type="button" className={`mame-filter ${list.name === listName ? "is-selected" : ""}`} aria-pressed={list.name === listName} onClick={() => { setListName(list.name); setSelected(null); setOffset(0); }}>
                 {list.name}
               </button>
             ))}
@@ -360,181 +288,42 @@ export function SoftwareBrowser({
           <div className="mame-region-heading">Filter</div>
           <div className="mame-filter-list">
             {SOFTWARE_FILTERS.map((candidate) => (
-              <button
-                key={candidate.id}
-                type="button"
-                className={`mame-filter ${candidate.id === filter ? "is-selected" : ""}`}
-                aria-pressed={candidate.id === filter}
-                onClick={() => {
-                  setFilter(candidate.id);
-                  setFilterValue("");
-                }}
-              >
+              <button key={candidate.id} type="button" className={`mame-filter ${candidate.id === filter ? "is-selected" : ""}`} aria-pressed={candidate.id === filter} onClick={() => { setFilter(candidate.id); setFilterValue(""); }}>
                 {candidate.label}
               </button>
             ))}
           </div>
-          {requiresValue && (
-            <label className="mame-software-filter-value">
-              <span>{filter === "year" ? "Year" : "Publisher"}</span>
-              <input value={filterValue} onChange={(event) => setFilterValue(event.target.value)} />
-            </label>
-          )}
+          {requiresValue && <label className="mame-software-filter-value"><span>{filter === "year" ? "Year" : "Publisher"}</span><input value={filterValue} onChange={(event) => setFilterValue(event.target.value)} /></label>}
         </aside>
 
-        <section
-          className="mame-list-region"
-          aria-label="Software list"
-          aria-busy={browse.status === "loading"}
-        >
+        <section className="mame-list-region" aria-label="Software list" aria-busy={browse.status === "loading"}>
           <div className="mame-region-heading">Software</div>
-          {browse.status === "awaitingFilterValue" && (
-            <div className="mame-panel-state">Enter a value for the selected filter.</div>
-          )}
+          {browse.status === "awaitingFilterValue" && <div className="mame-panel-state">Enter a value for the selected filter.</div>}
           {browse.status === "loading" && <div className="mame-panel-state">Loading software…</div>}
-          {browse.status === "error" && (
-            <div className="mame-panel-state" role="alert">
-              {browse.message}
-            </div>
-          )}
-          {page && page.items.length === 0 && (
-            <div className="mame-panel-state">No software matches.</div>
-          )}
+          {browse.status === "error" && <div className="mame-panel-state" role="alert">{browse.message}</div>}
+          {page && page.items.length === 0 && <div className="mame-panel-state">No software matches.</div>}
           {page && page.items.length > 0 && (
             <ul className="mame-software-listbox" role="listbox" aria-label="Software results">
               {page.items.map((item, index) => {
                 const isSelected = selected?.shortName === item.shortName;
-                return (
-                  <li key={item.shortName} role="presentation">
-                    <button
-                      ref={(element) => {
-                        rowRefs.current[index] = element;
-                      }}
-                      type="button"
-                      role="option"
-                      className={`mame-software-row ${isSelected ? "is-selected" : ""}`}
-                      aria-selected={isSelected}
-                      tabIndex={isSelected ? 0 : -1}
-                      onClick={() => setSelected(item)}
-                      onDoubleClick={() => activateItem(item)}
-                      onKeyDown={(event) => handleRowKey(event, index)}
-                    >
-                      <span className="mame-software-title">{item.description}</span>
-                      <span className="mame-machine-short">{item.shortName}</span>
-                      <span>{item.year}</span>
-                      <span className="mame-software-publisher">{item.publisher}</span>
-                      <span>{item.supported}</span>
-                    </button>
-                  </li>
-                );
+                return <li key={item.shortName} role="presentation"><button ref={(element) => { rowRefs.current[index] = element; }} type="button" role="option" className={`mame-software-row ${isSelected ? "is-selected" : ""}`} aria-selected={isSelected} tabIndex={isSelected ? 0 : -1} onClick={() => setSelected(item)} onDoubleClick={() => activateItem(item)} onKeyDown={(event) => handleRowKey(event, index)}><span className="mame-software-title">{item.description}</span><span className="mame-machine-short">{item.shortName}</span><span>{item.year}</span><span className="mame-software-publisher">{item.publisher}</span><span>{item.supported}</span></button></li>;
               })}
             </ul>
           )}
-          {page && page.total > page.limit && (
-            <nav className="mame-pager" aria-label="Software result pages">
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={page.offset === 0}
-                onClick={() => setOffset(Math.max(0, page.offset - page.limit))}
-              >
-                Previous
-              </button>
-              <span>{range}</span>
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={page.offset + page.items.length >= page.total}
-                onClick={() => setOffset(page.offset + page.limit)}
-              >
-                Next
-              </button>
-            </nav>
-          )}
+          {page && page.total > page.limit && <nav className="mame-pager" aria-label="Software result pages"><button type="button" className="secondary-button" disabled={page.offset === 0} onClick={() => setOffset(Math.max(0, page.offset - page.limit))}>Previous</button><span>{range}</span><button type="button" className="secondary-button" disabled={page.offset + page.items.length >= page.total} onClick={() => setOffset(page.offset + page.limit)}>Next</button></nav>}
         </section>
 
         <aside className="mame-right-panel" aria-label="Selected software context">
           <div className="mame-right-tabs" role="tablist" aria-label="Software detail view">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={panelMode === "images"}
-              className={panelMode === "images" ? "is-selected" : ""}
-              onClick={() => onPanelModeChange("images")}
-            >
-              Images
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={panelMode === "info"}
-              className={panelMode === "info" ? "is-selected" : ""}
-              onClick={() => onPanelModeChange("info")}
-            >
-              Info
-            </button>
+            <button type="button" role="tab" aria-selected={panelMode === "images"} className={panelMode === "images" ? "is-selected" : ""} onClick={() => onPanelModeChange("images")}>Images</button>
+            <button type="button" role="tab" aria-selected={panelMode === "info"} className={panelMode === "info" ? "is-selected" : ""} onClick={() => onPanelModeChange("info")}>Info</button>
           </div>
-          {!selected ? (
-            <div className="mame-panel-state">Select software.</div>
-          ) : panelMode === "images" ? (
-            <div className="mame-artwork-frame">
-              <div className="mame-panel-state">
-                No configured software artwork source is available.
-              </div>
-            </div>
-          ) : (
+          {!selected ? <div className="mame-panel-state">Select software.</div> : panelMode === "images" ? <div className="mame-artwork-frame"><div className="mame-panel-state">No configured software artwork source is available.</div></div> : (
             <div className="mame-info-pane">
-              <h2>{selected.description}</h2>
-              <p className="mame-info-short">{selected.shortName}</p>
-              <dl>
-                <div>
-                  <dt>Year</dt>
-                  <dd>{selected.year}</dd>
-                </div>
-                <div>
-                  <dt>Publisher</dt>
-                  <dd>{selected.publisher}</dd>
-                </div>
-                <div>
-                  <dt>Support</dt>
-                  <dd>{selected.supported}</dd>
-                </div>
-                <div>
-                  <dt>Parent</dt>
-                  <dd>{selected.cloneOf ?? "Parent"}</dd>
-                </div>
-                <div>
-                  <dt>Software list</dt>
-                  <dd>{listName}</dd>
-                </div>
-                {selectedBios && (
-                  <div>
-                    <dt>BIOS</dt>
-                    <dd>{selectedBios}</dd>
-                  </div>
-                )}
-              </dl>
-              {selected.parts.length > 1 && (
-                <label className="mame-software-part-selector">
-                  <span>Launch part</span>
-                  <select
-                    value={selectedPart ?? ""}
-                    onChange={(event) => setSelectedPart(event.target.value || null)}
-                  >
-                    <option value="">Choose a part…</option>
-                    {selected.parts.map((part) => (
-                      <option key={`${part.name}:${part.interface}`} value={part.name}>
-                        {part.name} ({part.interface})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {selected.parts.length === 1 && selected.parts[0] && (
-                <p className="mame-software-part-note">
-                  Part: {selected.parts[0].name} ({selected.parts[0].interface})
-                </p>
-              )}
+              <h2>{selected.description}</h2><p className="mame-info-short">{selected.shortName}</p>
+              <dl><div><dt>Year</dt><dd>{selected.year}</dd></div><div><dt>Publisher</dt><dd>{selected.publisher}</dd></div><div><dt>Support</dt><dd>{selected.supported}</dd></div><div><dt>Parent</dt><dd>{selected.cloneOf ?? "Parent"}</dd></div><div><dt>Software list</dt><dd>{listName}</dd></div>{selectedBios && <div><dt>BIOS</dt><dd>{selectedBios}</dd></div>}</dl>
+              {selected.parts.length > 1 && <label className="mame-software-part-selector"><span>Launch part</span><select value={selectedPart ?? ""} onChange={(event) => setSelectedPart(event.target.value || null)}><option value="">Choose a part…</option>{selected.parts.map((part) => <option key={`${part.name}:${part.interface}`} value={part.name}>{part.name} ({part.interface})</option>)}</select></label>}
+              {selected.parts.length === 1 && selected.parts[0] && <p className="mame-software-part-note">Part: {selected.parts[0].name} ({selected.parts[0].interface})</p>}
             </div>
           )}
         </aside>
