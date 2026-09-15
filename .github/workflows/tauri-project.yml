@@ -192,13 +192,13 @@ jobs:
         run: >-
           python3 scripts/tauri/mt2004_release_candidate.py
           --sha ${{ github.sha }}
-          --json
-          --write artifacts/release/mt2004-release-candidate.json
+          --pretty
+          --write artifacts/release/mt2004-external-window-rc.json
 
       - name: Upload MT-2004 release-candidate manifest
         uses: actions/upload-artifact@v4
         with:
-          name: mame-tauri-mt2004-release-candidate-${{ github.sha }}
+          name: mame-tauri-mt2004-external-window-rc-${{ github.sha }}
           path: artifacts/release/
           if-no-files-found: error
 
