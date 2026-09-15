@@ -91,6 +91,12 @@ def main() -> int:
     require(right_panel, "Info", "Info mode")
     require(right_panel, "MachineSettingsPanel", "contextual machine configuration")
     require(right_panel, "← Machine details", "configuration back path")
+    require(right_panel, "assetRequestId.current", "artwork request sequencing")
+    require(
+        right_panel,
+        "setError(null);\n    if (!descriptor)",
+        "artwork category error reset",
+    )
     require(controller, "Inherit global selection", "machine/global controller distinction")
 
     for token in (

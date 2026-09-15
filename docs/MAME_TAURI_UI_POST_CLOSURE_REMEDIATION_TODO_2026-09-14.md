@@ -26,10 +26,10 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 
 ## MUR-003 — Clear stale artwork errors across category transitions
 
-- [ ] Clear asset-read errors whenever artwork category/slot selection changes.
-- [ ] Ensure switching from a failed asset read to a category with no configured asset shows the normal missing-artwork state, not the prior category's error.
-- [ ] Preserve request-sequence guards so stale asset responses cannot overwrite a newer category.
-- [ ] Add regression coverage for the error-to-missing transition where practical.
+- [x] Clear asset-read errors whenever artwork category/slot selection changes.
+- [x] Ensure switching from a failed asset read to a category with no configured asset shows the normal missing-artwork state, not the prior category's error.
+- [x] Preserve request-sequence guards so stale asset responses cannot overwrite a newer category.
+- [x] Add regression coverage for the error-to-missing transition where practical. The maintained static milestone regression now guards the error reset immediately before the no-descriptor branch; the project still does not carry a React DOM test harness solely for this surface.
 
 ## MUR-004 — Refresh selected-machine state from authoritative query results
 
