@@ -48,7 +48,7 @@ pub(crate) use catalog::{
     MachineSort,
 };
 pub(crate) use mame_ui_query::{MameUiMachineFilter, MameUiMachineQuery};
-pub(crate) use software::parse_software_list_page;
+pub(crate) use software::{parse_software_item, parse_software_list_page};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

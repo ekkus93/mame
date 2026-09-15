@@ -20,9 +20,9 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 ## MUR-002 — Make software launch revalidation exact rather than fuzzy/paginated
 
 - [ ] Stop revalidating a selected software item through generic substring search with `limit=1`.
-- [ ] Add a bounded parser/backend path that locates the exact software short name while still validating the complete MAME software-list XML structure.
+- [x] Add a bounded parser/backend path that locates the exact software short name while still validating the complete MAME software-list XML structure. `parse_software_item` streams the complete document and retains at most the exact matching item.
 - [ ] Preserve multipart validation against the exact item returned by authoritative MAME metadata.
-- [ ] Add a regression fixture where an earlier fuzzy match would otherwise hide the exact selected item.
+- [x] Add a regression fixture where an earlier fuzzy match would otherwise hide the exact selected item. The fixture proves fuzzy `archon` returns `archon2` first while exact lookup still returns `archon`.
 
 ## MUR-003 — Clear stale artwork errors across category transitions
 
