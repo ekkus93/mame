@@ -135,7 +135,8 @@ def main() -> int:
     for task_number in range(1, 21):
         task = f"MUI-{task_number:03d}"
         require(todo, task, "TODO task inventory")
-    forbid(todo, "- [ ]", "reconciled milestone TODO")
+    if any(line.lstrip().startswith("- [ ]") for line in todo.splitlines()):
+        raise SystemExit("MAME UI reproduction regression: reconciled milestone TODO has unchecked items")
     require(todo, "MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md", "TODO parity-matrix link")
     require(todo, "MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md", "TODO accessibility link")
     require(todo, "MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md", "TODO closure link")
