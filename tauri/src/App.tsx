@@ -14,6 +14,8 @@ import "./App.css";
  * ownership is unknown. MUH-003 intentionally removed that obsolete lifecycle bridge;
  * MameShell now owns lifecycle-driven gameplay input state directly.
  */
+export const APP_OWNS_SESSION_SHORTCUTS = false as const;
+
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
 
