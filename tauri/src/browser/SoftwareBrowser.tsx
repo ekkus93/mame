@@ -23,7 +23,10 @@ import type { MameUiPanelMode } from "../backend/mameUiState";
 import type { MachineDetail, SessionSnapshot } from "../backend/types";
 import { isEditableElement } from "../library/keyboardNavigation";
 import {
+  buildEmptyLaunchRequest,
+  buildSoftwareLaunchRequest,
   nextSoftwareIndex,
+  selectedPartForSoftware,
   SOFTWARE_FILTERS,
   SOFTWARE_PAGE_SIZE,
   softwareFilterRequiresValue,
@@ -63,6 +66,7 @@ export function SoftwareBrowser({
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const requestSequence = useRef(0);
   const biosSequence = useRef(0);
+  const launchInFlight = useRef(false);
   const [listName, setListName] = useState(detail.softwareLists[0]?.name ?? "");
   const [filter, setFilter] = useState<SoftwareListFilter>("all");
   const [filterValue, setFilterValue] = useState("");
@@ -91,8 +95,8 @@ export function SoftwareBrowser({
   useEffect(() => setOffset(0), [listName, filter, debouncedFilterValue, debouncedSearch]);
 
   useEffect(() => {
-    setSelectedPart(selected?.parts.length === 1 ? (selected.parts[0]?.name ?? null) : null);
-    setLaunch({ status: "idle" });
+    setSelectedPart(selectedPartForSoftware(selected));
+    setLaunch((current) => (current.status === "launching" ? current : { status: "idle" }));
   }, [selected]);
 
   useEffect(() => {
@@ -104,7 +108,6 @@ export function SoftwareBrowser({
       .then((response) => {
         if (biosSequence.current !== sequence) return;
         setBiosChoices(response.choices);
-        setSelectedBios(response.choices.find((choice) => choice.isDefault)?.name ?? null);
       })
       .catch((reason: unknown) => {
         if (biosSequence.current === sequence) {
@@ -168,24 +171,30 @@ export function SoftwareBrowser({
 
   const launchItem = useCallback(
     (item: MameSoftwareItem, part: string | null) => {
-      if (!listName || launch.status === "launching") return;
+      if (!listName || launchInFlight.current) return;
       if (item.parts.length > 1 && !part) return;
+      launchInFlight.current = true;
       setLaunch({ status: "launching", target: item.shortName });
-      void launchMameSoftware({
-        shortName: detail.shortName,
-        softwareList: listName,
-        softwareItem: item.shortName,
-        softwarePart: part,
-        bios: selectedBios,
-        launchOverrides,
-      })
+      void launchMameSoftware(
+        buildSoftwareLaunchRequest({
+          shortName: detail.shortName,
+          softwareList: listName,
+          item,
+          softwarePart: part,
+          bios: selectedBios,
+          launchOverrides,
+        }),
+      )
         .then((session) => {
           setLaunch({ status: "launched", session });
           onSessionStarted(session);
         })
-        .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
+        .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }))
+        .finally(() => {
+          launchInFlight.current = false;
+        });
     },
-    [detail.shortName, launch.status, launchOverrides, listName, onSessionStarted, selectedBios],
+    [detail.shortName, launchOverrides, listName, onSessionStarted, selectedBios],
   );
 
   const launchSelected = useCallback(() => {
@@ -194,32 +203,29 @@ export function SoftwareBrowser({
   }, [launchItem, selected, selectedPart]);
 
   const startEmpty = useCallback(() => {
-    if (!detail.canStartEmpty || launch.status === "launching") return;
+    if (!detail.canStartEmpty || launchInFlight.current) return;
+    launchInFlight.current = true;
     setLaunch({ status: "launching", target: "empty" });
-    void launchMameEmpty({
-      shortName: detail.shortName,
-      bios: selectedBios,
-      launchOverrides,
-    })
+    void launchMameEmpty(
+      buildEmptyLaunchRequest({
+        shortName: detail.shortName,
+        bios: selectedBios,
+        launchOverrides,
+      }),
+    )
       .then((session) => {
         setLaunch({ status: "launched", session });
         onSessionStarted(session);
       })
-      .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
-  }, [
-    detail.canStartEmpty,
-    detail.shortName,
-    launch.status,
-    launchOverrides,
-    onSessionStarted,
-    selectedBios,
-  ]);
+      .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }))
+      .finally(() => {
+        launchInFlight.current = false;
+      });
+  }, [detail.canStartEmpty, detail.shortName, launchOverrides, onSessionStarted, selectedBios]);
 
   function activateItem(item: MameSoftwareItem) {
     setSelected(item);
-    if (item.parts.length <= 1) {
-      launchItem(item, item.parts[0]?.name ?? null);
-    }
+    if (item.parts.length <= 1) launchItem(item, selectedPartForSoftware(item));
   }
 
   function handleRowKey(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
