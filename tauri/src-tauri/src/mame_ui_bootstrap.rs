@@ -223,13 +223,13 @@ mod tests {
 
         let before = bootstrap_status(&settings_path, &catalog_path)
             .expect("configured executable should be inspectable");
-        assert!(matches!(before, MameUiBootstrapStatus::MetadataMissing { .. }));
+        assert!(matches!(
+            before,
+            MameUiBootstrapStatus::MetadataMissing { .. }
+        ));
 
-        let imported = refresh_catalog(
-            MameExecutableSource::external(&executable),
-            &catalog_path,
-        )
-        .expect("representative metadata import should succeed");
+        let imported = refresh_catalog(MameExecutableSource::external(&executable), &catalog_path)
+            .expect("representative metadata import should succeed");
         assert_eq!(imported.generation.machine_count, 4);
 
         let after = bootstrap_status(&settings_path, &catalog_path)
@@ -271,7 +271,9 @@ mod tests {
             "#!/bin/sh\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-version' ]; then\n  printf '%s\\n' '0.288 test-fixture'\n  exit 0\nfi\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-listxml' ]; then\n  cat <<'MAME_XML'\n{fixture}\nMAME_XML\n  exit 0\nfi\nexit 99\n"
         );
         fs::write(path, script).expect("write fake MAME");
-        let mut permissions = fs::metadata(path).expect("fake MAME metadata").permissions();
+        let mut permissions = fs::metadata(path)
+            .expect("fake MAME metadata")
+            .permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(path, permissions).expect("mark fake MAME executable");
     }
