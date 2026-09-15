@@ -41,9 +41,7 @@ describe("MAME browser bootstrap model", () => {
       }).status,
     ).toBe("metadataStale");
     expect(
-      catalogIsReady(
-        bootstrapFromBackend({ status: "ready", mame: configuredMame, generation }),
-      ),
+      catalogIsReady(bootstrapFromBackend({ status: "ready", mame: configuredMame, generation })),
     ).toBe(true);
   });
 

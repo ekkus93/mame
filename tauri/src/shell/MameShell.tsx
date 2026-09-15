@@ -25,13 +25,7 @@ import "./MameShell.css";
 import "./ContextualSurfaces.css";
 
 type ShellView =
-  | "library"
-  | "session"
-  | "settings"
-  | "audit"
-  | "history"
-  | "collections"
-  | "diagnostics";
+  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {

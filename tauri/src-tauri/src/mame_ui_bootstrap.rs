@@ -8,7 +8,10 @@ use crate::{
     diagnostics,
     errors::{AppError, AppResult},
     mame::{configured_external_source, inspect_executable, MameExecutableIdentity},
-    metadata::{self, CatalogRepository, MetadataFreshness, MetadataGenerationSummary, MetadataRefreshResult},
+    metadata::{
+        self, CatalogRepository, MetadataFreshness, MetadataGenerationSummary,
+        MetadataRefreshResult,
+    },
     storage,
 };
 
@@ -82,16 +85,15 @@ pub async fn get_mame_ui_bootstrap_status(app: AppHandle) -> AppResult<MameUiBoo
 }
 
 #[tauri::command]
-pub async fn refresh_configured_mame_metadata(
-    app: AppHandle,
-) -> AppResult<MetadataRefreshResult> {
+pub async fn refresh_configured_mame_metadata(app: AppHandle) -> AppResult<MetadataRefreshResult> {
     let settings = load_settings(&settings_path(&app)?)?;
-    let source = configured_external_source(settings.mame_executable.as_deref())?.ok_or_else(|| {
-        AppError::new(
-            "MAME_NOT_CONFIGURED",
-            "Configure a MAME executable before importing machine metadata.",
-        )
-    })?;
+    let source =
+        configured_external_source(settings.mame_executable.as_deref())?.ok_or_else(|| {
+            AppError::new(
+                "MAME_NOT_CONFIGURED",
+                "Configure a MAME executable before importing machine metadata.",
+            )
+        })?;
     let catalog_path = storage::catalog_path(&app)?;
 
     diagnostics::record(

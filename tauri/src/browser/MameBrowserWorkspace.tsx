@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  getMameUiBootstrapStatus,
-  refreshConfiguredMameMetadata,
-} from "../backend/mameBootstrap";
+import { getMameUiBootstrapStatus, refreshConfiguredMameMetadata } from "../backend/mameBootstrap";
 import { errorMessage } from "../backend/errors";
 import {
   beginMetadataImport,
@@ -75,7 +72,10 @@ export function MameBrowserWorkspace({
         : null;
 
   return (
-    <section className="mame-browser mame-bootstrap-browser" aria-label="MAME setup and catalog status">
+    <section
+      className="mame-browser mame-bootstrap-browser"
+      aria-label="MAME setup and catalog status"
+    >
       <div className={`mame-bootstrap-state is-${bootstrap.status}`}>
         {bootstrap.status === "checking" && (
           <>
@@ -130,7 +130,11 @@ export function MameBrowserWorkspace({
               <button type="button" onClick={onConfigureMame}>
                 Configure MAME
               </button>
-              <button type="button" className="secondary-button" onClick={() => void refreshBootstrap()}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void refreshBootstrap()}
+              >
                 Retry status check
               </button>
               <button type="button" className="secondary-button" onClick={onDiagnostics}>
@@ -154,8 +158,9 @@ export function MameBrowserWorkspace({
             </p>
             {bootstrap.status === "metadataStale" && (
               <p>
-                The previous catalog contains {bootstrap.activeGeneration.machineCount.toLocaleString()} machines
-                from MAME {bootstrap.activeGeneration.mameVersion}; it will not be treated as current.
+                The previous catalog contains{" "}
+                {bootstrap.activeGeneration.machineCount.toLocaleString()} machines from MAME{" "}
+                {bootstrap.activeGeneration.mameVersion}; it will not be treated as current.
               </p>
             )}
             <div className="mame-bootstrap-actions">
@@ -177,8 +182,9 @@ export function MameBrowserWorkspace({
             <p className="mame-bootstrap-kicker">Importing metadata</p>
             <h1>Building the machine catalog…</h1>
             <p>
-              Running MAME {importSource.mame.rawVersionLine} with <code>-listxml</code> and importing
-              the result. The existing active catalog is left intact until the import completes.
+              Running MAME {importSource.mame.rawVersionLine} with <code>-listxml</code> and
+              importing the result. The existing active catalog is left intact until the import
+              completes.
             </p>
             <div className="mame-bootstrap-progress" role="status" aria-live="polite">
               Import in progress

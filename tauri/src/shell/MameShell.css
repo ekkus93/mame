@@ -561,7 +561,11 @@
   overflow: auto;
   padding: 1.5rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--mame-structural-blue) 24%, transparent), transparent 42%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--mame-structural-blue) 24%, transparent),
+      transparent 42%
+    ),
     var(--mame-deep-navy);
 }
 
