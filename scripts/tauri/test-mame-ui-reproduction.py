@@ -130,9 +130,10 @@ def main() -> int:
     require(export_backend, "tempfile_in(parent)", "atomic export staging")
     forbid(export_backend, "std::process::Command", "export generic process execution")
 
+    require(spec, "MUI-001", "spec milestone lower bound")
+    require(spec, "MUI-020", "spec milestone upper bound")
     for task_number in range(1, 21):
         task = f"MUI-{task_number:03d}"
-        require(spec, task, "spec task inventory")
         require(todo, task, "TODO task inventory")
     forbid(todo, "- [ ]", "reconciled milestone TODO")
     require(todo, "MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md", "TODO parity-matrix link")
