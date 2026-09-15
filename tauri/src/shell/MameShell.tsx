@@ -1,7 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 
-import { getMameSession } from "../backend/commands";
+import { getAppInfo, getMameSession } from "../backend/commands";
 import {
   SESSION_CRASHED_EVENT,
   SESSION_EXITED_EVENT,
@@ -14,7 +14,7 @@ import type {
   SessionLifecycleEventV1,
   SessionSnapshot,
 } from "../backend/types";
-import { MameBrowser } from "../browser/MameBrowser";
+import { MameBrowserWorkspace } from "../browser/MameBrowserWorkspace";
 import { BulkAuditPanel } from "../library/BulkAuditPanel";
 import { CollectionManager } from "../library/CollectionManager";
 import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
@@ -25,7 +25,13 @@ import "./MameShell.css";
 import "./ContextualSurfaces.css";
 
 type ShellView =
-  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
+  | "library"
+  | "session"
+  | "settings"
+  | "audit"
+  | "history"
+  | "collections"
+  | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {
@@ -46,6 +52,7 @@ function activeSession(session: SessionSnapshot | null): SessionSnapshot | null 
 
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const [view, setView] = useState<ShellView>("library");
+  const [currentAppInfo, setCurrentAppInfo] = useState(appInfo);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
     (value: number) => value + 1,
@@ -53,6 +60,14 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   );
 
   const navigate = (next: ShellView) => () => setView(next);
+  const returnToLibraryAfterMameConfiguration = useCallback(() => {
+    void getAppInfo()
+      .then(setCurrentAppInfo)
+      .catch(() => {
+        // The machine bootstrap surface will expose any actionable readiness error.
+      })
+      .finally(() => setView("library"));
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -158,9 +173,11 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
 
       <section className="mame-shell-workspace">
         {view === "library" && (
-          <MameBrowser
+          <MameBrowserWorkspace
             availabilityRevision={availabilityRevision}
             onAuditResultsChanged={bumpAvailabilityRevision}
+            onConfigureMame={() => setView("settings")}
+            onDiagnostics={() => setView("diagnostics")}
           />
         )}
         {view === "session" && <SessionControlPanel />}
@@ -168,7 +185,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         {view === "history" && <RecentHistoryPanel />}
         {view === "collections" && <CollectionManager />}
         {view === "settings" && (
-          <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+          <GeneralSettingsPanel
+            onContentPathsChanged={bumpAvailabilityRevision}
+            onMameExecutableChanged={returnToLibraryAfterMameConfiguration}
+          />
         )}
         {view === "diagnostics" && <DiagnosticsPanel />}
       </section>
@@ -179,9 +199,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
             : "No active MAME session"}
         </button>
-        <span>{mameVersionLabel(appInfo.mame)}</span>
-        <span>App {appInfo.appVersion}</span>
-        <span>Backend {appInfo.backend}</span>
+        <span>{mameVersionLabel(currentAppInfo.mame)}</span>
+        <span>App {currentAppInfo.appVersion}</span>
+        <span>Backend {currentAppInfo.backend}</span>
       </footer>
     </main>
   );

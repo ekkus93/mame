@@ -7,6 +7,7 @@ export type ImportableBootstrapStatus = Extract<
 
 export type MameBrowserBootstrapState =
   | { status: "checking" }
+  | { status: "checkFailed"; message: string }
   | MameUiBootstrapStatus
   | { status: "importing"; previous: ImportableBootstrapStatus }
   | { status: "importFailed"; previous: ImportableBootstrapStatus; message: string };

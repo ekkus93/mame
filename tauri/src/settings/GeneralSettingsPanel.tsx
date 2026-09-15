@@ -22,8 +22,10 @@ const DEFAULT_PREFERENCES: LaunchPreferences = {
 
 export function GeneralSettingsPanel({
   onContentPathsChanged,
+  onMameExecutableChanged,
 }: {
   onContentPathsChanged?: () => void;
+  onMameExecutableChanged?: () => void;
 }) {
   const [settings, setSettings] = useState<GeneralSettings | null>(null);
   const [executableDraft, setExecutableDraft] = useState("");
@@ -78,9 +80,10 @@ export function GeneralSettingsPanel({
       setExecutableDraft(saved.mameExecutable ?? "");
       setNotice(
         saved.mameExecutable
-          ? "MAME executable validated and saved. Refresh metadata before treating it as the active catalog executable."
+          ? "MAME executable validated and saved. Import metadata from the Machines view to populate the catalog."
           : "Configured MAME executable cleared.",
       );
+      onMameExecutableChanged?.();
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
@@ -97,6 +100,7 @@ export function GeneralSettingsPanel({
       const saved = await setGeneralMameExecutable(null);
       setSettings(saved);
       setNotice("Configured MAME executable cleared.");
+      onMameExecutableChanged?.();
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
@@ -156,8 +160,9 @@ export function GeneralSettingsPanel({
               <h3 id="mame-executable-heading">MAME executable</h3>
               <p>
                 A newly selected executable is validated before it is saved. Changing this setting
-                does not silently retarget the active metadata catalog; refresh metadata before the
-                new executable becomes authoritative for catalog-backed launches.
+                does not silently retarget the active metadata catalog; return to Machines and
+                import metadata before the new executable becomes authoritative for catalog-backed
+                launches.
               </p>
             </div>
             <div className="general-settings__executable-row">
