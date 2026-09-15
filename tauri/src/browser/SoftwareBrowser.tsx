@@ -7,10 +7,10 @@ import {
   useState,
 } from "react";
 
-import { launchLibraryMachine } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import {
+  launchMameEmpty,
   launchMameSoftware,
   queryMameBiosChoices,
   queryMameSoftware,
@@ -196,13 +196,24 @@ export function SoftwareBrowser({
   const startEmpty = useCallback(() => {
     if (!detail.canStartEmpty || launch.status === "launching") return;
     setLaunch({ status: "launching", target: "empty" });
-    void launchLibraryMachine({ shortName: detail.shortName, launchOverrides })
+    void launchMameEmpty({
+      shortName: detail.shortName,
+      bios: selectedBios,
+      launchOverrides,
+    })
       .then((session) => {
         setLaunch({ status: "launched", session });
         onSessionStarted(session);
       })
       .catch((reason: unknown) => setLaunch({ status: "error", message: errorMessage(reason) }));
-  }, [detail.canStartEmpty, detail.shortName, launch.status, launchOverrides, onSessionStarted]);
+  }, [
+    detail.canStartEmpty,
+    detail.shortName,
+    launch.status,
+    launchOverrides,
+    onSessionStarted,
+    selectedBios,
+  ]);
 
   function activateItem(item: MameSoftwareItem) {
     setSelected(item);

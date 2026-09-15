@@ -61,6 +61,12 @@ export type BiosChoicesResponse = {
   choices: BiosChoice[];
 };
 
+export type MameEmptyLaunch = {
+  shortName: string;
+  bios?: string | null;
+  launchOverrides?: LaunchPreferences | null;
+};
+
 export type MameSoftwareLaunch = {
   shortName: string;
   softwareList: string;
@@ -78,6 +84,10 @@ export async function queryMameBiosChoices(shortName: string): Promise<BiosChoic
   return invoke<BiosChoicesResponse>("query_mame_bios_choices", {
     request: { shortName },
   });
+}
+
+export async function launchMameEmpty(request: MameEmptyLaunch): Promise<SessionSnapshot> {
+  return invoke<SessionSnapshot>("launch_mame_empty", { request });
 }
 
 export async function launchMameSoftware(request: MameSoftwareLaunch): Promise<SessionSnapshot> {
