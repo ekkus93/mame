@@ -1,4 +1,10 @@
-import type { SoftwareListFilter } from "../backend/mameSoftware";
+import type {
+  MameEmptyLaunch,
+  MameSoftwareItem,
+  MameSoftwareLaunch,
+  SoftwareListFilter,
+} from "../backend/mameSoftware";
+import type { LaunchPreferences } from "../backend/generalSettings";
 
 export const SOFTWARE_PAGE_SIZE = 50;
 export const SOFTWARE_PAGE_NAVIGATION_STEP = 10;
@@ -36,4 +42,45 @@ export function nextSoftwareIndex(key: string, index: number, count: number): nu
     default:
       return null;
   }
+}
+
+export function selectedPartForSoftware(item: MameSoftwareItem | null): string | null {
+  return item?.parts.length === 1 ? (item.parts[0]?.name ?? null) : null;
+}
+
+export function buildSoftwareLaunchRequest({
+  shortName,
+  softwareList,
+  item,
+  softwarePart,
+  bios,
+  launchOverrides,
+}: {
+  shortName: string;
+  softwareList: string;
+  item: MameSoftwareItem;
+  softwarePart: string | null;
+  bios: string | null;
+  launchOverrides: LaunchPreferences | null;
+}): MameSoftwareLaunch {
+  return {
+    shortName,
+    softwareList,
+    softwareItem: item.shortName,
+    softwarePart,
+    bios,
+    launchOverrides,
+  };
+}
+
+export function buildEmptyLaunchRequest({
+  shortName,
+  bios,
+  launchOverrides,
+}: {
+  shortName: string;
+  bios: string | null;
+  launchOverrides: LaunchPreferences | null;
+}): MameEmptyLaunch {
+  return { shortName, bios, launchOverrides };
 }
