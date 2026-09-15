@@ -72,12 +72,14 @@ This ledger tracks the follow-up hardening issues found during review of the com
 - [x] Update sparse checkout or workflow path triggers if new hardening docs/tests need to be present in CI jobs. **Not required:** the behavioral tests live under existing `tauri/**` paths already included by the workflow and triggers; the ledger itself does not need to be consumed by CI.
 - [x] Reconcile every task/subtask in this TODO as complete, explicitly deferred with rationale, superseded with rationale, or not required with rationale.
 - [x] Confirm no ambiguous unchecked item remains before closure.
-- [x] Qualify the exact final PR head through all applicable project/security/platform/documentation workflows. **Candidate evidence:** exact implementation head `7b398c31c4d2f26a35cc9d91e7a65470b3ff5efd` passed all five applicable workflows before this documentation-only reconciliation commit; the final documentation head must also pass all workflows triggered by this ledger change before merge.
-- [ ] Merge only an exact-head-qualified candidate through the gated Ralph Bridge path.
-- [ ] Reload this TODO from promoted `master` after merge and verify the promoted SHA.
-- [ ] Verify applicable post-merge `master` CI before claiming hardening closure.
-- [ ] Record closure evidence in this TODO or a linked closure document.
+- [x] Qualify the exact final PR head through all applicable project/security/platform/documentation workflows. **Evidence:** PR #39 exact implementation head `7b398c31c4d2f26a35cc9d91e7a65470b3ff5efd` passed Tauri project 35015837922, Tauri security 35015837782, Windows packaging 35015837809, macOS packaging 35015837819, and Linux packaging 35015837968; the subsequent documentation-only reconciliation head was also qualified before merge.
+- [x] Merge only an exact-head-qualified candidate through the gated Ralph Bridge path. **Evidence:** PR #39 was merged through Ralph Bridge and promoted as `master` `e4c9707eb5617277c166d75dc406f5e623c62428`.
+- [x] Reload this TODO from promoted `master` after merge and verify the promoted SHA. **Evidence:** this ledger was reloaded from exact promoted `master` `e4c9707eb5617277c166d75dc406f5e623c62428` after PR #39 merged.
+- [x] Verify applicable post-merge `master` CI before claiming hardening closure. **Evidence:** exact promoted `master` `e4c9707eb5617277c166d75dc406f5e623c62428` passed all six discovered post-merge workflows: Tauri project 35018464676, Tauri security 35018464741, Windows packaging 35018464582, macOS packaging 35018464662, Linux packaging 35018464625, and Build documentation 35018464813.
+- [x] Record closure evidence in this TODO or a linked closure document. **Evidence:** the promoted-master merge, reload, and post-merge CI evidence above completes the closure ledger.
+
+**MUH-006 closure:** All MUH-001 through MUH-006 tasks are reconciled. PR #39 promoted the final implementation/reconciliation candidate to `master` `e4c9707eb5617277c166d75dc406f5e623c62428`, and that exact promoted SHA passed every discovered applicable post-merge workflow. This documentation-only closure record is the final ledger update.
 
 ## Completion rule
 
-This hardening effort is not complete until all MUH tasks are implemented or explicitly reconciled, exact-head CI passes on the final candidate, the work is merged to `master`, the TODO is reloaded from promoted `master`, post-merge CI is verified, and closure evidence is recorded. A green ancestor does not qualify a changed candidate.
+This hardening effort is complete: all MUH tasks are implemented or explicitly reconciled, exact-head CI passed on the final candidate, the work was merged to `master`, the TODO was reloaded from promoted `master`, post-merge CI was verified, and closure evidence is recorded above.
