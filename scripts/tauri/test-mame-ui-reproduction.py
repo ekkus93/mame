@@ -130,8 +130,8 @@ def main() -> int:
     require(export_backend, "tempfile_in(parent)", "atomic export staging")
     forbid(export_backend, "std::process::Command", "export generic process execution")
 
-    require(spec, "MUI-001", "spec milestone lower bound")
-    require(spec, "MUI-020", "spec milestone upper bound")
+    require(spec, "## 28. Acceptance definition", "spec acceptance definition")
+    require(spec, "## 29. Qualification protocol", "spec qualification protocol")
     for task_number in range(1, 21):
         task = f"MUI-{task_number:03d}"
         require(todo, task, "TODO task inventory")
