@@ -80,7 +80,7 @@ pub async fn query_mame_ui_library(
     })?
 }
 
-fn validated_query(
+pub(crate) fn validated_query(
     request: MameUiMachineSearchRequest,
     catalog_path: &std::path::Path,
     settings_path: &std::path::Path,

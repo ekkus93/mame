@@ -34,8 +34,27 @@ export type MameUiMachineSearchRequest = {
   offset?: number;
 };
 
+export type ExportMameUiDisplayedListRequest = {
+  text?: string | null;
+  filter: MameUiMachineFilter;
+  filterValue?: string | null;
+};
+
+export type ExportMameUiDisplayedListResult = {
+  schemaVersion: number;
+  canceled: boolean;
+  rows: number;
+  path: string | null;
+};
+
 export async function queryMameUiLibrary(
   request: MameUiMachineSearchRequest,
 ): Promise<MachinePage> {
   return invoke<MachinePage>("query_mame_ui_library", { request });
+}
+
+export async function exportMameUiDisplayedList(
+  request: ExportMameUiDisplayedListRequest,
+): Promise<ExportMameUiDisplayedListResult> {
+  return invoke<ExportMameUiDisplayedListResult>("export_mame_ui_displayed_list", { request });
 }

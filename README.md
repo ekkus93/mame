@@ -1,68 +1,125 @@
 # MAME Tauri frontend fork
 
-This repository is a fork of upstream [MAME](https://www.mamedev.org/) with a project-owned desktop frontend under `tauri/`.
+This repository is a fork of upstream [MAME](https://www.mamedev.org/) with a project-owned React/Tauri desktop frontend under `tauri/`.
 
-The current product scope is a **production-useful external-window Tauri frontend**. The React/TypeScript UI provides library browsing, configuration, audit/status surfaces, artwork/save-state management, and session controls. The Rust/Tauri layer owns trusted filesystem, process, SQLite, metadata, and runtime-control authority. MAME itself remains a separately supervised native process and owns emulation, rendering, audio, and gameplay input.
+The product scope is a **production-useful external-window MAME frontend**. MAME remains a separately supervised native process and owns emulation, rendering, audio, timing, and gameplay input. The Tauri application owns machine/software browsing, configuration, metadata, audit/status surfaces, artwork, save-state management, session control, and project-specific library features.
+
+## Current product UI
+
+The default ready-state UI reproduces the information architecture and interaction model of MAME's machine/software selector rather than the older engineering-dashboard composition.
+
+The primary workspace is organized around the selected machine:
+
+```text
++--------------------------------------------------------------------------------+
+| MAME / navigation                                  Search [__________________] |
++--------------------+--------------------------------------+--------------------+
+| FILTERS            | MACHINES                             | IMAGES / INFO      |
+|                    |                                      |                    |
+| Unfiltered         | 1942                                 | selected artwork   |
+| Available          | 1943                                 | or machine info    |
+| Favorites          | Asteroids                            |                    |
+| Working            | Centipede                            |                    |
+| Parents            | Donkey Kong                          |                    |
+| ...                | Galaga                               |                    |
+|                    | Pac-Man                              |                    |
++--------------------+--------------------------------------+--------------------+
+| active session / MAME version / app status                                      |
++--------------------------------------------------------------------------------+
+```
+
+Machine filters are persistent on the left, the dense machine list is the dominant center surface, and Images/Info is the right-side context. Search is live and bounded. Favorite, Audit, Export, Configure, Software, and Start are contextual to the selected machine. Software selection uses its own dense contextual browser and returns to the same machine state.
+
+At narrow desktop widths, the machine list remains primary and an explicit **Details** control reveals the right-side context.
+
+The old temporary **Legacy UI** route and vertical dashboard composition have been retired.
 
 ## Current project status
 
-The main engineering phase and post-closeout hardening batch are complete on `master`.
+The main engineering phase and post-closeout hardening phase are complete. The MAME-UI reproduction milestone is tracked by:
 
-Primary closure records:
+- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md` — reproduction specification;
+- `docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md` — canonical upstream behavior inventory and initial dispositions;
+- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_TODO_2026-09-14.md` — milestone reconciliation ledger;
+- `docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md` — accessibility/usability audit;
+- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md` — final implementation/defer record and qualification protocol.
 
-- `docs/MAME_TAURI_TODO_2026-09-08.md` — authoritative engineering TODO ledger.
-- `docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md` — engineering-phase closure and maintenance handoff.
-- `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md` — post-closeout hardening specification.
-- `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md` — completed post-closeout hardening TODO.
+Earlier engineering closure records remain authoritative for the completed external-window architecture:
 
-The deliberately deferred optional research tracks are:
+- `docs/MAME_TAURI_TODO_2026-09-08.md`;
+- `docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md`;
+- `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md`;
+- `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md`.
 
-- MT-1000 — native-window / embedded-render integration research.
-- MT-1100 — dedicated Tauri MAME OSD research.
-- MT-1200 — in-process MAME hosting research.
-- MT-1705 — embedded-render performance qualification, dependent on MT-1000.
+The deliberately deferred architecture research tracks remain MT-1000 native-window/embedded-render integration, MT-1100 dedicated Tauri MAME OSD, MT-1200 in-process MAME hosting, and MT-1705 embedded-render performance qualification. They are not part of the external-window product claim.
 
-Those tracks are not part of the completed external-window product claim.
+## MAME-style browser capabilities
 
-## What the Tauri frontend does
+Implemented browser capabilities include:
 
-Implemented frontend/backend capabilities include:
+- imported `-listxml` machine metadata stored in the local catalog;
+- canonical fixed machine filters for availability, working state, mechanical state, BIOS state, parent/clone, manufacturer, year, source file, save-state support, CHD presence, orientation, and Favorites;
+- debounced live machine search;
+- dense paged keyboard-navigable machine list;
+- durable last-machine/filter/right-panel/artwork state;
+- all 17 canonical MAME artwork categories plus project Icon/System Image extensions;
+- safe clone-to-parent artwork fallback;
+- compact machine Info context;
+- contextual selected-machine audit;
+- bounded displayed-list CSV export through a native save dialog;
+- machine-specific launch settings and controller-profile overrides;
+- contextual software-list browser;
+- software search plus parent/clone/year/publisher/support filters;
+- typed multipart software-part selection;
+- authoritative Start Empty legality;
+- authoritative bounded BIOS discovery and validated BIOS launch;
+- supervised machine/software launch;
+- active-session status and runtime controls;
+- application-managed save-state listing/save/load/delete/compatibility checks;
+- secondary Collections, Recent History, bulk Audit, global Settings, and Diagnostics surfaces.
 
-- MAME executable selection and identity reporting.
-- MAME metadata import from `-listxml` into the local application database.
-- Library search, filtering, favorites, machine details, and software-list browsing.
-- ROM/software audit surfaces with stored provenance.
-- User settings and launch-preference persistence.
-- Supervised external MAME process launch and stop behavior.
-- Authenticated runtime controls for supported live commands:
-  - pause;
-  - resume;
-  - soft reset;
-  - mute/unmute;
-  - query/refresh runtime state.
-- Local artwork discovery and safe local artwork serving.
-- Save-state listing, save/load/delete, and compatibility warnings.
-- Diagnostics and CI-backed release/qualification ledgers.
-
-The WebView does **not** transport gameplay video frames, PCM audio, or live gameplay input. Those remain on native MAME/OS paths.
+Deliberate MAME-parity gaps are documented in the closure record. They are not silently represented as implemented features.
 
 ## Repository layout
 
 Important project-owned paths:
 
 ```text
-README.md                                      # this overview
-tauri/                                        # React + Tauri frontend project
-tauri/src/                                    # TypeScript/React frontend code
-tauri/src-tauri/                              # Rust/Tauri backend code
-scripts/tauri/                                # project validation and qualification helpers
-docs/MAME_TAURI_*                             # project specs, closure records, handoffs, ledgers
-.github/workflows/tauri-project.yml           # main Tauri quality/release-qualification workflow
-.github/workflows/tauri-security.yml          # Tauri security checks
-.github/workflows/tauri-*-packaging.yml        # platform packaging smoke workflows
+README.md
+tauri/
+  src/App.tsx                         # thin readiness/bootstrap composition
+  src/shell/                          # MAME shell and contextual shell styling
+  src/browser/                        # machine/software browsers and models
+  src/backend/                        # typed TypeScript Tauri-command wrappers
+  src/library/                        # retained audit/favorites/history/collection logic
+  src/settings/                       # global/machine/controller configuration surfaces
+  src/session/                        # session/runtime/save-state surfaces
+  src-tauri/src/                      # Rust authority: catalog, launch, filesystem, export, control
+docs/MAME_TAURI_*                     # specs, ledgers, qualification and closure records
+scripts/tauri/                        # regression/qualification helpers
+.github/workflows/tauri-project.yml   # main quality + Linux runtime qualification
+.github/workflows/tauri-security.yml
+.github/workflows/tauri-*-packaging.yml
 ```
 
-Most upstream MAME source remains outside the Tauri project surface.
+`App.tsx` must remain a thin readiness/composition layer. Primary UX belongs to `MameShell`/browser components; privileged authority belongs to Rust.
+
+## Security/process boundary
+
+The WebView is not treated as a privileged filesystem/process environment.
+
+Key invariants:
+
+- Rust crate uses `#![deny(unsafe_code)]`;
+- MAME runs as a supervised child process;
+- executable/catalog/audit/export/artwork/save-state operations remain typed Rust commands;
+- no generic shell command bridge is exposed;
+- no unrestricted filesystem, opener, or HTTP capability is added for UI convenience;
+- displayed-list export supplies only typed browser query state, uses a native save dialog, and streams bounded catalog results in Rust;
+- artwork serving remains bounded to configured local roots with containment checks;
+- runtime-control frames remain authenticated, bounded, and session-scoped;
+- gameplay video, PCM audio, timing, and gameplay input are not proxied through Tauri IPC;
+- frontend keyboard shortcuts fail closed whenever native MAME owns gameplay input or ownership cannot be established.
 
 ## Developer prerequisites
 
@@ -71,16 +128,16 @@ Most upstream MAME source remains outside the Tauri project surface.
 Install:
 
 - Node.js `>=22.12.0`;
-- npm matching the checked-in `package-lock.json` workflow;
+- npm matching the checked-in `tauri/package-lock.json` workflow;
 - Rust stable with `cargo`, `rustfmt`, and `clippy`;
-- a platform toolchain capable of building Tauri 2 applications;
-- a MAME executable, either from an external install or a development tree, for real interactive use.
+- the normal Tauri 2 platform toolchain;
+- a MAME executable for real interactive use.
 
-The frontend project pins its JavaScript dependencies in `tauri/package-lock.json`. The Rust backend pins dependency resolution in `tauri/src-tauri/Cargo.lock`.
+The JavaScript dependency graph is locked by `tauri/package-lock.json`; the Rust graph is locked by `tauri/src-tauri/Cargo.lock`.
 
 ### Linux prerequisites
 
-The CI Linux jobs install these Tauri prerequisites:
+The CI Linux jobs install:
 
 ```bash
 sudo apt-get update
@@ -94,69 +151,56 @@ sudo apt-get install -y \
   xdotool
 ```
 
-`xvfb` and `xdotool` are used by the development-window smoke check. They are not normally required just to edit code, but they are required to reproduce the full Linux CI smoke path locally.
+`xvfb` and `xdotool` are used by the real Tauri development-window smoke path.
 
-#### Known Tauri 2 Linux GLib advisory
+### Known Tauri 2 Linux GLib advisory
 
-At the time of this README update, the checked-in Rust dependency graph resolves the Tauri Linux GTK3 stack through `tauri 2.11.5`, `gtk 0.18.2`, and `webkit2gtk 2.0.2` to the Rust `glib 0.18.5` crate. RustSec reports `RUSTSEC-2024-0429` for that GLib crate as an informational `unsound` advisory affecting `glib::VariantStrIter` iterator methods. The application does not directly call the affected `VariantStrIter` API, and the project security audit currently reports no Rust vulnerabilities while still surfacing this informational warning.
+The checked-in Tauri 2 Linux GTK3 dependency graph currently resolves through `tauri 2.11.5`, `gtk 0.18.2`, and `webkit2gtk 2.0.2` to Rust `glib 0.18.5`. RustSec reports `RUSTSEC-2024-0429` as an informational `unsound` advisory affecting `glib::VariantStrIter` iterator methods.
 
-This dependency is upstream in the supported Tauri 2 Linux stack. Do **not** try to fix it by adding or forcing `glib 0.20` alongside the current GTK3 dependency graph, and do not create separate GLib-specific builds of the application solely for this advisory. A proper removal requires the upstream Tauri Linux stack to move to compatible newer GTK/GLib bindings.
-
-Until that migration is available in a supported Tauri release, keep the advisory visible and monitor Linux runtime behavior. If a Linux build shows reproducible GLib/GVariant crashes or behavior that could involve this advisory, capture the application logs and a minimal reproducer and reassess the dependency decision rather than silently suppressing the warning.
+The application does not directly call the affected `VariantStrIter` API. Do **not** try to fix the advisory by forcing an incompatible newer `glib` crate alongside the current GTK3 graph. Keep the advisory visible until the supported upstream Tauri Linux stack migrates to compatible newer GTK/GLib bindings. Reassess sooner if a reproducible Linux GLib/GVariant runtime failure appears.
 
 ### macOS and Windows
 
-Use the normal Tauri 2 platform prerequisites for macOS or Windows, plus Node.js and Rust stable. The CI packaging workflows validate macOS app/DMG layout and Windows NSIS packaging behavior, but release signing/notarization still requires real platform credentials outside this repository.
+Use the normal Tauri 2 platform prerequisites plus Node.js and Rust stable. CI validates macOS app/DMG mechanics and Windows NSIS install/payload/uninstall behavior. Public release signing/notarization requires real platform credentials outside this repository.
 
-## Initial setup
-
-From a fresh checkout:
+## Initial setup and development
 
 ```bash
 cd tauri
 npm ci
 ```
 
-For real use, launch the app and configure the MAME executable/content paths through the UI. The app expects MAME to remain an external native process for the completed product scope.
-
-## Development commands
-
-Run the frontend development server:
+Run the browser development server:
 
 ```bash
-cd tauri
 npm run dev
 ```
 
-Run the Tauri desktop app in development mode:
+Run the Tauri desktop app:
 
 ```bash
-cd tauri
 npm run tauri -- dev
 ```
 
-Build the frontend only:
+Build the frontend:
 
 ```bash
-cd tauri
 npm run build
 ```
 
-Run a Tauri production build smoke check without bundling installers:
+Run a production Tauri build smoke without packaging:
 
 ```bash
-cd tauri
 npm run tauri -- build --no-bundle
 ```
 
-Build platform bundles/installers where the local platform supports them:
+Build platform bundles where the current host supports them:
 
 ```bash
-cd tauri
 npm run tauri -- build
 ```
 
-## Formatting, linting, typechecking, and tests
+## Validation
 
 Frontend checks:
 
@@ -169,7 +213,7 @@ npm test
 npm run build
 ```
 
-Rust backend checks:
+Rust checks:
 
 ```bash
 cd tauri/src-tauri
@@ -178,7 +222,7 @@ cargo test --locked
 cargo clippy --locked --all-targets --all-features -- -D warnings
 ```
 
-Repository-level Tauri validation helpers:
+Repository-level qualification helpers include:
 
 ```bash
 ./scripts/tauri/test-stage-mame-runtime.sh
@@ -189,51 +233,35 @@ python3 scripts/tauri/test-mt2004-release-candidate.py
 python3 scripts/tauri/test-mt2100-final-quality-closure.py
 python3 scripts/tauri/test-mt2200-todo-reconciliation.py
 python3 scripts/tauri/test-post-closeout-hardening.py
+python3 scripts/tauri/test-mame-ui-reproduction.py
 python3 scripts/tauri/test-security-policy.py
 python3 scripts/tauri/test-performance-qualification.py
 ```
 
-The GitHub Actions `Tauri project` workflow is the authoritative combined project gate. It runs the Python qualification helpers, frontend format/lint/typecheck/tests/build, Rust format/tests/Clippy, performance qualification, release-candidate ledger generation, and Linux Tauri smoke checks.
+The `Tauri project` workflow is the authoritative combined quality gate. On pull requests/master it also runs the hardened Linux production build and real development-window smoke under Xvfb.
 
 ## CI workflows
 
-The current Tauri/frontend-specific CI matrix includes:
+The Tauri/frontend CI matrix includes:
 
-- `Tauri project` — main Linux quality and release-qualification gate.
-- `Tauri security` — static security policy regression and advisory checks.
-- `Tauri Linux packaging` — `.deb` and AppImage package smoke checks.
-- `Tauri Windows packaging` — NSIS package, clean install, payload validation, and uninstall smoke checks.
-- `Tauri macOS packaging` — app/DMG layout, ad-hoc signature, relocation/resource smoke, and release-signing policy checks.
-- `Build documentation` — upstream/project documentation build.
+- `Tauri project` — Linux quality, performance, regression, production build, and development-window qualification;
+- `Tauri security` — static security-policy and advisory checks;
+- `Tauri Linux packaging` — `.deb`/AppImage smoke;
+- `Tauri Windows packaging` — NSIS build/install/payload/uninstall smoke;
+- `Tauri macOS packaging` — app/DMG layout, relocation/resource, ad-hoc signature, and signing-policy smoke;
+- `Build documentation` — documentation build.
 
-For release or closure claims, use exact-head CI evidence. Do not substitute a green ancestor, descendant, or unrelated workflow run for the candidate SHA.
+Use exact-head CI evidence for release or closure claims. A green ancestor or unrelated workflow is not evidence for a changed candidate.
 
 ## Packaging and release notes
 
-Packaging CI uses synthetic staged MAME runtime payloads to validate installer topology, bundled-resource paths, and install/uninstall behavior. That proves package mechanics; it does not certify a public redistributable MAME binary bundle.
+Packaging CI uses synthetic staged MAME runtime payloads to validate installer topology and bundled-resource mechanics. It does not certify a public redistributable MAME binary bundle.
 
-A public release that bundles MAME must separately qualify the real runtime binary/resource/license set for the target platforms.
+A public bundled-MAME release must separately qualify the real runtime binary/resources/licenses for each target platform. Public macOS signing/notarization likewise requires real Apple credentials.
 
-macOS CI uses smoke-appropriate signing behavior. Public macOS release signing and notarization require real Apple credentials and are outside the checked-in open repository state.
+## Upstream MAME
 
-## Security model
-
-The Tauri frontend intentionally keeps privileged operations in Rust. The WebView calls typed Tauri commands rather than invoking generic shell, filesystem, HTTP, or opener plugins.
-
-Key constraints:
-
-- Rust crate uses `#![deny(unsafe_code)]`.
-- Tauri capabilities remain narrowly scoped.
-- MAME runs as a supervised child process.
-- Runtime-control frames are authenticated and bounded.
-- Runtime-control bootstrap files are hardened on Unix and documented on non-Unix platforms.
-- Gameplay video, PCM audio, and gameplay input are not proxied through Tauri IPC.
-
-See `scripts/tauri/test-security-policy.py` and `scripts/tauri/test-post-closeout-hardening.py` for regression coverage of these assumptions.
-
-## Upstream MAME information
-
-MAME is a multi-purpose emulation framework whose purpose is to preserve decades of software history by documenting hardware and providing executable validation of that documentation.
+MAME is a multi-purpose emulation framework for documenting and preserving hardware/software history through executable emulation.
 
 Useful upstream resources:
 
@@ -243,21 +271,14 @@ Useful upstream resources:
 - [MAMEdev Forum](https://forum.mamedev.org/)
 - [MAMEdev Discussions](https://github.com/orgs/mamedev/discussions)
 
-To build upstream MAME itself, follow the upstream documentation. Typical upstream builds use commands such as:
-
-```bash
-make
-make SUBTARGET=tiny
-```
-
-Those commands build MAME, not the Tauri frontend app in `tauri/`.
+To build upstream MAME itself, follow upstream documentation. Typical commands such as `make` or `make SUBTARGET=tiny` build MAME, not the Tauri frontend.
 
 ## License
 
-This fork retains upstream MAME licensing. The MAME project as a whole is made available under the GNU General Public License, version 2 or later, with many source files available under GPL-compatible licenses such as BSD-3-Clause, LGPL-2.1, or GPL-2.0.
+This fork retains upstream MAME licensing. MAME as a whole is available under GNU GPL version 2 or later, with many source files under GPL-compatible licenses such as BSD-3-Clause, LGPL-2.1, or GPL-2.0.
 
 The Tauri frontend Rust crate declares `GPL-2.0-only` package metadata.
 
-Please see `COPYING` and `docs/legal/` for the full license texts and upstream licensing details.
+See `COPYING` and `docs/legal/` for license texts and upstream licensing details.
 
 MAME is a registered trademark of Gregory Ember, and permission is required to use the "MAME" name, logo, or wordmark.

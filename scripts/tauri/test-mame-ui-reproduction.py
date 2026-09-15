@@ -38,6 +38,14 @@ def main() -> int:
     controller = read("tauri/src/settings/ControllerConfigurationPanel.tsx")
     session = read("tauri/src/session/SessionControlPanel.tsx")
     save_states = read("tauri/src/session/SaveStateBrowser.tsx")
+    frontend_mame_ui = read("tauri/src/backend/mameUi.ts")
+    export_backend = read("tauri/src-tauri/src/mame_ui_export.rs")
+    workflow = read(".github/workflows/tauri-project.yml")
+    spec = read("docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md")
+    todo = read("docs/MAME_TAURI_MAME_UI_REPRODUCTION_TODO_2026-09-14.md")
+    parity = read("docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md")
+    accessibility = read("docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md")
+    closure = read("docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md")
 
     require(app, "<MameShell", "thin application composition")
     for legacy_panel in (
@@ -70,6 +78,8 @@ def main() -> int:
     require(browser, 'event.key === "ArrowRight"', "right region navigation")
     require(browser, "mame-narrow-details-toggle", "narrow-window details control")
     require(browser, "gameplayInputOwned", "fail-closed gameplay-input ownership")
+    require(browser, "exportMameUiDisplayedList", "displayed-list export action")
+    require(browser, 'aria-label="Export displayed machine list"', "accessible export control")
 
     require(filters, 'role="listbox"', "filter list semantics")
     require(filters, 'role="option"', "filter option semantics")
@@ -113,6 +123,48 @@ def main() -> int:
     require(shell_css, ":focus-visible", "visible keyboard focus")
     require(shell_css, ".mame-browser-grid.show-details .mame-right-panel", "narrow details strategy")
     require(shell_css, "prefers-reduced-motion", "reduced-motion qualification")
+
+    require(frontend_mame_ui, 'invoke<ExportMameUiDisplayedListResult>("export_mame_ui_displayed_list"', "typed export invocation")
+    require(export_backend, "MAX_EXPORT_ROWS: u64 = 100_000", "bounded export row limit")
+    require(export_backend, "blocking_save_file", "native export destination picker")
+    require(export_backend, "tempfile_in(parent)", "atomic export staging")
+    forbid(export_backend, "std::process::Command", "export generic process execution")
+
+    require(spec, "## 28. Acceptance definition", "spec acceptance definition")
+    require(spec, "## 29. Qualification protocol", "spec qualification protocol")
+    for task_number in range(1, 21):
+        task = f"MUI-{task_number:03d}"
+        require(todo, task, "TODO task inventory")
+    if any(line.lstrip().startswith("- [ ]") for line in todo.splitlines()):
+        raise SystemExit("MAME UI reproduction regression: reconciled milestone TODO has unchecked items")
+    require(todo, "MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md", "TODO parity-matrix link")
+    require(todo, "MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md", "TODO accessibility link")
+    require(todo, "MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md", "TODO closure link")
+
+    for token in ("Category", "Custom Filter", "DAT", "Software Favorites"):
+        require(parity + closure, token, "explicit parity disposition")
+    for token in (
+        "Keyboard-only path",
+        "Focus visibility and restoration",
+        "Controller/gamepad navigation disposition",
+    ):
+        require(accessibility, token, "accessibility qualification")
+    for token in (
+        "Displayed-list export",
+        "Deliberate machine-filter defers",
+        "Deliberate software defers",
+        "Security invariants preserved",
+    ):
+        require(closure, token, "closure record")
+
+    for required_path in (
+        "/docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md",
+        "/docs/MAME_TAURI_MAME_UI_REPRODUCTION_TODO_2026-09-14.md",
+        "/docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md",
+        "/docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md",
+        "/docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md",
+    ):
+        require(workflow, required_path, "MAME UI CI sparse checkout")
 
     print("MAME UI reproduction regression passed")
     return 0
