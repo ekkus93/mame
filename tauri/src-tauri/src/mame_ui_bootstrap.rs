@@ -169,6 +169,11 @@ mod tests {
     };
 
     use super::{bootstrap_status, MameUiBootstrapStatus};
+    #[cfg(unix)]
+    use crate::{
+        mame::MameExecutableSource,
+        metadata::{refresh_catalog, CatalogRepository, CloneFilter, MachineQuery, MachineSort},
+    };
 
     #[test]
     fn missing_settings_are_explicitly_not_configured() {
@@ -195,6 +200,80 @@ mod tests {
             MameUiBootstrapStatus::ExecutableUnavailable { .. }
         ));
         fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn persisted_configuration_imports_and_populates_first_catalog_query() {
+        let root = temp_root("configured-import-ready");
+        fs::create_dir_all(&root).expect("create root");
+        let executable = root.join("fake-mame");
+        write_fake_mame(&executable);
+        let settings = serde_json::json!({
+            "schemaVersion": 2,
+            "mameExecutable": executable.to_string_lossy().into_owned()
+        });
+        let settings_path = root.join("settings.json");
+        let catalog_path = root.join("catalog.sqlite3");
+        fs::write(
+            &settings_path,
+            serde_json::to_vec(&settings).expect("encode settings"),
+        )
+        .expect("write settings");
+
+        let before = bootstrap_status(&settings_path, &catalog_path)
+            .expect("configured executable should be inspectable");
+        assert!(matches!(before, MameUiBootstrapStatus::MetadataMissing { .. }));
+
+        let imported = refresh_catalog(
+            MameExecutableSource::external(&executable),
+            &catalog_path,
+        )
+        .expect("representative metadata import should succeed");
+        assert_eq!(imported.generation.machine_count, 4);
+
+        let after = bootstrap_status(&settings_path, &catalog_path)
+            .expect("fresh imported generation should be ready");
+        assert!(matches!(
+            after,
+            MameUiBootstrapStatus::Ready {
+                ref generation,
+                ..
+            } if generation.machine_count == 4
+        ));
+
+        let first_page = CatalogRepository::open(&catalog_path)
+            .expect("open populated catalog")
+            .query_machines(&MachineQuery {
+                text: None,
+                manufacturer: None,
+                year: None,
+                driver_status: None,
+                clone_filter: CloneFilter::All,
+                sort: MachineSort::DescriptionAsc,
+                include_devices: false,
+                limit: 100,
+                offset: 0,
+            })
+            .expect("first unfiltered query should succeed");
+        assert_eq!(first_page.total, 4);
+        assert!(!first_page.items.is_empty());
+
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[cfg(unix)]
+    fn write_fake_mame(path: &PathBuf) {
+        use std::os::unix::fs::PermissionsExt;
+
+        let fixture = include_str!("../../tests/fixtures/listxml-representative.xml");
+        let script = format!(
+            "#!/bin/sh\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-version' ]; then\n  printf '%s\\n' '0.288 test-fixture'\n  exit 0\nfi\nif [ \"$1\" = '-noreadconfig' ] && [ \"$2\" = '-listxml' ]; then\n  cat <<'MAME_XML'\n{fixture}\nMAME_XML\n  exit 0\nfi\nexit 99\n"
+        );
+        fs::write(path, script).expect("write fake MAME");
+        let mut permissions = fs::metadata(path).expect("fake MAME metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(path, permissions).expect("mark fake MAME executable");
     }
 
     fn temp_root(label: &str) -> PathBuf {
