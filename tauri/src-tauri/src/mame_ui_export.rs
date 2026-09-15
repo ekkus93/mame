@@ -76,7 +76,7 @@ pub async fn export_mame_ui_displayed_list(
         let catalog_path = storage::catalog_path(&app)?;
         let settings_path = settings_path(&app)?;
 
-        return tauri::async_runtime::spawn_blocking(move || {
+        tauri::async_runtime::spawn_blocking(move || {
             export_displayed_list_to_path(request, &catalog_path, &settings_path, &destination)
         })
         .await
@@ -86,7 +86,7 @@ pub async fn export_mame_ui_displayed_list(
                 "The displayed-list export worker did not complete normally.",
             )
             .with_details(serde_json::json!({ "cause": error.to_string() }))
-        })?;
+        })?
     }
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
