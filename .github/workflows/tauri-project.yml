@@ -43,6 +43,9 @@ jobs:
             /docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md
             /docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md
             /docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_SPEC_2026-09-14.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_TODO_2026-09-14.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_CLOSURE_2026-09-15.md
             /.github/workflows/tauri-project.yml
             /tauri/
             /scripts/tauri/
@@ -248,6 +251,9 @@ jobs:
             /docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md
             /docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md
             /docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_SPEC_2026-09-14.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_TODO_2026-09-14.md
+            /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_CLOSURE_2026-09-15.md
             /.github/workflows/tauri-project.yml
 
       - name: Install Tauri Linux runtime prerequisites
@@ -260,7 +266,8 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             xvfb \
-            xdotool
+            xdotool \
+            imagemagick
 
       - uses: actions/setup-node@v7
         with:
@@ -299,7 +306,17 @@ jobs:
         run: npm run tauri -- build --no-bundle
 
       - name: Tauri development window smoke check
-        run: xvfb-run -a ./scripts/smoke-dev.sh
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ./scripts/smoke-dev.sh
+
+      - name: MAME UI remediation visual/runtime smoke
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ./scripts/smoke-remediation-visual.sh
+
+      - name: Upload MAME UI remediation screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-ui-remediation-screenshots-${{ github.sha }}
+          path: artifacts/mame-ui-remediation/
+          if-no-files-found: error
 
       - name: Verify lockfiles remain unchanged
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
