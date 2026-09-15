@@ -17,6 +17,7 @@ import type {
 import { MameBrowser } from "../browser/MameBrowser";
 import { BulkAuditPanel } from "../library/BulkAuditPanel";
 import { CollectionManager } from "../library/CollectionManager";
+import { isGameplaySessionState } from "../library/keyboardNavigation";
 import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
 import { SessionControlPanel } from "../session/SessionControlPanel";
 import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
@@ -39,20 +40,23 @@ function mameVersionLabel(report: MameVersionReport): string {
 }
 
 function activeSession(session: SessionSnapshot | null): SessionSnapshot | null {
-  return session && ["created", "starting", "running", "stopping"].includes(session.state)
-    ? session
-    : null;
+  return session && isGameplaySessionState(session.state) ? session : null;
 }
 
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const [view, setView] = useState<ShellView>("library");
   const [session, setSession] = useState<SessionSnapshot | null>(null);
+  const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
     (value: number) => value + 1,
     0,
   );
 
   const navigate = (next: ShellView) => () => setView(next);
+  const observeSession = (next: SessionSnapshot | null) => {
+    setSession(activeSession(next));
+    setGameplayInputOwned(isGameplaySessionState(next?.state));
+  };
 
   useEffect(() => {
     let disposed = false;
@@ -60,16 +64,19 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
 
     void getMameSession()
       .then((current) => {
-        if (!disposed) setSession(activeSession(current));
+        if (!disposed) observeSession(current);
       })
       .catch(() => {
-        if (!disposed) setSession(null);
+        if (!disposed) {
+          setSession(null);
+          setGameplayInputOwned(true);
+        }
       });
 
     const bind = async () => {
       unlisteners.push(
         await listen<SessionLifecycleEventV1>(SESSION_STARTED_EVENT, (event) => {
-          if (!disposed) setSession(activeSession(event.payload.session));
+          if (!disposed) observeSession(event.payload.session);
         }),
       );
       for (const eventName of [
@@ -79,7 +86,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
       ] as const) {
         unlisteners.push(
           await listen<SessionLifecycleEventV1>(eventName, () => {
-            if (!disposed) setSession(null);
+            if (!disposed) {
+              setSession(null);
+              setGameplayInputOwned(false);
+            }
           }),
         );
       }
@@ -87,7 +97,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     };
 
     void bind().catch(() => {
-      // The browser already fails closed for gameplay-input ownership if session state is unknown.
+      if (!disposed) setGameplayInputOwned(true);
     });
 
     return () => {
@@ -160,7 +170,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         {view === "library" && (
           <MameBrowser
             availabilityRevision={availabilityRevision}
+            gameplayInputOwned={gameplayInputOwned}
             onAuditResultsChanged={bumpAvailabilityRevision}
+            onSessionStarted={observeSession}
           />
         )}
         {view === "session" && <SessionControlPanel />}

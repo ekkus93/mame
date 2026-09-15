@@ -44,6 +44,7 @@ type LaunchState =
 
 export function SoftwareBrowser({
   detail,
+  gameplayInputOwned,
   launchOverrides,
   panelMode,
   onPanelModeChange,
@@ -51,6 +52,7 @@ export function SoftwareBrowser({
   onSessionStarted,
 }: {
   detail: MachineDetail;
+  gameplayInputOwned: boolean;
   launchOverrides: LaunchPreferences | null;
   panelMode: MameUiPanelMode;
   onPanelModeChange: (mode: MameUiPanelMode) => void;
@@ -135,7 +137,7 @@ export function SoftwareBrowser({
         setBrowse({ status: "ready", page });
         setSelected((current) => {
           if (current && page.items.some((item) => item.shortName === current.shortName)) {
-            return current;
+            return page.items.find((item) => item.shortName === current.shortName) ?? null;
           }
           return page.items[0] ?? null;
         });
@@ -228,7 +230,7 @@ export function SoftwareBrowser({
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.repeat || event.altKey) return;
+      if (event.defaultPrevented || event.repeat || event.altKey || gameplayInputOwned) return;
       if (event.key === "Escape") {
         if (event.target === searchRef.current && search) {
           event.preventDefault();
@@ -249,7 +251,7 @@ export function SoftwareBrowser({
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onBack, search]);
+  }, [gameplayInputOwned, onBack, search]);
 
   return (
     <section className="mame-software-browser" aria-label={`Software for ${detail.description}`}>
@@ -388,28 +390,33 @@ export function SoftwareBrowser({
             <div className="mame-panel-state">No software matches.</div>
           )}
           {page && page.items.length > 0 && (
-            <ul className="mame-software-listbox" aria-label="Software results">
-              {page.items.map((item, index) => (
-                <li key={item.shortName}>
-                  <button
-                    ref={(element) => {
-                      rowRefs.current[index] = element;
-                    }}
-                    type="button"
-                    className={`mame-software-row ${selected?.shortName === item.shortName ? "is-selected" : ""}`}
-                    aria-current={selected?.shortName === item.shortName ? "true" : undefined}
-                    onClick={() => setSelected(item)}
-                    onDoubleClick={() => activateItem(item)}
-                    onKeyDown={(event) => handleRowKey(event, index)}
-                  >
-                    <span className="mame-software-title">{item.description}</span>
-                    <span className="mame-machine-short">{item.shortName}</span>
-                    <span>{item.year}</span>
-                    <span className="mame-software-publisher">{item.publisher}</span>
-                    <span>{item.supported}</span>
-                  </button>
-                </li>
-              ))}
+            <ul className="mame-software-listbox" role="listbox" aria-label="Software results">
+              {page.items.map((item, index) => {
+                const isSelected = selected?.shortName === item.shortName;
+                return (
+                  <li key={item.shortName} role="presentation">
+                    <button
+                      ref={(element) => {
+                        rowRefs.current[index] = element;
+                      }}
+                      type="button"
+                      role="option"
+                      className={`mame-software-row ${isSelected ? "is-selected" : ""}`}
+                      aria-selected={isSelected}
+                      tabIndex={isSelected ? 0 : -1}
+                      onClick={() => setSelected(item)}
+                      onDoubleClick={() => activateItem(item)}
+                      onKeyDown={(event) => handleRowKey(event, index)}
+                    >
+                      <span className="mame-software-title">{item.description}</span>
+                      <span className="mame-machine-short">{item.shortName}</span>
+                      <span>{item.year}</span>
+                      <span className="mame-software-publisher">{item.publisher}</span>
+                      <span>{item.supported}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {page && page.total > page.limit && (

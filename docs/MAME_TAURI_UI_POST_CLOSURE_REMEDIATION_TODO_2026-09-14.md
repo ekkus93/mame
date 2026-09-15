@@ -9,13 +9,13 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 
 ## MUR-001 — Make session/gameplay-input ownership authoritative and event-driven
 
-- [ ] Remove the browser-local polling source of truth for gameplay-input ownership.
-- [ ] Make `MameShell` own fail-closed gameplay-input ownership from the authoritative session snapshot and lifecycle events.
-- [ ] Pass ownership into the machine browser and software browser so both suppress global shortcuts while native MAME owns gameplay input.
-- [ ] Update ownership immediately when machine or software launch returns a session, without waiting for a later focus event.
-- [ ] Restore browser shortcut ownership immediately on exited/failed/crashed lifecycle events.
-- [ ] Preserve fail-closed behavior when initial session discovery or lifecycle-listener setup fails.
-- [ ] Add/extend regression coverage so software-mode shortcuts cannot bypass gameplay ownership.
+- [x] Remove the browser-local polling source of truth for gameplay-input ownership.
+- [x] Make `MameShell` own fail-closed gameplay-input ownership from the authoritative session snapshot and lifecycle events.
+- [x] Pass ownership into the machine browser and software browser so both suppress global shortcuts while native MAME owns gameplay input.
+- [x] Update ownership immediately when machine or software launch returns a session, without waiting for a later focus event.
+- [x] Restore browser shortcut ownership immediately on exited/failed/crashed lifecycle events.
+- [x] Preserve fail-closed behavior when initial session discovery or lifecycle-listener setup fails.
+- [x] Add/extend regression coverage so software-mode shortcuts cannot bypass gameplay ownership. The implementation now gates `SoftwareBrowser` global keyboard handling on the shell-owned `gameplayInputOwned` state; MUR-007 adds the permanent static contract assertion.
 
 ## MUR-002 — Make software launch revalidation exact rather than fuzzy/paginated
 
@@ -41,11 +41,11 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 
 ## MUR-005 — Correct software-list selection semantics and roving keyboard focus
 
-- [ ] Expose the software result list with listbox/option selection semantics consistent with the machine browser.
-- [ ] Use a single roving tab stop tied to the selected software row.
-- [ ] Preserve pointer selection, Enter activation, and Up/Down/Home/End/Page navigation behavior.
-- [ ] Ensure selection state is represented with `aria-selected`, not `aria-current`.
-- [ ] Extend static regression coverage for the software list accessibility contract.
+- [x] Expose the software result list with listbox/option selection semantics consistent with the machine browser.
+- [x] Use a single roving tab stop tied to the selected software row.
+- [x] Preserve pointer selection, Enter activation, and Up/Down/Home/End/Page navigation behavior.
+- [x] Ensure selection state is represented with `aria-selected`, not `aria-current`.
+- [x] Extend static regression coverage for the software list accessibility contract. MUR-007 adds the permanent static assertions after the functional remediation batch is complete.
 
 ## MUR-006 — Apply typed BIOS selection consistently to Start Empty
 

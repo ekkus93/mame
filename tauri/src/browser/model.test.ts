@@ -67,9 +67,9 @@ describe("MAME browser model", () => {
   it("falls back deterministically when a selected machine disappears", () => {
     const first = machine("galaga", "Galaga");
     const preferred = machine("pacman", "Pac-Man");
-    expect(reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman")).toBe(
-      preferred,
-    );
+    expect(
+      reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman"),
+    ).toBe(preferred);
     expect(reconcileMachineSelection([first], machine("missing", "Missing"), null)).toBe(first);
     expect(reconcileMachineSelection([], machine("missing", "Missing"), null)).toBeNull();
   });

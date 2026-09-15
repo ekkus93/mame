@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import type { ArtworkKind } from "../backend/artwork";
-import { getMameMachineDetail, getMameSession, launchLibraryMachine } from "../backend/commands";
+import { getMameMachineDetail, launchLibraryMachine } from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import { exportMameUiDisplayedList, queryMameUiLibrary } from "../backend/mameUi";
@@ -21,7 +21,7 @@ import type {
   SessionSnapshot,
 } from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
-import { isEditableElement, isGameplaySessionState } from "../library/keyboardNavigation";
+import { isEditableElement } from "../library/keyboardNavigation";
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
 import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
@@ -62,10 +62,14 @@ type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
 
 export function MameBrowser({
   availabilityRevision,
+  gameplayInputOwned,
   onAuditResultsChanged,
+  onSessionStarted,
 }: {
   availabilityRevision: number;
+  gameplayInputOwned: boolean;
   onAuditResultsChanged: () => void;
+  onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const machineRowRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -100,7 +104,6 @@ export function MameBrowser({
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
-  const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,18 +195,6 @@ export function MameBrowser({
     [filter, debouncedSearch, debouncedFilterValue, offset, preferredMachine],
   );
 
-  const refreshGameplayOwnership = useCallback(() => {
-    void getMameSession()
-      .then((session) => setGameplayInputOwned(isGameplaySessionState(session?.state)))
-      .catch(() => setGameplayInputOwned(true));
-  }, []);
-
-  useEffect(() => {
-    refreshGameplayOwnership();
-    window.addEventListener("focus", refreshGameplayOwnership);
-    return () => window.removeEventListener("focus", refreshGameplayOwnership);
-  }, [refreshGameplayOwnership]);
-
   useEffect(() => {
     if (!uiStateHydrated) return;
     const sequence = ++querySequence.current;
@@ -283,14 +274,13 @@ export function MameBrowser({
         .then((session) => {
           setLaunchState({ status: "launched", session });
           setPendingLaunchOverrides(null);
-          setGameplayInputOwned(isGameplaySessionState(session.state));
+          onSessionStarted(session);
         })
         .catch((reason: unknown) => {
           setLaunchState({ status: "error", message: errorMessage(reason) });
-          refreshGameplayOwnership();
         });
     },
-    [launchState.status, pendingLaunchOverrides, refreshGameplayOwnership],
+    [launchState.status, onSessionStarted, pendingLaunchOverrides],
   );
 
   const exportDisplayedList = useCallback(() => {
@@ -414,13 +404,14 @@ export function MameBrowser({
     return (
       <SoftwareBrowser
         detail={detail as SoftwareCapableMachineDetail}
+        gameplayInputOwned={gameplayInputOwned}
         launchOverrides={pendingLaunchOverrides}
         panelMode={softwareRightPanelMode}
         onPanelModeChange={setSoftwareRightPanelMode}
         onBack={() => setSoftwareMode(false)}
         onSessionStarted={(session) => {
           setPendingLaunchOverrides(null);
-          setGameplayInputOwned(isGameplaySessionState(session.state));
+          onSessionStarted(session);
         }}
       />
     );
