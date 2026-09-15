@@ -1,4 +1,5 @@
 import type { MameUiMachineFilter, MameUiMachineSearchRequest } from "../backend/mameUi";
+import type { MachineListItem } from "../backend/types";
 
 export type MameBrowserFilter = MameUiMachineFilter;
 export type MameBrowserFilterValueKind = "manufacturer" | "year" | "sourceFile";
@@ -103,6 +104,22 @@ export function buildMameBrowserRequest(
     limit: MAME_BROWSER_PAGE_SIZE,
     offset: Math.max(0, offset),
   };
+}
+
+export function reconcileMachineSelection(
+  items: MachineListItem[],
+  current: MachineListItem | null,
+  preferredMachine: string | null,
+): MachineListItem | null {
+  if (current) {
+    const refreshed = items.find((item) => item.shortName === current.shortName);
+    if (refreshed) return refreshed;
+  }
+  if (preferredMachine) {
+    const preferred = items.find((item) => item.shortName === preferredMachine);
+    if (preferred) return preferred;
+  }
+  return items[0] ?? null;
 }
 
 export function nextBrowserIndex(

@@ -33,11 +33,11 @@ This ledger captures defects found immediately after the MAME-style Tauri UI mil
 
 ## MUR-004 — Refresh selected-machine state from authoritative query results
 
-- [ ] Replace retained selected-row objects with the fresh matching row returned by each successful catalog query.
-- [ ] Ensure catalog/availability refreshes do not leave stale selected-machine metadata in browser state.
-- [ ] Refresh selected-machine detail when the authoritative result generation/revision changes while preserving selection by short name.
-- [ ] Preserve deterministic reselection when the selected machine disappears from a result set.
-- [ ] Add regression coverage for selection-refresh behavior in pure browser model helpers where practical.
+- [x] Replace retained selected-row objects with the fresh matching row returned by each successful catalog query.
+- [x] Ensure catalog/availability refreshes do not leave stale selected-machine metadata in browser state.
+- [x] Refresh selected-machine detail when the authoritative result generation/revision changes while preserving selection by short name. A successful refreshed page now replaces the selected object with its fresh authoritative row, which retriggers the existing selected-detail request without changing the short-name selection.
+- [x] Preserve deterministic reselection when the selected machine disappears from a result set.
+- [x] Add regression coverage for selection-refresh behavior in pure browser model helpers where practical. `model.test.ts` covers fresh-row replacement, preferred fallback, first-row fallback, and empty results.
 
 ## MUR-005 — Correct software-list selection semantics and roving keyboard focus
 

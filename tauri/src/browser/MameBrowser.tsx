@@ -29,6 +29,7 @@ import {
   buildMameBrowserRequest,
   filterRequiresValue,
   nextBrowserIndex,
+  reconcileMachineSelection,
   type MameBrowserFilter,
 } from "./model";
 import { SoftwareBrowser } from "./SoftwareBrowser";
@@ -218,15 +219,7 @@ export function MameBrowser({
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
         if (page.offset !== offset) setOffset(page.offset);
-        setSelected((current) => {
-          if (current && page.items.some((item) => item.shortName === current.shortName)) {
-            return current;
-          }
-          const preferred = preferredMachine
-            ? page.items.find((item) => item.shortName === preferredMachine)
-            : null;
-          return preferred ?? page.items[0] ?? null;
-        });
+        setSelected((current) => reconcileMachineSelection(page.items, current, preferredMachine));
         if (preferredMachine) setPreferredMachine(null);
       })
       .catch((reason: unknown) => {
