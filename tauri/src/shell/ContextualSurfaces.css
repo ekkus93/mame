@@ -1,47 +1,54 @@
 .mame-brand {
-  border: 0;
+  border: 0 !important;
   color: inherit;
-  background: transparent;
+  background: transparent !important;
   text-align: left;
 }
 
 .mame-brand:focus-visible,
 .mame-shell-nav button:focus-visible,
 .mame-machine-row:focus-visible,
+.mame-software-row:focus-visible,
 .mame-filter:focus-visible,
 .mame-right-tabs button:focus-visible,
 .mame-context-actions button:focus-visible,
 .mame-artwork-categories button:focus-visible,
-.mame-status-bar button:focus-visible {
-  outline: 2px solid currentColor;
+.mame-status-bar button:focus-visible,
+.mame-bootstrap-state button:focus-visible,
+.mame-search input:focus-visible,
+.mame-software-filter-value input:focus-visible,
+.mame-software-part-selector select:focus-visible,
+.mame-bios-selector select:focus-visible {
+  outline: 2px solid var(--mame-focus);
   outline-offset: -2px;
 }
 
 .mame-session-status {
   min-height: 1.5rem;
   padding: 0.1rem 0.35rem;
-  border: 0;
-  border-radius: 2px;
-  color: inherit;
-  background: transparent;
+  border: 1px solid transparent !important;
+  color: #fff !important;
+  background: transparent !important;
   font: inherit;
   text-align: left;
 }
 
 .mame-session-status:hover {
-  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-color: #fff !important;
+  background: color-mix(in srgb, #fff 12%, transparent) !important;
 }
 
 .mame-context-subview-toolbar {
   position: sticky;
-  top: 2rem;
-  z-index: 1;
+  top: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 0.65rem;
   padding: 0.45rem 0.55rem;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  background: Canvas;
+  border-bottom: 1px solid var(--mame-border);
+  color: var(--mame-text);
+  background: var(--mame-structural-blue);
   font-size: 0.74rem;
 }
 
@@ -59,17 +66,6 @@
   .mame-narrow-details-toggle {
     display: inline-flex;
   }
-
-  .mame-browser-grid .mame-right-panel {
-    display: none;
-    grid-column: 1 / -1;
-    min-height: 20rem;
-    border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  }
-
-  .mame-browser-grid.show-details .mame-right-panel {
-    display: block;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -77,5 +73,7 @@
   .mame-shell *::before,
   .mame-shell *::after {
     scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
   }
 }

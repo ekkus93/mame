@@ -171,7 +171,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         </nav>
       </header>
 
-      <section className="mame-shell-workspace">
+      <section
+        className={`mame-shell-workspace ${view === "library" ? "is-library" : "is-secondary"}`}
+      >
         {view === "library" && (
           <MameBrowserWorkspace
             availabilityRevision={availabilityRevision}
