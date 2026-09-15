@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMameBrowserRequest, filterRequiresValue, nextBrowserIndex } from "./model";
+import type { MachineListItem } from "../backend/types";
+import {
+  buildMameBrowserRequest,
+  filterRequiresValue,
+  nextBrowserIndex,
+  reconcileMachineSelection,
+} from "./model";
+
+function machine(shortName: string, description: string): MachineListItem {
+  return {
+    shortName,
+    description,
+    year: null,
+    manufacturer: null,
+    sourceFile: null,
+    cloneOf: null,
+    runnable: true,
+    isDevice: false,
+    driverStatus: "good",
+    displayCount: 1,
+    softwareListCount: 0,
+  };
+}
 
 describe("MAME browser model", () => {
   it("maps canonical frontend filters to bounded MAME UI queries", () => {
@@ -34,6 +56,22 @@ describe("MAME browser model", () => {
     expect(filterRequiresValue("sourceFile")).toBe(true);
     expect(filterRequiresValue("favorites")).toBe(false);
     expect(filterRequiresValue("chdRequired")).toBe(false);
+  });
+
+  it("refreshes a retained selection from the authoritative result row", () => {
+    const stale = machine("pacman", "Old Pac-Man metadata");
+    const refreshed = machine("pacman", "PAC-MAN");
+    expect(reconcileMachineSelection([refreshed], stale, null)).toBe(refreshed);
+  });
+
+  it("falls back deterministically when a selected machine disappears", () => {
+    const first = machine("galaga", "Galaga");
+    const preferred = machine("pacman", "Pac-Man");
+    expect(
+      reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman"),
+    ).toBe(preferred);
+    expect(reconcileMachineSelection([first], machine("missing", "Missing"), null)).toBe(first);
+    expect(reconcileMachineSelection([], machine("missing", "Missing"), null)).toBeNull();
   });
 
   it("supports bounded row, edge and page navigation", () => {

@@ -65,6 +65,47 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
     limit: u32,
     offset: u32,
 ) -> AppResult<ParsedSoftwareList> {
+    parse_software_list(
+        input,
+        expected_list,
+        text_filter,
+        filter,
+        filter_value,
+        limit,
+        offset,
+        None,
+    )
+}
+
+pub(crate) fn parse_software_item<R: BufRead>(
+    input: R,
+    expected_list: &str,
+    exact_short_name: &str,
+) -> AppResult<Option<SoftwareItemSummary>> {
+    let parsed = parse_software_list(
+        input,
+        expected_list,
+        None,
+        SoftwareListFilter::All,
+        None,
+        1,
+        0,
+        Some(exact_short_name),
+    )?;
+    Ok(parsed.items.into_iter().next())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn parse_software_list<R: BufRead>(
+    input: R,
+    expected_list: &str,
+    text_filter: Option<&str>,
+    filter: SoftwareListFilter,
+    filter_value: Option<&str>,
+    limit: u32,
+    offset: u32,
+    exact_short_name: Option<&str>,
+) -> AppResult<ParsedSoftwareList> {
     if filter.requires_value() && filter_value.is_none() {
         return Err(AppError::new(
             "MAME_SOFTWARE_FILTER_VALUE_REQUIRED",
@@ -192,12 +233,17 @@ pub(crate) fn parse_software_list_page<R: BufRead>(
                             structure_error("MAME closed a software item that was not open.")
                         })?
                         .finish()?;
-                    if item_matches(
-                        &item,
-                        text_filter.as_deref(),
-                        filter,
-                        normalized_filter_value,
-                    ) {
+                    let exact_matches = exact_short_name
+                        .map(|name| item.short_name == name)
+                        .unwrap_or(true);
+                    if exact_matches
+                        && item_matches(
+                            &item,
+                            text_filter.as_deref(),
+                            filter,
+                            normalized_filter_value,
+                        )
+                    {
                         if total >= page_start && total < page_end {
                             items.push(item);
                         }
@@ -495,7 +541,7 @@ fn structure_error(message: &str) -> AppError {
 mod tests {
     use std::io::Cursor;
 
-    use super::{parse_software_list_page, SoftwareListFilter};
+    use super::{parse_software_item, parse_software_list_page, SoftwareListFilter};
 
     const FIXTURE: &str = r#"<?xml version="1.0"?>
 <softwarelists>
@@ -517,6 +563,12 @@ mod tests {
       <description>Archon II: Adept</description>
       <year>1984</year>
       <publisher>Electronic Arts</publisher>
+    </software>
+    <software name="archon">
+      <description>Archon</description>
+      <year>1983</year>
+      <publisher>Free Fall Associates</publisher>
+      <part name="flop1" interface="floppy_5_25"/>
     </software>
   </softwarelist>
 </softwarelists>"#;
@@ -571,6 +623,31 @@ mod tests {
         .expect("publisher filter");
         assert_eq!(publisher.total, 1);
         assert_eq!(publisher.items[0].short_name, "archon2");
+    }
+
+    #[test]
+    fn exact_item_lookup_is_not_displaced_by_an_earlier_fuzzy_match() {
+        let fuzzy = parse_software_list_page(
+            Cursor::new(FIXTURE.as_bytes()),
+            "apple2_flop_orig",
+            Some("archon"),
+            SoftwareListFilter::All,
+            None,
+            1,
+            0,
+        )
+        .expect("fuzzy search");
+        assert_eq!(fuzzy.items[0].short_name, "archon2");
+
+        let exact = parse_software_item(
+            Cursor::new(FIXTURE.as_bytes()),
+            "apple2_flop_orig",
+            "archon",
+        )
+        .expect("exact item lookup")
+        .expect("exact item must exist");
+        assert_eq!(exact.short_name, "archon");
+        assert_eq!(exact.parts.len(), 1);
     }
 
     #[test]

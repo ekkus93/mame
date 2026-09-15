@@ -13,8 +13,8 @@ use crate::{
         MameExecutableIdentity, MameExecutableSource,
     },
     metadata::{
-        parse_software_list_page, CatalogRepository, MetadataGenerationSummary,
-        SoftwareItemSummary, SoftwareListFilter,
+        parse_software_item, parse_software_list_page, CatalogRepository,
+        MetadataGenerationSummary, SoftwareItemSummary, SoftwareListFilter,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -181,25 +181,14 @@ pub fn launch_library_software(
         validate_bios_selection(&choices, selected_bios)?;
     }
     let xml = get_software_list_xml(&source, &software_list)?;
-    let page = parse_software_list_page(
-        Cursor::new(xml.as_bytes()),
-        &software_list,
-        Some(&software_item),
-        SoftwareListFilter::All,
-        None,
-        1,
-        0,
-    )?;
-    let software_metadata = page
-        .items
-        .into_iter()
-        .find(|item| item.short_name == software_item)
-        .ok_or_else(|| {
-            AppError::new(
-                "MAME_SOFTWARE_ITEM_NOT_FOUND",
-                "The selected software item is not present in the requested software list.",
-            )
-        })?;
+    let software_metadata =
+        parse_software_item(Cursor::new(xml.as_bytes()), &software_list, &software_item)?
+            .ok_or_else(|| {
+                AppError::new(
+                    "MAME_SOFTWARE_ITEM_NOT_FOUND",
+                    "The selected software item is not present in the requested software list.",
+                )
+            })?;
     if software_metadata.parts.len() > 1 && software_part.is_none() {
         return Err(AppError::new(
             "MAME_SOFTWARE_PART_REQUIRED",

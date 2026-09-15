@@ -178,12 +178,11 @@ function ArtworkPane({
   useEffect(() => {
     const descriptor = slot?.asset;
     const id = ++assetRequestId.current;
-    if (!descriptor) {
-      setAsset(null);
-      return;
-    }
     setAsset(null);
     setError(null);
+    if (!descriptor) {
+      return;
+    }
     void readArtworkAsset(descriptor.assetId)
       .then((payload) => {
         if (assetRequestId.current === id) setAsset(payload);
