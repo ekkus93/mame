@@ -221,7 +221,10 @@ fn export_search_request(request: ExportMameUiDisplayedListRequest) -> MameUiMac
 }
 
 fn write_csv_row(writer: &mut impl Write, values: &[&str]) -> AppResult<()> {
-    let encoded = values.iter().map(|value| csv_field(value)).collect::<Vec<_>>();
+    let encoded = values
+        .iter()
+        .map(|value| csv_field(value))
+        .collect::<Vec<_>>();
     writeln!(writer, "{}", encoded.join(",")).map_err(export_write_error)
 }
 
@@ -251,7 +254,9 @@ fn export_write_error(error: std::io::Error) -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::{csv_field, export_search_request, ExportMameUiDisplayedListRequest, EXPORT_PAGE_SIZE};
+    use super::{
+        csv_field, export_search_request, ExportMameUiDisplayedListRequest, EXPORT_PAGE_SIZE,
+    };
     use crate::mame_ui::MameUiMachineFilterRequest;
 
     #[test]
