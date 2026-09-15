@@ -91,7 +91,7 @@ export function MameBrowserWorkspace({
             <h1>Setup status unavailable</h1>
             <p>{bootstrap.message}</p>
             <div className="mame-bootstrap-actions">
-              <button type="button" onClick={() => void refreshBootstrap()}>
+              <button type="button" autoFocus onClick={() => void refreshBootstrap()}>
                 Retry status check
               </button>
               <button type="button" className="secondary-button" onClick={onDiagnostics}>
@@ -110,7 +110,7 @@ export function MameBrowserWorkspace({
               not an empty machine catalog.
             </p>
             <div className="mame-bootstrap-actions">
-              <button type="button" onClick={onConfigureMame}>
+              <button type="button" autoFocus onClick={onConfigureMame}>
                 Configure MAME
               </button>
               <button type="button" className="secondary-button" onClick={onDiagnostics}>
@@ -127,7 +127,7 @@ export function MameBrowserWorkspace({
             <p>{bootstrap.errorMessage}</p>
             <p className="mame-bootstrap-code">{bootstrap.errorCode}</p>
             <div className="mame-bootstrap-actions">
-              <button type="button" onClick={onConfigureMame}>
+              <button type="button" autoFocus onClick={onConfigureMame}>
                 Configure MAME
               </button>
               <button
@@ -164,7 +164,7 @@ export function MameBrowserWorkspace({
               </p>
             )}
             <div className="mame-bootstrap-actions">
-              <button type="button" onClick={() => void importMetadata()}>
+              <button type="button" autoFocus onClick={() => void importMetadata()}>
                 Import MAME metadata
               </button>
               <button type="button" className="secondary-button" onClick={onConfigureMame}>
@@ -199,7 +199,7 @@ export function MameBrowserWorkspace({
             <p>{bootstrap.message}</p>
             <p>MAME {importSource.mame.rawVersionLine} remains configured.</p>
             <div className="mame-bootstrap-actions">
-              <button type="button" onClick={() => void importMetadata()}>
+              <button type="button" autoFocus onClick={() => void importMetadata()}>
                 Retry import
               </button>
               <button type="button" className="secondary-button" onClick={onConfigureMame}>
