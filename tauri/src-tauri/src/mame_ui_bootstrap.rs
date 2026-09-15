@@ -256,7 +256,9 @@ mod tests {
                 offset: 0,
             })
             .expect("first unfiltered query should succeed");
-        assert_eq!(first_page.total, 4);
+        // The fixture imports four metadata records; the normal browser intentionally hides
+        // the one device-only record and therefore exposes three runnable systems.
+        assert_eq!(first_page.total, 3);
         assert!(!first_page.items.is_empty());
 
         fs::remove_dir_all(root).expect("remove root");
