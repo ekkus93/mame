@@ -79,7 +79,7 @@ def main() -> int:
     require(browser, "mame-narrow-details-toggle", "narrow-window details control")
     require(browser, "gameplayInputOwned", "fail-closed gameplay-input ownership")
     require(browser, "exportMameUiDisplayedList", "displayed-list export action")
-    require(browser, ">Export<", "visible displayed-list export control")
+    require(browser, 'aria-label="Export displayed machine list"', "accessible export control")
 
     require(filters, 'role="listbox"', "filter list semantics")
     require(filters, 'role="option"', "filter option semantics")
