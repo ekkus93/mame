@@ -64,15 +64,8 @@ def main() -> int:
         control_split_texts.append(read(split_path))
         require(control_rs, split_name, "runtime-control split include")
     control_combined = "\n".join([control_rs, *control_split_texts])
-    require(
-        control_rs,
-        'include_str!("control_pause_resume.lua")',
-        "runtime-control Lua composition anchor",
-    )
-    if any(
-        'include_str!("control_pause_resume.lua")' in text
-        for text in control_split_texts
-    ):
+    require(control_rs, 'include_str!("control_pause_resume.lua")', "runtime-control Lua composition anchor")
+    if any('include_str!("control_pause_resume.lua")' in text for text in control_split_texts):
         raise SystemExit(
             "post-closeout hardening regression: runtime-control Lua composition anchor "
             "must remain in control.rs for build.rs rewriting"
@@ -82,23 +75,10 @@ def main() -> int:
     spec = read(SPEC)
     todo = read(TODO)
 
-    for command in (
-        "pauseMame",
-        "resumeMame",
-        "resetMame",
-        "setMameMute",
-        "queryMameRuntimeState",
-    ):
+    for command in ("pauseMame", "resumeMame", "resetMame", "setMameMute", "queryMameRuntimeState"):
         require(session_panel, command, "SessionControlPanel runtime command exposure")
 
-    for label in (
-        "Pause",
-        "Resume",
-        "Soft reset",
-        "Mute",
-        "Unmute",
-        "Refresh runtime state",
-    ):
+    for label in ("Pause", "Resume", "Soft reset", "Mute", "Unmute", "Refresh runtime state"):
         require(session_panel, label, "SessionControlPanel visible runtime control")
 
     require(session_panel, "const canCommand = isRunningSession(session)", "running-session gate")
@@ -106,38 +86,32 @@ def main() -> int:
     require(session_panel, 'aria-label="MAME runtime controls"', "control grouping label")
     require(session_panel, "Runtime:", "runtime-state display")
 
-    for event_constant in (
+    # Gameplay-input ownership is now authoritative in MameShell. App must remain thin
+    # composition and must not reintroduce the retired lifecycle-to-focus bridge.
+    require(app, "<MameShell", "thin application composition")
+    for obsolete in (
         "SESSION_STARTED_EVENT",
         "SESSION_EXITED_EVENT",
         "SESSION_CRASHED_EVENT",
         "SESSION_FAILED_EVENT",
+        'window.dispatchEvent(new Event("focus"))',
     ):
-        require(app, event_constant, "application lifecycle shortcut refresh bridge")
+        if obsolete in app:
+            raise SystemExit(
+                "post-closeout hardening regression: obsolete application lifecycle focus bridge "
+                f"still contains {obsolete!r}"
+            )
 
     allowed_event_name = re.compile(r"^[A-Za-z0-9/:_-]+$")
-    frontend_event_names = re.findall(
-        r'export const [A-Z0-9_]+_EVENT = "([^"]+)"', events_ts
-    )
-    backend_event_names = re.findall(
-        r'pub const [A-Z0-9_]+_EVENT: &str = "([^"]+)"', event_names_rs
-    )
+    frontend_event_names = re.findall(r'export const [A-Z0-9_]+_EVENT = "([^"]+)"', events_ts)
+    backend_event_names = re.findall(r'pub const [A-Z0-9_]+_EVENT: &str = "([^"]+)"', event_names_rs)
     if not frontend_event_names or not backend_event_names:
-        raise SystemExit(
-            "post-closeout hardening regression: centralized Tauri event contract is missing"
-        )
+        raise SystemExit("post-closeout hardening regression: centralized Tauri event contract is missing")
     for event_name in [*frontend_event_names, *backend_event_names]:
         if not allowed_event_name.fullmatch(event_name):
-            raise SystemExit(
-                "post-closeout hardening regression: invalid Tauri event name "
-                f"{event_name!r}"
-            )
+            raise SystemExit(f"post-closeout hardening regression: invalid Tauri event name {event_name!r}")
     if set(frontend_event_names) != set(backend_event_names):
-        raise SystemExit(
-            "post-closeout hardening regression: Rust and TypeScript Tauri event contracts diverge"
-        )
-
-    require(app, 'window.dispatchEvent(new Event("focus"))', "shortcut ownership refresh event")
-    require(app, "Library shortcuts already fail closed", "fail-closed listener setup documentation")
+        raise SystemExit("post-closeout hardening regression: Rust and TypeScript Tauri event contracts diverge")
 
     for field in (
         "executable: MameExecutableIdentity;",
