@@ -30,11 +30,13 @@ This ledger tracks the follow-up hardening issues found during review of the com
 
 ## MUH-003 — Remove obsolete lifecycle-to-focus ownership shim from `App.tsx`
 
-- [ ] Remove the session lifecycle listeners in `App.tsx` that dispatch synthetic `focus` events.
-- [ ] Keep `App.tsx` as thin composition around `MameShell`.
-- [ ] Verify gameplay-input ownership still flows from `MameShell` session snapshot and lifecycle-event handling.
-- [ ] Verify terminal session events still restore browser shortcut ownership without relying on browser focus.
-- [ ] Add or extend regression coverage so the removed shim is not reintroduced accidentally.
+- [x] Remove the session lifecycle listeners in `App.tsx` that dispatch synthetic `focus` events.
+- [x] Keep `App.tsx` as thin composition around `MameShell`.
+- [x] Verify gameplay-input ownership still flows from `MameShell` session snapshot and lifecycle-event handling.
+- [x] Verify terminal session events still restore browser shortcut ownership without relying on browser focus.
+- [x] Add or extend regression coverage so the removed shim is not reintroduced accidentally.
+
+**MUH-003 evidence:** Implemented and merged by PR #31 as `b92d961e17ee3f84ab66bccaf2331f4dfabc0b01` (`MUH-003: remove obsolete session focus shim`). Exact promoted `master` CI passed all five applicable workflows: Tauri project run 34976771661, Tauri security 34976771835, Windows packaging 34976771744, macOS packaging 34976771639, and Linux packaging 34976771712.
 
 ## MUH-004 — Eliminate or migrate stale legacy software browser/API surface
 
