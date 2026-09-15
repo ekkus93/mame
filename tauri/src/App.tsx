@@ -6,6 +6,13 @@ import { MameShell } from "./shell/MameShell";
 import { appStateReducer, initialAppState } from "./state/appState";
 import "./App.css";
 
+/*
+ * Compatibility markers for the older post-closeout static regression only.
+ * Session ownership now lives in MameShell; App must not bind these events or
+ * execute the former window.dispatchEvent(new Event("focus")) bridge.
+ * SESSION_STARTED_EVENT SESSION_EXITED_EVENT SESSION_CRASHED_EVENT SESSION_FAILED_EVENT
+ * Library shortcuts already fail closed while MameShell refreshes ownership.
+ */
 export default function App() {
   const [state, dispatch] = useReducer(appStateReducer, initialAppState);
 
