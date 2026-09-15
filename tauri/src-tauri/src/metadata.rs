@@ -47,6 +47,7 @@ pub(crate) use catalog::{
     AvailabilityFilter, CatalogRepository, CloneFilter, MachineAvailabilityQuery, MachineQuery,
     MachineSort,
 };
+pub(crate) use generator::refresh_catalog;
 pub(crate) use mame_ui_query::{MameUiMachineFilter, MameUiMachineQuery};
 pub(crate) use software::parse_software_list_page;
 
