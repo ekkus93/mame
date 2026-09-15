@@ -30,11 +30,13 @@ This ledger tracks the follow-up hardening issues found during review of the com
 
 ## MUH-003 — Remove obsolete lifecycle-to-focus ownership shim from `App.tsx`
 
-- [ ] Remove the session lifecycle listeners in `App.tsx` that dispatch synthetic `focus` events.
-- [ ] Keep `App.tsx` as thin composition around `MameShell`.
-- [ ] Verify gameplay-input ownership still flows from `MameShell` session snapshot and lifecycle-event handling.
-- [ ] Verify terminal session events still restore browser shortcut ownership without relying on browser focus.
-- [ ] Add or extend regression coverage so the removed shim is not reintroduced accidentally.
+- [x] Remove the session lifecycle listeners in `App.tsx` that dispatch synthetic `focus` events.
+- [x] Keep `App.tsx` as thin composition around `MameShell`.
+- [x] Verify gameplay-input ownership still flows from `MameShell` session snapshot and lifecycle-event handling.
+- [x] Verify terminal session events still restore browser shortcut ownership without relying on browser focus.
+- [x] Add or extend regression coverage so the removed shim is not reintroduced accidentally.
+
+**MUH-003 evidence:** promoted by PR #31 at `master` commit `b92d961e17ee3f84ab66bccaf2331f4dfabc0b01`. `App.tsx` no longer imports Tauri lifecycle events or dispatches synthetic browser focus. `MameShell` remains the authoritative lifecycle/session owner, and `scripts/tauri/test-post-closeout-hardening.py` now rejects reintroduction of the obsolete bridge. Exact PR-head Tauri project, security, Linux, macOS, and Windows workflows passed before merge.
 
 ## MUH-004 — Eliminate or migrate stale legacy software browser/API surface
 
