@@ -8,7 +8,6 @@ import {
   type FavoritePageRequest,
   type FavoriteState,
   type LaunchLibraryMachineRequest,
-  type LaunchLibrarySoftwareRequest,
   type LoadMameStateRequest,
   type LoadMameStateResult,
   type MachineDetail,
@@ -31,8 +30,6 @@ import {
   type SetLibraryFavoriteRequest,
   type SetMameMuteRequest,
   type SetMameMuteResult,
-  type SoftwareListPage,
-  type SoftwareListQueryRequest,
   type StopMameRequest,
   type StopMameResult,
 } from "./types";
@@ -69,18 +66,6 @@ export async function launchLibraryMachine(
   request: LaunchLibraryMachineRequest,
 ): Promise<SessionSnapshot> {
   return invoke<SessionSnapshot>("launch_library_machine", { request });
-}
-
-export async function queryMameSoftwareList(
-  request: SoftwareListQueryRequest,
-): Promise<SoftwareListPage> {
-  return invoke<SoftwareListPage>("query_mame_software_list", { request });
-}
-
-export async function launchLibrarySoftware(
-  request: LaunchLibrarySoftwareRequest,
-): Promise<SessionSnapshot> {
-  return invoke<SessionSnapshot>("launch_library_software", { request });
 }
 
 export async function getMameSession(): Promise<SessionSnapshot | null> {
