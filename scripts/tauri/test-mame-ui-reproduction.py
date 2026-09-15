@@ -36,6 +36,7 @@ def main() -> int:
     bootstrap_backend = read("tauri/src/backend/mameBootstrap.ts")
     bootstrap_rust = read("tauri/src-tauri/src/mame_ui_bootstrap.rs")
     browser = read("tauri/src/browser/MameBrowser.tsx")
+    browser_model = read("tauri/src/browser/model.ts")
     filters = read("tauri/src/browser/MachineFilterPanel.tsx")
     machine_list = read("tauri/src/browser/MachineList.tsx")
     right_panel = read("tauri/src/browser/MachineRightPanel.tsx")
@@ -141,6 +142,11 @@ def main() -> int:
     require(bootstrap_rust, "MetadataFreshness::Fresh", "catalog freshness discrimination")
     require(bootstrap_rust, "MetadataFreshness::Stale", "stale catalog discrimination")
     require(bootstrap_rust, "refresh_configured_mame_metadata", "Rust-owned metadata refresh")
+    require(
+        bootstrap_rust,
+        "persisted_configuration_imports_and_populates_first_catalog_query",
+        "persisted configuration/import/catalog regression",
+    )
     forbid(bootstrap_rust, "pub path:", "bootstrap response path disclosure")
 
     for token in ("MachineFilterPanel", "MachineList", "MachineRightPanel", "SoftwareBrowser"):
@@ -152,7 +158,14 @@ def main() -> int:
     require(browser, "gameplayInputOwned", "fail-closed gameplay-input ownership")
     require(browser, "exportMameUiDisplayedList", "displayed-list export action")
     require(browser, 'aria-label="Export displayed machine list"', "accessible export control")
-    require(browser, "No machines match this filter.", "truthful healthy-catalog empty result")
+    require(browser, "emptyMachineResultMessage(debouncedSearch, filter)", "truthful healthy empty-result wiring")
+    for token in (
+        "No machines match this search.",
+        "No machines match this filter.",
+        "No machines match this search and filter.",
+        "The active catalog contains no runnable machines.",
+    ):
+        require(browser_model, token, "truthful healthy-catalog empty result")
 
     require(filters, 'role="listbox"', "filter list semantics")
     require(filters, 'role="option"', "filter option semantics")
