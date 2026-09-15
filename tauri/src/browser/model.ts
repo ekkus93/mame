@@ -105,6 +105,15 @@ export function buildMameBrowserRequest(
   };
 }
 
+export function emptyMachineResultMessage(search: string, filter: MameBrowserFilter): string {
+  const hasSearch = search.trim().length > 0;
+  const hasFilter = filter !== "all";
+  if (hasSearch && hasFilter) return "No machines match this search and filter.";
+  if (hasSearch) return "No machines match this search.";
+  if (hasFilter) return "No machines match this filter.";
+  return "The active catalog contains no runnable machines.";
+}
+
 export function nextBrowserIndex(
   key: string,
   current: number,

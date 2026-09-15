@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMameBrowserRequest, filterRequiresValue, nextBrowserIndex } from "./model";
+import {
+  buildMameBrowserRequest,
+  emptyMachineResultMessage,
+  filterRequiresValue,
+  nextBrowserIndex,
+} from "./model";
 
 describe("MAME browser model", () => {
   it("maps canonical frontend filters to bounded MAME UI queries", () => {
@@ -34,6 +39,17 @@ describe("MAME browser model", () => {
     expect(filterRequiresValue("sourceFile")).toBe(true);
     expect(filterRequiresValue("favorites")).toBe(false);
     expect(filterRequiresValue("chdRequired")).toBe(false);
+  });
+
+  it("describes healthy-catalog empty search and filter results truthfully", () => {
+    expect(emptyMachineResultMessage("pac", "all")).toBe("No machines match this search.");
+    expect(emptyMachineResultMessage("", "favorites")).toBe("No machines match this filter.");
+    expect(emptyMachineResultMessage("pac", "favorites")).toBe(
+      "No machines match this search and filter.",
+    );
+    expect(emptyMachineResultMessage("", "all")).toBe(
+      "The active catalog contains no runnable machines.",
+    );
   });
 
   it("supports bounded row, edge and page navigation", () => {
