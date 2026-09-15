@@ -40,13 +40,15 @@ This ledger tracks the follow-up hardening issues found during review of the com
 
 ## MUH-004 — Eliminate or migrate stale legacy software browser/API surface
 
-- [ ] Audit imports and reachability for `tauri/src/library/SoftwareListBrowser.tsx` and the older software request/response helpers in `tauri/src/backend/commands.ts` and `tauri/src/backend/types.ts`.
-- [ ] Decide and document whether the legacy surface is removed or migrated.
-- [ ] If removed, delete unreachable legacy software UI/API types and update any affected exports/imports.
-- [ ] If migrated instead, delegate to `tauri/src/backend/mameSoftware.ts` and support `parts`, `softwarePart`, `bios`, and typed Start Empty semantics.
-- [ ] Ensure no reachable frontend software launch path can bypass part validation by launching multi-part software without selecting a part.
-- [ ] Ensure no reachable frontend software launch path can bypass BIOS-aware typed launch semantics.
-- [ ] Add regression coverage for the chosen removal/migration contract.
+- [x] Audit imports and reachability for `tauri/src/library/SoftwareListBrowser.tsx` and the older software request/response helpers in `tauri/src/backend/commands.ts` and `tauri/src/backend/types.ts`.
+- [x] Decide and document whether the legacy surface is removed or migrated.
+- [x] If removed, delete unreachable legacy software UI/API types and update any affected exports/imports.
+- [x] If migrated instead, delegate to `tauri/src/backend/mameSoftware.ts` and support `parts`, `softwarePart`, `bios`, and typed Start Empty semantics.
+- [x] Ensure no reachable frontend software launch path can bypass part validation by launching multi-part software without selecting a part.
+- [x] Ensure no reachable frontend software launch path can bypass BIOS-aware typed launch semantics.
+- [x] Add regression coverage for the chosen removal/migration contract.
+
+**MUH-004 evidence:** Implemented and merged by PR #36 as promoted `master` `7f88a440641079f2567c5a0fa237ec8e8a5edc4b` (`MUH-004: retire legacy software browser implementation`). The retained `SoftwareListBrowser` is compatibility-only and delegates to the authoritative `SoftwareBrowser`; legacy frontend software commands were removed and command tests migrated to the authoritative API. Promoted exact-head CI passed Tauri project run 34998188566, Tauri security run 34998188645, Windows packaging run 34998188669, macOS packaging run 34998188613, and Linux packaging run 34998188577.
 
 ## MUH-005 — Add behavioral coverage for remediated UI contracts
 
