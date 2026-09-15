@@ -1,0 +1,252 @@
+:root {
+  --mame-bg: #07111f;
+  --mame-bg-elevated: #0d1a2b;
+  --mame-surface: #101f33;
+  --mame-surface-raised: #152942;
+  --mame-surface-selected: #183d63;
+  --mame-surface-hover: #1b314d;
+  --mame-input: #081624;
+  --mame-border: #27425f;
+  --mame-border-strong: #3c88c8;
+  --mame-text: #eef7ff;
+  --mame-muted: #9bb0c4;
+  --mame-accent: #45a3ff;
+  --mame-accent-strong: #7fc4ff;
+  --mame-accent-contrast: #041220;
+  --mame-warning: #f4c45c;
+  --mame-success: #70d999;
+  --mame-error: #ff8d8d;
+  --mame-shadow: rgba(0, 0, 0, 0.45);
+  --background: var(--mame-bg);
+  --panel-background: var(--mame-surface);
+  --panel-raised: var(--mame-surface-raised);
+  --border: var(--mame-border);
+  --border-color: var(--mame-border);
+  --border-subtle: color-mix(in srgb, var(--mame-border) 72%, transparent);
+  --muted-text: var(--mame-muted);
+  --error-text: var(--mame-error);
+  --error-color: var(--mame-error);
+  --success-color: var(--mame-success);
+  color: var(--mame-text);
+  background: var(--mame-bg);
+  color-scheme: dark;
+  accent-color: var(--mame-accent);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  color: var(--mame-text);
+  background: var(--mame-bg);
+}
+
+body {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(69, 163, 255, 0.18), transparent 30rem),
+    radial-gradient(circle at 90% 12%, rgba(244, 196, 92, 0.1), transparent 24rem),
+    var(--mame-bg);
+}
+
+::selection {
+  color: var(--mame-accent-contrast);
+  background: var(--mame-accent);
+}
+
+.app-shell,
+.mame-shell,
+.mame-software-browser {
+  color: var(--mame-text);
+  background:
+    linear-gradient(180deg, rgba(69, 163, 255, 0.08), transparent 18rem),
+    var(--mame-bg);
+}
+
+.status-card,
+.fatal-error,
+.library-workspace,
+.general-settings,
+.diagnostics-panel {
+  color: var(--mame-text);
+  border-color: var(--mame-border);
+  background: var(--mame-surface);
+  box-shadow: 0 18px 50px var(--mame-shadow);
+}
+
+button {
+  border-color: var(--mame-border-strong);
+  color: var(--mame-accent-contrast);
+  background: linear-gradient(180deg, var(--mame-accent-strong), var(--mame-accent));
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.mame-machine-row:focus-visible,
+.mame-software-row:focus-visible {
+  outline: 2px solid var(--mame-accent-strong);
+  outline-offset: 2px;
+}
+
+.secondary-button,
+.mame-shell .secondary-button,
+.mame-context-actions button,
+.mame-pager button {
+  border-color: var(--mame-border-strong);
+  color: var(--mame-text);
+  background: var(--mame-surface-raised);
+}
+
+.mame-brand,
+.mame-shell-nav button,
+.mame-right-tabs button,
+.mame-artwork-categories button,
+.mame-filter,
+.mame-machine-row,
+.mame-software-row {
+  color: inherit;
+  background: transparent;
+}
+
+.mame-shell-header,
+.mame-status-bar,
+.mame-browser-toolbar,
+.mame-software-toolbar {
+  border-color: var(--mame-border);
+  background: linear-gradient(180deg, var(--mame-surface-raised), var(--mame-surface));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.mame-brand strong {
+  color: var(--mame-accent-strong);
+  text-shadow: 0 0 18px rgba(69, 163, 255, 0.45);
+}
+
+.mame-brand span,
+.mame-browser-range,
+.mame-machine-short,
+.mame-machine-year,
+.mame-machine-maker,
+.mame-machine-state,
+.mame-machine-availability,
+.mame-info-short,
+.mame-info-pane dt,
+.mame-panel-state,
+.mame-software-part-note,
+.detail-note,
+.library-range,
+.library-state span {
+  color: var(--mame-muted);
+  opacity: 1;
+}
+
+.mame-shell-nav button:hover,
+.mame-shell-nav button[aria-current="page"],
+.mame-right-tabs button.is-selected,
+.mame-artwork-categories button.is-selected {
+  color: var(--mame-text);
+  background: linear-gradient(180deg, rgba(69, 163, 255, 0.22), rgba(69, 163, 255, 0.1));
+}
+
+.mame-shell-nav button[aria-current="page"],
+.mame-right-tabs button.is-selected {
+  border-bottom-color: var(--mame-accent);
+  box-shadow: inset 0 -2px var(--mame-accent);
+}
+
+.mame-browser-grid,
+.mame-software-grid,
+.mame-filter-panel,
+.mame-list-region,
+.mame-right-panel,
+.machine-list-panel,
+.machine-detail-panel {
+  background: var(--mame-bg-elevated);
+}
+
+.mame-filter-panel,
+.mame-list-region,
+.mame-right-panel,
+.machine-list-panel,
+.machine-list li + li,
+.mame-machine-list li + li,
+.mame-software-listbox li + li,
+.mame-info-pane dl div,
+.machine-facts div,
+.mame-pager,
+.mame-browser-banner,
+.mame-right-tabs,
+.mame-artwork-categories,
+.display-list li {
+  border-color: color-mix(in srgb, var(--mame-border) 78%, transparent);
+}
+
+.mame-region-heading,
+.mame-right-tabs,
+.mame-pager {
+  color: var(--mame-accent-strong);
+  background: linear-gradient(180deg, var(--mame-surface-raised), var(--mame-surface));
+}
+
+.mame-search input,
+.library-filters input,
+.library-filters select,
+.mame-software-filter-value input,
+.mame-software-part-selector select {
+  color: var(--mame-text);
+  border-color: var(--mame-border-strong);
+  background: var(--mame-input);
+}
+
+.mame-search input::placeholder,
+.library-filters input::placeholder {
+  color: color-mix(in srgb, var(--mame-muted) 72%, transparent);
+}
+
+.mame-filter:hover,
+.mame-machine-row:hover,
+.mame-software-row:hover,
+.machine-row:hover,
+.mame-artwork-categories button:hover,
+.mame-right-tabs button:hover {
+  background: var(--mame-surface-hover);
+}
+
+.mame-filter.is-selected,
+.mame-machine-row.is-selected,
+.mame-software-row.is-selected,
+.machine-row-selected {
+  color: var(--mame-text);
+  background: linear-gradient(90deg, var(--mame-surface-selected), var(--mame-surface-hover));
+  box-shadow: inset 3px 0 var(--mame-accent);
+}
+
+.mame-start-button {
+  border-color: var(--mame-accent-strong);
+  color: var(--mame-accent-contrast);
+  background: linear-gradient(180deg, var(--mame-accent-strong), var(--mame-accent));
+}
+
+.mame-browser-banner.is-error,
+.launch-error {
+  color: var(--mame-error);
+  background: color-mix(in srgb, var(--mame-error) 14%, var(--mame-surface));
+}
+
+.availability-missing,
+.state-preliminary {
+  color: var(--mame-warning);
+}
+
+.mame-session-status {
+  color: var(--mame-accent-strong);
+}
+
+.driver-flags span,
+.status-pill,
+.availability-pill,
+.launch-result,
+.display-list li {
+  background: var(--mame-surface-raised);
+}
