@@ -182,3 +182,50 @@ Closure requires an exact final PR head to pass:
 - PR-event hardened Linux production/development-window qualification.
 
 The final promoted `master` SHA and run IDs are recorded in a post-promotion evidence update before the milestone is claimed closed.
+
+## Final closure evidence
+
+### Exact final PR head
+
+PR #25 (`MUI: close MAME UI reproduction milestone`) was qualified at exact head:
+
+`3137d1d0e60233fe3e461d332b57e5d101cc1abc`
+
+PR-event qualification was fully green:
+
+- `Tauri project` run `34923908302` — success;
+  - `linux-quality` job `104237728311` — success;
+  - `linux-release-qualification` job `104238251650` — success;
+  - `Tauri production build smoke check` — success;
+  - `Tauri development window smoke check` — success;
+- `Tauri security` run `34923908293` — success;
+- `Tauri Linux packaging` run `34923908331` — success;
+- `Tauri Windows packaging` run `34923908282` — success;
+- `Tauri macOS packaging` run `34923908292` — success;
+- `Build documentation` run `34923908279` — success.
+
+The same exact head also had a fully green pre-PR push qualification:
+
+- `Tauri project` run `34923442890` — success;
+- `Tauri Linux packaging` run `34923442904` — success;
+- `Tauri Windows packaging` run `34923442929` — success;
+- `Tauri macOS packaging` run `34923442897` — success.
+
+### Promotion to master
+
+PR #25 was squash-merged only after the exact-head PR matrix above was green.
+
+Promoted `master` SHA:
+
+`7f490904cd304214b9b049daca4bda01d32b29d7`
+
+Applicable post-merge `master` qualification was fully green:
+
+- `Tauri project` run `34924364893` — success;
+- `Tauri security` run `34924364916` — success;
+- `Tauri Linux packaging` run `34924364894` — success;
+- `Tauri Windows packaging` run `34924364896` — success;
+- `Tauri macOS packaging` run `34924364925` — success;
+- `Build documentation` run `34924364923` — success.
+
+This evidence satisfies the MUI-020 exact-head, hardened real-window, merge, and post-promotion verification gates. The milestone's remaining non-parity items are only the explicit defers documented above and in the reconciled TODO; there are no ambiguous unchecked milestone tasks.
