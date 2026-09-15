@@ -27,6 +27,7 @@ import { MachineList } from "./MachineList";
 import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
 import {
   buildMameBrowserRequest,
+  emptyMachineResultMessage,
   filterRequiresValue,
   nextBrowserIndex,
   type MameBrowserFilter,
@@ -576,7 +577,9 @@ export function MameBrowser({
             </div>
           )}
           {page && page.items.length === 0 && (
-            <div className="mame-panel-state">No machines match this filter.</div>
+            <div className="mame-panel-state">
+              {emptyMachineResultMessage(debouncedSearch, filter)}
+            </div>
           )}
           {page && page.items.length > 0 && (
             <MachineList
