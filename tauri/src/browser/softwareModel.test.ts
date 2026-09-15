@@ -24,7 +24,9 @@ function software(parts: MameSoftwareItem["parts"]): MameSoftwareItem {
   };
 }
 
-function shortcut(overrides: Partial<Parameters<typeof softwareGlobalShortcutAction>[0]> = {}) {
+function shortcut(
+  overrides: Partial<Parameters<typeof softwareGlobalShortcutAction>[0]> = {},
+) {
   return softwareGlobalShortcutAction({
     key: "/",
     gameplayInputOwned: false,
@@ -67,9 +69,9 @@ describe("MAME software browser model", () => {
     expect(shortcut({ key: "Escape" })).toBe("back");
     expect(shortcut({ key: "/", editableTarget: true })).toBe("none");
     expect(shortcut({ key: "Escape", editableTarget: true })).toBe("none");
-    expect(shortcut({ key: "Escape", editableTarget: true, searchTarget: true, searchHasValue: true })).toBe(
-      "clearSearch",
-    );
+    expect(
+      shortcut({ key: "Escape", editableTarget: true, searchTarget: true, searchHasValue: true }),
+    ).toBe("clearSearch");
   });
 
   it("auto-selects only a single software part", () => {
