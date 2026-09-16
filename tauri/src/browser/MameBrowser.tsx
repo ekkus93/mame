@@ -66,6 +66,14 @@ type ExportState =
 type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
 type EmptyRightPanelStatus = "idle" | "loading" | "error";
 
+const MAME_MACHINE_ACTION_LABELS = {
+  start: "Start",
+  startEmpty: "Start Empty",
+  configureMachine: "Configure Machine",
+  softwareList: "Software List",
+  audit: "Audit",
+} as const;
+
 function emptyRightPanelStatusFor(detailState: DetailState): EmptyRightPanelStatus {
   switch (detailState.status) {
     case "loading":
@@ -76,6 +84,21 @@ function emptyRightPanelStatusFor(detailState: DetailState): EmptyRightPanelStat
     case "ready":
       return "idle";
   }
+}
+
+function primaryLaunchButtonLabel(detail: MachineDetail, launchState: LaunchState): string {
+  if (launchState.status === "launching") return "Starting…";
+  if (detail.canStartEmpty && detail.softwareLists.length > 0) {
+    return MAME_MACHINE_ACTION_LABELS.startEmpty;
+  }
+  return MAME_MACHINE_ACTION_LABELS.start;
+}
+
+function primaryLaunchButtonAriaLabel(detail: MachineDetail): string {
+  if (detail.canStartEmpty && detail.softwareLists.length > 0) {
+    return `Start Empty ${detail.description}`;
+  }
+  return `Start ${detail.description}`;
 }
 
 export function MameBrowser({
@@ -346,6 +369,12 @@ export function MameBrowser({
       rightPanelFirstTabRef.current?.focus();
       return;
     }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setShowNarrowDetails(false);
+      searchInputRef.current?.focus();
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       const machine = page.items[index];
@@ -382,6 +411,12 @@ export function MameBrowser({
       }
       if (editing) return;
 
+      if (event.key === "Escape" && showNarrowDetails) {
+        event.preventDefault();
+        setShowNarrowDetails(false);
+        focusSelectedMachine();
+        return;
+      }
       if (event.key === "/" && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
         searchInputRef.current?.focus();
@@ -399,7 +434,15 @@ export function MameBrowser({
 
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [detailState, gameplayInputOwned, launchDetail, search, softwareMode]);
+  }, [
+    detailState,
+    focusSelectedMachine,
+    gameplayInputOwned,
+    launchDetail,
+    search,
+    showNarrowDetails,
+    softwareMode,
+  ]);
 
   const detail = detailState.status === "ready" ? detailState.detail : null;
   const detailErrorMessage = detailState.status === "error" ? detailState.message : null;
@@ -481,10 +524,12 @@ export function MameBrowser({
             <button
               type="button"
               className="mame-start-button"
+              aria-label={primaryLaunchButtonAriaLabel(detail)}
               disabled={!detail.runnable || launchState.status === "launching"}
+              title={!detail.runnable ? "Machine is unavailable" : undefined}
               onClick={() => launchDetail(detail)}
             >
-              {launchState.status === "launching" ? "Starting…" : "Start"}
+              {primaryLaunchButtonLabel(detail, launchState)}
             </button>
             <FavoriteToggleButton
               shortName={detail.shortName}
@@ -492,29 +537,32 @@ export function MameBrowser({
               onChanged={bumpFavoriteRevision}
             />
             <button
-              type="button"
-              className="secondary-button"
-              onClick={() => changeRightView("audit")}
-            >
-              Audit
-            </button>
-            <button
               ref={configureButtonRef}
               type="button"
-              className="secondary-button"
+              className="secondary-button mame-configure-machine-button"
+              aria-label={`Configure Machine for ${detail.description}`}
               onClick={() => changeRightView("settings")}
             >
-              Configure
+              {MAME_MACHINE_ACTION_LABELS.configureMachine}
             </button>
             {detail.softwareLists.length > 0 && (
               <button
                 type="button"
-                className="secondary-button"
+                className="secondary-button mame-software-list-button"
+                aria-label={`Open Software List for ${detail.description}`}
                 onClick={() => setSoftwareMode(true)}
               >
-                Software
+                {MAME_MACHINE_ACTION_LABELS.softwareList}
               </button>
             )}
+            <button
+              type="button"
+              className="secondary-button mame-audit-button"
+              aria-label={`Audit ${detail.description}`}
+              onClick={() => changeRightView("audit")}
+            >
+              {MAME_MACHINE_ACTION_LABELS.audit}
+            </button>
           </div>
         )}
       </div>

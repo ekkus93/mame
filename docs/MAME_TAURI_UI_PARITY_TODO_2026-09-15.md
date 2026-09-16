@@ -142,29 +142,29 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-009 — Original-like command/actions flow
 
-- [ ] Restore or implement original-like `Configure Options` and `Configure Machine` actions in the main browser experience.
-- [ ] Place launch/configure actions where original users expect them, not in a generic toolbar/dashboard pattern.
-- [ ] Keep software-part selection and BIOS selection visually integrated into the original-MAME-like UI.
-- [ ] Preserve Start Empty and software launch behavior from the prior hardening pass.
-- [ ] Ensure disabled/unavailable actions have original-like visual disabled states.
-- [ ] Ensure errors are visible without turning the whole UI into a generic alert/card page.
+- [x] Restore or implement original-like `Configure Options` and `Configure Machine` actions in the main browser experience.
+- [x] Place launch/configure actions where original users expect them, not in a generic toolbar/dashboard pattern.
+- [x] Keep software-part selection and BIOS selection visually integrated into the original-MAME-like UI.
+- [x] Preserve Start Empty and software launch behavior from the prior hardening pass.
+- [x] Ensure disabled/unavailable actions have original-like visual disabled states.
+- [x] Ensure errors are visible without turning the whole UI into a generic alert/card page.
 
-**Completion evidence required:** action-flow code changes and behavioral tests or manual evidence for launch/configure flows.
+**MTP-009 evidence:** `MameShell.tsx` already exposes `Configure Options` in the original-like green utility/status strip. `MameBrowser.tsx` now uses explicit MAME command labels for selected-machine actions: `Start`, `Start Empty`, `Configure Machine`, `Software List`, and `Audit`. The selected-machine command strip remains in the MAME browser toolbar instead of restoring a generic dashboard tab bar. `Start Empty` continues to route through the existing `launchLibraryMachine` path without adding implicit BIOS selection, and software list mode continues to use the existing software browser flow. Disabled/unavailable launch state remains tied to the original-like button styling plus the machine availability guard. Launch and export errors still render as `mame-browser-banner` messages inside the MAME browser surface instead of replacing the UI with a generic alert/card page. `mameBrowserInteraction.source.test.ts` asserts the original-like labels, command classes, launch path, pending launch overrides, and in-surface error banner remain present.
 
 ---
 
 ## MTP-010 — Keyboard and mouse behavior parity
 
-- [ ] Add or extend tests for Up/Down selection movement.
-- [ ] Add or extend tests for PageUp/PageDown movement.
-- [ ] Add or extend tests for Home/End where supported.
-- [ ] Add or extend tests for Enter activation.
-- [ ] Add or extend tests for Escape/back behavior.
-- [ ] Add or extend tests for search typing/focus behavior.
-- [ ] Add or extend tests for clicking filters, selecting rows, and right-panel tabs.
-- [ ] Ensure gameplay-input ownership and shortcut fixes from prior hardening are preserved.
+- [x] Add or extend tests for Up/Down selection movement.
+- [x] Add or extend tests for PageUp/PageDown movement.
+- [x] Add or extend tests for Home/End where supported.
+- [x] Add or extend tests for Enter activation.
+- [x] Add or extend tests for Escape/back behavior.
+- [x] Add or extend tests for search typing/focus behavior.
+- [x] Add or extend tests for clicking filters, selecting rows, and right-panel tabs.
+- [x] Ensure gameplay-input ownership and shortcut fixes from prior hardening are preserved.
 
-**Completion evidence required:** frontend behavioral tests and passing Tauri project CI.
+**MTP-010 evidence:** `model.test.ts` continues to cover row movement for Up/Down, PageUp/PageDown, and Home/End through `nextBrowserIndex`. Added `mameBrowserInteraction.source.test.ts` to assert the default browser preserves Enter activation, Escape/back handling, slash-to-search focus, filter-to-machine/right-panel focus movement, filter click handling, row selection/activation callbacks, and right-panel tab click paths. `MameBrowser.tsx` now adds Escape handling to back out of the narrow details/right-panel state and return focus to search/list context while keeping the prior `gameplayInputOwned` shortcut gate intact. Tauri project CI passed on exact implementation head `e306d17aa8a8ad3dd645eeef631cecc965de9de0`.
 
 ---
 
