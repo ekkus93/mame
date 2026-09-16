@@ -57,10 +57,7 @@ function panelDataView(view: MachineRightView): string {
   }
 }
 
-function emptyMachinePanelText(
-  status: "idle" | "loading" | "error",
-  message?: string,
-): string {
+function emptyMachinePanelText(status: "idle" | "loading" | "error", message?: string): string {
   switch (status) {
     case "loading":
       return "Loading machine details…";
@@ -79,11 +76,7 @@ export function EmptyMachineRightPanel({
   message?: string;
 }) {
   return (
-    <aside
-      className="mame-right-panel"
-      data-view="artwork"
-      aria-label="Selected machine context"
-    >
+    <aside className="mame-right-panel" data-view="artwork" aria-label="Selected machine context">
       <div className="mame-right-tabs" role="tablist" aria-label="Machine Images and Infos">
         <button type="button" role="tab" aria-selected="true" className="is-selected">
           Images
