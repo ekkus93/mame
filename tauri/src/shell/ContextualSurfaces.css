@@ -31,11 +31,21 @@
   outline-offset: -2px;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mame-browser,
+  .mame-browser * {
+    scroll-behavior: auto;
+    transition-duration: 0.001ms;
+    animation-duration: 0.001ms;
+  }
+}
+
 @media (max-width: 760px) {
   .mame-right-panel {
     display: none;
   }
 
+  .mame-browser-grid.show-details .mame-right-panel,
   .mame-browser.show-details .mame-right-panel {
     display: block;
   }
