@@ -64,6 +64,19 @@ type ExportState =
   | { status: "error"; message: string };
 
 type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
+type EmptyRightPanelStatus = "idle" | "loading" | "error";
+
+function emptyRightPanelStatusFor(detailState: DetailState): EmptyRightPanelStatus {
+  switch (detailState.status) {
+    case "loading":
+      return "loading";
+    case "error":
+      return "error";
+    case "idle":
+    case "ready":
+      return "idle";
+  }
+}
 
 export function MameBrowser({
   availabilityRevision,
@@ -390,7 +403,7 @@ export function MameBrowser({
 
   const detail = detailState.status === "ready" ? detailState.detail : null;
   const detailErrorMessage = detailState.status === "error" ? detailState.message : null;
-  const emptyRightPanelStatus = detailState.status === "error" ? "error" : detailState.status;
+  const emptyRightPanelStatus = emptyRightPanelStatusFor(detailState);
 
   function changeFilter(next: MameBrowserFilter) {
     if (next !== filter) {
