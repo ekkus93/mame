@@ -44,6 +44,64 @@ const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   systemImage: "System image",
 };
 
+function panelDataView(view: MachineRightView): string {
+  switch (view) {
+    case "images":
+      return "artwork";
+    case "info":
+      return "details";
+    case "settings":
+      return "configure";
+    case "audit":
+      return "audit";
+  }
+}
+
+function emptyMachinePanelText(status: "idle" | "loading" | "error", message?: string): string {
+  switch (status) {
+    case "loading":
+      return "Loading machine details…";
+    case "error":
+      return message ?? "Machine details unavailable.";
+    case "idle":
+      return "Select a machine.";
+  }
+}
+
+export function EmptyMachineRightPanel({
+  status,
+  message,
+}: {
+  status: "idle" | "loading" | "error";
+  message?: string;
+}) {
+  return (
+    <aside className="mame-right-panel" data-view="artwork" aria-label="Selected machine context">
+      <div className="mame-right-tabs" role="tablist" aria-label="Machine Images and Infos">
+        <button type="button" role="tab" aria-selected="true" className="is-selected">
+          Images
+        </button>
+        <button type="button" role="tab" aria-selected="false" disabled>
+          Infos
+        </button>
+      </div>
+      <div className="mame-artwork-pane">
+        <div className="mame-artwork-categories" aria-label="Artwork category">
+          <button type="button" className="is-selected" aria-pressed="true">
+            Snapshots
+          </button>
+        </div>
+        <div className="mame-artwork-frame">
+          <div className="mame-no-image-placeholder">
+            <strong>No image Available</strong>
+            <span>{emptyMachinePanelText(status, message)}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export function MachineRightPanel({
   detail,
   view,
@@ -77,8 +135,8 @@ export function MachineRightPanel({
   };
 
   return (
-    <aside className="mame-right-panel" aria-label="Selected machine context">
-      <div className="mame-right-tabs" role="tablist" aria-label="Machine detail view">
+    <aside className="mame-right-panel" data-view={panelDataView(view)} aria-label="Selected machine context">
+      <div className="mame-right-tabs" role="tablist" aria-label="Machine Images and Infos">
         <button
           ref={firstTabRef}
           type="button"
@@ -98,7 +156,7 @@ export function MachineRightPanel({
           onClick={() => onViewChange("info")}
           onKeyDown={handleRegionKey}
         >
-          Info
+          Infos
         </button>
       </div>
 
@@ -175,6 +233,14 @@ function ArtworkPane({
     [artwork, selectedKind],
   );
 
+  const categoryKinds = useMemo<ArtworkKind[]>(() => {
+    const kinds = new Set<ArtworkKind>();
+    kinds.add("screenshot");
+    for (const candidate of artwork?.slots ?? []) kinds.add(candidate.kind);
+    kinds.add(selectedKind);
+    return Array.from(kinds);
+  }, [artwork, selectedKind]);
+
   useEffect(() => {
     const descriptor = slot?.asset;
     const id = ++assetRequestId.current;
@@ -192,11 +258,21 @@ function ArtworkPane({
       });
   }, [slot]);
 
-  if (loading) return <div className="mame-panel-state">Loading artwork…</div>;
+  if (loading) {
+    return (
+      <div className="mame-artwork-frame">
+        <div className="mame-panel-state">Loading artwork…</div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="mame-panel-state" role="alert">
-        Artwork unavailable: {error}
+      <div className="mame-artwork-frame" role="alert">
+        <div className="mame-no-image-placeholder">
+          <strong>No image Available</strong>
+          <span>Artwork unavailable: {error}</span>
+        </div>
       </div>
     );
   }
@@ -204,15 +280,15 @@ function ArtworkPane({
   return (
     <div className="mame-artwork-pane">
       <div className="mame-artwork-categories" aria-label="Artwork category">
-        {(artwork?.slots ?? []).map((candidate) => (
+        {categoryKinds.map((kind) => (
           <button
-            key={candidate.kind}
+            key={kind}
             type="button"
-            className={selectedKind === candidate.kind ? "is-selected" : ""}
-            aria-pressed={selectedKind === candidate.kind}
-            onClick={() => onSelectedKindChange(candidate.kind)}
+            className={selectedKind === kind ? "is-selected" : ""}
+            aria-pressed={selectedKind === kind}
+            onClick={() => onSelectedKindChange(kind)}
           >
-            {ARTWORK_LABELS[candidate.kind]}
+            {ARTWORK_LABELS[kind]}
           </button>
         ))}
       </div>
@@ -223,8 +299,9 @@ function ArtworkPane({
             alt={`${slot?.asset?.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
           />
         ) : (
-          <div className="mame-panel-state">
-            No {ARTWORK_LABELS[selectedKind].toLowerCase()} artwork found.
+          <div className="mame-no-image-placeholder">
+            <strong>No image Available</strong>
+            <span>{ARTWORK_LABELS[selectedKind]}</span>
           </div>
         )}
       </div>
@@ -267,6 +344,14 @@ function InfoPane({ detail }: { detail: MachineDetail }) {
         <div>
           <dt>Save states</dt>
           <dd>{detail.driverSavestate ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Graphics</dt>
+          <dd>{detail.driverEmulation ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Sound</dt>
+          <dd>{detail.driverNoSoundHardware ? "No sound hardware" : "Driver-reported"}</dd>
         </div>
         <div>
           <dt>Orientation</dt>

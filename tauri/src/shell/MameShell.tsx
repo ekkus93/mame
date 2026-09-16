@@ -143,12 +143,12 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           </section>
         )}
       </section>
-      <footer className="mame-status-bar" aria-label="MAME runtime status">
+      <footer className="mame-status-bar" aria-label="MAME utility actions">
         <button type="button" className="mame-session-status" onClick={() => setView("session")}>
           {activeSessionLabel}
         </button>
         <button type="button" onClick={() => setView("settings")}>
-          Options
+          Configure Options
         </button>
         <button type="button" onClick={() => setView("audit")}>
           Audit
@@ -163,8 +163,6 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           Diagnostics
         </button>
         <span>{mameVersionLabel(appInfo.mame)}</span>
-        <span>App {appInfo.appVersion}</span>
-        <span>Backend {appInfo.backend}</span>
       </footer>
     </main>
   );

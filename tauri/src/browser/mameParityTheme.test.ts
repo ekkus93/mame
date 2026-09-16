@@ -7,9 +7,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import mainSource from "../main.tsx?raw";
-import shellSource from "../shell/MameShell.tsx?raw";
+import browserSource from "./MameBrowser.tsx?raw";
+import driverStatusSource from "./MachineDriverStatus.tsx?raw";
 import filterSource from "./MachineFilterPanel.tsx?raw";
 import listSource from "./MachineList.tsx?raw";
+import rightPanelSource from "./MachineRightPanel.tsx?raw";
+import shellSource from "../shell/MameShell.tsx?raw";
 
 const SOURCE_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -66,5 +69,22 @@ describe("MAME visual parity tripwires", () => {
     expect(filterSource).toContain("Custom Filter");
     expect(listSource).toContain("is-selected");
     expect(listSource).toContain("is-unavailable");
+  });
+
+  it("preserves original right panel Images and Infos landmarks", () => {
+    expect(rightPanelSource).toContain("Machine Images and Infos");
+    expect(rightPanelSource).toContain("Images");
+    expect(rightPanelSource).toContain("Infos");
+    expect(rightPanelSource).toContain("Snapshots");
+    expect(rightPanelSource).toContain("No image Available");
+    expect(rightPanelSource).toContain("mame-no-image-placeholder");
+  });
+
+  it("routes selected driver metadata into a green bottom status region", () => {
+    expect(browserSource).toContain("<MachineDriverStatus");
+    expect(driverStatusSource).toContain("driverEmulation");
+    expect(driverStatusSource).toContain("driverNoSoundHardware");
+    expect(driverStatusSource).toContain("machineStatusLabel(detail)");
+    expect(shellCss).toContain(".mame-driver-status");
   });
 });
