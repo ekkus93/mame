@@ -11,7 +11,9 @@ function parentageLabel(detail: MachineDetail): string {
 
 function displayLabel(detail: MachineDetail): string {
   if (detail.displays.length === 0) return "Graphics: unknown";
-  const orientation = detail.displays.some((display) => display.rotate === 90 || display.rotate === 270)
+  const orientation = detail.displays.some(
+    (display) => display.rotate === 90 || display.rotate === 270,
+  )
     ? "vertical"
     : "horizontal";
   return `Graphics: ${detail.driverEmulation ?? "unknown"} · ${orientation}`;
@@ -69,7 +71,11 @@ export function MachineDriverStatus({
   errorMessage: string | null;
 }) {
   return (
-    <footer className="mame-driver-status" aria-label="Selected machine driver status" aria-live="polite">
+    <footer
+      className="mame-driver-status"
+      aria-label="Selected machine driver status"
+      aria-live="polite"
+    >
       {machineDriverStatusText({ detail, selected, detailStatus, errorMessage })}
     </footer>
   );
