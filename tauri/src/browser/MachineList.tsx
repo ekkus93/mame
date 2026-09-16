@@ -28,6 +28,14 @@ export function MachineList({
       {page.items.map((machine, index) => {
         const availability = page.availabilityByShortName[machine.shortName] ?? "unknown";
         const isSelected = selected?.shortName === machine.shortName;
+        const unavailable = !machine.runnable || availability === "missing";
+        const rowClass = [
+          "mame-machine-row",
+          isSelected ? "is-selected" : "",
+          unavailable ? "is-unavailable" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         return (
           <li key={machine.shortName} role="presentation">
             <button
@@ -36,7 +44,7 @@ export function MachineList({
               role="option"
               aria-selected={isSelected}
               tabIndex={index === selectedIndex ? 0 : -1}
-              className={isSelected ? "mame-machine-row is-selected" : "mame-machine-row"}
+              className={rowClass}
               onFocus={() => onSelect(machine)}
               onClick={() => onSelect(machine)}
               onDoubleClick={() => onActivate(machine)}

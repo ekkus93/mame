@@ -7,8 +7,8 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: CanvasText;
-  background: Canvas;
+  color: var(--mame-text);
+  background: var(--mame-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }

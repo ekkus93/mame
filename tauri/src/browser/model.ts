@@ -1,5 +1,5 @@
 import type { MameUiMachineFilter, MameUiMachineSearchRequest } from "../backend/mameUi";
-import type { MachineListItem } from "../backend/types";
+import type { MachineDetail, MachineListItem } from "../backend/types";
 
 export type MameBrowserFilter = MameUiMachineFilter;
 export type MameBrowserFilterValueKind = "manufacturer" | "year" | "sourceFile";
@@ -10,6 +10,17 @@ export type MameBrowserFilterDefinition = {
   description: string;
   valueKind?: MameBrowserFilterValueKind;
 };
+
+export type MameBrowserDeferredFilterDefinition = {
+  id: "categoryDeferred" | "customFilterDeferred";
+  label: string;
+  description: string;
+  deferred: true;
+};
+
+export type MameBrowserFilterNavItem =
+  | MameBrowserFilterDefinition
+  | MameBrowserDeferredFilterDefinition;
 
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
@@ -81,6 +92,23 @@ export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   },
 ];
 
+export const MAME_BROWSER_FILTER_NAV_ITEMS: MameBrowserFilterNavItem[] = [
+  ...MAME_BROWSER_FILTERS.slice(0, 7),
+  {
+    id: "categoryDeferred",
+    label: "Category",
+    description: "Deferred until authoritative category data exists",
+    deferred: true,
+  },
+  ...MAME_BROWSER_FILTERS.slice(7),
+  {
+    id: "customFilterDeferred",
+    label: "Custom Filter",
+    description: "Deferred until persisted composite custom filters exist",
+    deferred: true,
+  },
+];
+
 export const MAME_BROWSER_PAGE_SIZE = 100;
 
 export function filterRequiresValue(filter: MameBrowserFilter): boolean {
@@ -146,4 +174,22 @@ export function nextBrowserIndex(
     default:
       return null;
   }
+}
+
+export function machineDriverParentLine(detail: MachineDetail): string {
+  if (detail.cloneOf) {
+    return `Driver is clone of ${detail.parentDescription ?? detail.cloneOf}`;
+  }
+  return "Driver is parent";
+}
+
+export function machineGraphicsStatusLine(detail: MachineDetail): string {
+  if (detail.displays.length === 0) return "Graphics: Unknown, Sound: Unknown";
+  const graphics = detail.driverStatus === "good" ? "OK" : "Imperfect";
+  const sound = detail.driverNoSoundHardware
+    ? "None"
+    : detail.driverIncomplete
+      ? "Imperfect"
+      : "OK";
+  return `Graphics: ${graphics}, Sound: ${sound}`;
 }
