@@ -111,10 +111,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     };
   }, []);
 
+  const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
   const activeSessionLabel = session
-    ? `Session: ${session.machine}${
-        session.software ? ` · ${session.software}` : ""
-      } · ${session.state}`
+    ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
     : "No active MAME session";
 
   return (
