@@ -18,8 +18,8 @@ export function MachineFilterPanel({
   filterValue: string;
   onChange: (filter: MameBrowserFilter) => void;
   onFilterValueChange: (value: string) => void;
-  registerActiveButton: (element: HTMLButtonElement | null) => void;
-  onNavigateToMachines: () => void;
+  registerActiveButton?: (element: HTMLButtonElement | null) => void;
+  onNavigateToMachines?: () => void;
 }) {
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeDefinition = MAME_BROWSER_FILTERS.find((filter) => filter.id === active);
@@ -29,13 +29,13 @@ export function MachineFilterPanel({
   );
 
   useEffect(() => {
-    registerActiveButton(buttonRefs.current[activeIndex] ?? null);
+    registerActiveButton?.(buttonRefs.current[activeIndex] ?? null);
   }, [activeIndex, registerActiveButton]);
 
   function handleKey(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      onNavigateToMachines();
+      onNavigateToMachines?.();
       return;
     }
 

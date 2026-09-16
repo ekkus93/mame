@@ -15,18 +15,9 @@ import type {
   SessionSnapshot,
 } from "../backend/types";
 import { MameBrowser } from "../browser/MameBrowser";
-import { BulkAuditPanel } from "../library/BulkAuditPanel";
-import { CollectionManager } from "../library/CollectionManager";
 import { isGameplaySessionState } from "../library/keyboardNavigation";
-import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
-import { SessionControlPanel } from "../session/SessionControlPanel";
-import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
-import { GeneralSettingsPanel } from "../settings/GeneralSettingsPanel";
 import "./MameShell.css";
 import "./ContextualSurfaces.css";
-
-type ShellView =
-  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {
@@ -44,7 +35,6 @@ function activeSession(session: SessionSnapshot | null): SessionSnapshot | null 
 }
 
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
-  const [view, setView] = useState<ShellView>("library");
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
@@ -52,7 +42,6 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     0,
   );
 
-  const navigate = (next: ShellView) => () => setView(next);
   const observeSession = (next: SessionSnapshot | null) => {
     setSession(activeSession(next));
     setGameplayInputOwned(isGameplaySessionState(next?.state));
@@ -106,91 +95,22 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     };
   }, []);
 
+  const activeSessionLabel = session
+    ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
+    : "No active MAME session";
+
   return (
     <main className="mame-shell">
-      <header className="mame-shell-header">
-        <button type="button" className="mame-brand" onClick={navigate("library")}>
-          <strong>MAME</strong>
-          <span>Tauri frontend</span>
-        </button>
-        <nav className="mame-shell-nav" aria-label="Application views">
-          <button
-            type="button"
-            aria-current={view === "library" ? "page" : undefined}
-            onClick={navigate("library")}
-          >
-            Machines
-          </button>
-          <button
-            type="button"
-            aria-current={view === "session" ? "page" : undefined}
-            onClick={navigate("session")}
-          >
-            Session
-          </button>
-          <button
-            type="button"
-            aria-current={view === "audit" ? "page" : undefined}
-            onClick={navigate("audit")}
-          >
-            Audit
-          </button>
-          <button
-            type="button"
-            aria-current={view === "history" ? "page" : undefined}
-            onClick={navigate("history")}
-          >
-            History
-          </button>
-          <button
-            type="button"
-            aria-current={view === "collections" ? "page" : undefined}
-            onClick={navigate("collections")}
-          >
-            Collections
-          </button>
-          <button
-            type="button"
-            aria-current={view === "settings" ? "page" : undefined}
-            onClick={navigate("settings")}
-          >
-            Settings
-          </button>
-          <button
-            type="button"
-            aria-current={view === "diagnostics" ? "page" : undefined}
-            onClick={navigate("diagnostics")}
-          >
-            Diagnostics
-          </button>
-        </nav>
-      </header>
-
-      <section className="mame-shell-workspace">
-        {view === "library" && (
-          <MameBrowser
-            availabilityRevision={availabilityRevision}
-            gameplayInputOwned={gameplayInputOwned}
-            onAuditResultsChanged={bumpAvailabilityRevision}
-            onSessionStarted={observeSession}
-          />
-        )}
-        {view === "session" && <SessionControlPanel />}
-        {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
-        {view === "history" && <RecentHistoryPanel />}
-        {view === "collections" && <CollectionManager />}
-        {view === "settings" && (
-          <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
-        )}
-        {view === "diagnostics" && <DiagnosticsPanel />}
+      <section className="mame-shell-workspace" aria-label="MAME machine browser">
+        <MameBrowser
+          availabilityRevision={availabilityRevision}
+          gameplayInputOwned={gameplayInputOwned}
+          onAuditResultsChanged={bumpAvailabilityRevision}
+          onSessionStarted={observeSession}
+        />
       </section>
-
-      <footer className="mame-status-bar">
-        <button type="button" className="mame-session-status" onClick={navigate("session")}>
-          {session
-            ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
-            : "No active MAME session"}
-        </button>
+      <footer className="mame-status-bar" aria-label="MAME runtime status">
+        <span>{activeSessionLabel}</span>
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>
         <span>Backend {appInfo.backend}</span>
