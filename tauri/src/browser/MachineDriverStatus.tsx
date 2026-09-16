@@ -1,7 +1,7 @@
 import type { MachineDetail, MachineListItem } from "../backend/types";
 import { machineStatusLabel } from "../library/libraryQuery";
 
-export type MachineDriverStatusLoadState = "idle" | "loading" | "ready" | "error";
+type MachineDriverStatusLoadState = "idle" | "loading" | "ready" | "error";
 
 function parentageLabel(detail: MachineDetail): string {
   if (detail.isBios) return "BIOS";
@@ -24,7 +24,7 @@ function soundLabel(detail: MachineDetail): string {
   return "Sound: present or driver-reported";
 }
 
-export function machineDriverStatusText({
+function machineDriverStatusText({
   detail,
   selected,
   detailStatus,
