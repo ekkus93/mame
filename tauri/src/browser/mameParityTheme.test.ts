@@ -1,13 +1,26 @@
+/// <reference types="node" />
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import mainSource from "../main.tsx?raw";
-import themeCss from "../mameTheme.css?raw";
 import shellSource from "../shell/MameShell.tsx?raw";
-import shellCss from "../shell/MameShell.css?raw";
 import filterSource from "./MachineFilterPanel.tsx?raw";
 import listSource from "./MachineList.tsx?raw";
 
+const SOURCE_DIR = dirname(fileURLToPath(import.meta.url));
+
+function readSource(relativePath: string): string {
+  return readFileSync(join(SOURCE_DIR, relativePath), "utf8");
+}
+
 describe("MAME visual parity tripwires", () => {
+  const themeCss = readSource("../mameTheme.css");
+  const shellCss = readSource("../shell/MameShell.css");
+
   it("loads explicit MAME theme tokens after base CSS", () => {
     expect(mainSource).toContain('import "./index.css";');
     expect(mainSource).toContain('import "./mameTheme.css";');
