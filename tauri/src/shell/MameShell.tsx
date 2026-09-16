@@ -26,13 +26,7 @@ import "./MameShell.css";
 import "./ContextualSurfaces.css";
 
 type ShellView =
-  | "library"
-  | "session"
-  | "settings"
-  | "audit"
-  | "history"
-  | "collections"
-  | "diagnostics";
+  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {
@@ -140,7 +134,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             {view === "settings" && (
               <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
             )}
-            {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
+            {view === "audit" && (
+              <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
+            )}
             {view === "history" && <RecentHistoryPanel />}
             {view === "collections" && <CollectionManager />}
             {view === "diagnostics" && <DiagnosticsPanel />}

@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "format:check": "prettier --check . || (prettier --write src/browser/model.ts src/shell/MameShell.tsx && git diff -- src/browser/model.ts src/shell/MameShell.tsx && exit 1)",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "tauri": "tauri"
   },
