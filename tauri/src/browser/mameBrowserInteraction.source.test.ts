@@ -42,7 +42,7 @@ describe("MAME command and interaction parity tripwires", () => {
     expect(browserSource).toContain("onSelect={setSelected}");
     expect(browserSource).toContain("onActivate={activateMachine}");
     expect(browserSource).toContain("onViewChange={changeRightView}");
-    expect(filterSource).toContain("onClick={() => onChange(definition.id)}");
+    expect(filterSource).toContain("if (!deferred) onChange(filter.id);");
     expect(rightPanelSource).toContain('onClick={() => onViewChange("images")}');
     expect(rightPanelSource).toContain('onClick={() => onViewChange("info")}');
   });
