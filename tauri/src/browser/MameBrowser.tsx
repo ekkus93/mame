@@ -22,9 +22,14 @@ import type {
 } from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { isEditableElement } from "../library/keyboardNavigation";
+import { MachineDriverStatus } from "./MachineDriverStatus";
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
-import { MachineRightPanel, type MachineRightView } from "./MachineRightPanel";
+import {
+  EmptyMachineRightPanel,
+  MachineRightPanel,
+  type MachineRightView,
+} from "./MachineRightPanel";
 import {
   buildMameBrowserRequest,
   filterRequiresValue,
@@ -59,6 +64,19 @@ type ExportState =
   | { status: "error"; message: string };
 
 type SoftwareCapableMachineDetail = MachineDetail & { canStartEmpty: boolean };
+type EmptyRightPanelStatus = "idle" | "loading" | "error";
+
+function emptyRightPanelStatusFor(detailState: DetailState): EmptyRightPanelStatus {
+  switch (detailState.status) {
+    case "loading":
+      return "loading";
+    case "error":
+      return "error";
+    case "idle":
+    case "ready":
+      return "idle";
+  }
+}
 
 export function MameBrowser({
   availabilityRevision,
@@ -384,6 +402,8 @@ export function MameBrowser({
   }, [detailState, gameplayInputOwned, launchDetail, search, softwareMode]);
 
   const detail = detailState.status === "ready" ? detailState.detail : null;
+  const detailErrorMessage = detailState.status === "error" ? detailState.message : null;
+  const emptyRightPanelStatus = emptyRightPanelStatusFor(detailState);
 
   function changeFilter(next: MameBrowserFilter) {
     if (next !== filter) {
@@ -621,17 +641,18 @@ export function MameBrowser({
             }}
           />
         ) : (
-          <aside className="mame-right-panel">
-            <div className="mame-panel-state">
-              {detailState.status === "loading"
-                ? "Loading machine details…"
-                : detailState.status === "error"
-                  ? detailState.message
-                  : "Select a machine."}
-            </div>
-          </aside>
+          <EmptyMachineRightPanel
+            status={emptyRightPanelStatus}
+            message={detailErrorMessage ?? undefined}
+          />
         )}
       </div>
+      <MachineDriverStatus
+        detail={detail}
+        selected={selected}
+        detailStatus={detailState.status}
+        errorMessage={detailErrorMessage}
+      />
     </section>
   );
 }

@@ -13,8 +13,8 @@
 
 .mame-browser {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  min-height: calc(100vh - 4.4rem);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-height: calc(100vh - 3rem);
   background: var(--mame-bg);
   color: var(--mame-text);
 }
@@ -91,7 +91,9 @@
 .mame-context-actions button,
 .mame-pager button,
 .mame-right-tabs button,
-.mame-artwork-categories button {
+.mame-artwork-categories button,
+.mame-status-bar button,
+.mame-secondary-back {
   min-height: 1.8rem;
   padding: 0.25rem 0.55rem;
   border: 1px solid var(--mame-border-muted);
@@ -101,7 +103,8 @@
 }
 
 .mame-context-actions button:disabled,
-.mame-pager button:disabled {
+.mame-pager button:disabled,
+.mame-right-tabs button:disabled {
   color: var(--mame-disabled);
   background: var(--mame-surface);
 }
@@ -272,6 +275,8 @@
 
 .mame-right-panel {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .mame-right-tabs {
@@ -296,6 +301,12 @@
   background: var(--mame-surface-raised);
 }
 
+.mame-artwork-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
 .mame-artwork-categories {
   display: flex;
   gap: 0.2rem;
@@ -308,18 +319,40 @@
   display: grid;
   place-items: center;
   min-height: 22rem;
-  padding: 0.75rem;
+  padding: 0.55rem;
 }
 
 .mame-artwork-frame img {
   display: block;
   max-width: 100%;
-  max-height: calc(100vh - 11rem);
+  max-height: calc(100vh - 14rem);
   object-fit: contain;
 }
 
+.mame-no-image-placeholder {
+  display: grid;
+  place-items: center;
+  gap: 0.35rem;
+  width: min(100%, 18rem);
+  min-height: 10rem;
+  border: 1px solid var(--mame-border-muted);
+  color: var(--mame-muted);
+  text-align: center;
+}
+
+.mame-no-image-placeholder strong {
+  color: var(--mame-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mame-no-image-placeholder span {
+  padding: 0 0.75rem;
+  font-size: 0.82rem;
+}
+
 .mame-info-pane {
-  padding: 0.9rem;
+  padding: 0.65rem;
 }
 
 .mame-info-pane h2 {
@@ -369,18 +402,46 @@
   font-size: 0.75rem;
 }
 
-.mame-status-bar {
+.mame-driver-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  min-height: 3.1rem;
+  min-height: 2.6rem;
   padding: 0.35rem 0.65rem;
   border: 1px solid var(--mame-border);
   background: linear-gradient(180deg, var(--mame-status), var(--mame-status-shadow));
   color: var(--mame-text);
   font-size: 0.9rem;
   text-align: center;
+}
+
+.mame-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--mame-border);
+  background: var(--mame-toolbar);
+  color: var(--mame-text);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.mame-status-bar span {
+  color: var(--mame-muted);
+}
+
+.mame-secondary-surface {
+  min-height: 100%;
+  padding: 0.75rem;
+  background: var(--mame-bg);
+  color: var(--mame-text);
+}
+
+.mame-secondary-back {
+  margin-bottom: 0.75rem;
 }
 
 button:focus-visible,

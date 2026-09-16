@@ -116,27 +116,27 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-007 — Right Images/Infos panel parity
 
-- [ ] Replace generic detail sidebar behavior with original-like `Images` / `Infos` panel structure.
-- [ ] Implement original-like tab/header treatment for Images and Infos.
-- [ ] Implement original-like image category selector, including `Snapshots` where applicable.
-- [ ] Implement original-like no-image placeholder behavior.
-- [ ] Ensure image scaling and panel padding resemble original MAME.
-- [ ] Ensure Infos content uses original-like text density and layout.
-- [ ] Preserve behavior when no machine is selected.
+- [x] Replace generic detail sidebar behavior with original-like `Images` / `Infos` panel structure.
+- [x] Implement original-like tab/header treatment for Images and Infos.
+- [x] Implement original-like image category selector, including `Snapshots` where applicable.
+- [x] Implement original-like no-image placeholder behavior.
+- [x] Ensure image scaling and panel padding resemble original MAME.
+- [x] Ensure Infos content uses original-like text density and layout.
+- [x] Preserve behavior when no machine is selected.
 
-**Completion evidence required:** right-panel component/CSS changes and visual/manual evidence.
+**MTP-007 evidence:** `MachineRightPanel.tsx` now exposes original-MAME-style `Images` / `Infos` tab labels and `Machine Images and Infos` tablist semantics. `ArtworkPane` always preserves the `Snapshots` selector even when discovery returns no slots, and the no-artwork path renders an original-like `No image Available` placeholder. `EmptyMachineRightPanel` preserves the same Images/Snapshots/no-image structure when no machine is selected, while loading and error states remain inside the right panel. `MameShell.css` tightens the right-panel tabs, artwork category strip, image frame, no-image placeholder, and info typography/padding to match the dense dark MAME layout. `mameParityTheme.test.ts` asserts the Images/Infos/Snapshots/no-image landmarks remain present.
 
 ---
 
 ## MTP-008 — Bottom status/driver region parity
 
-- [ ] Add or restore the original-like green bottom status/driver panel.
-- [ ] Populate it with machine metadata when a machine is selected: year, manufacturer, driver parent/clone status, overall status, graphics status, sound status where available.
-- [ ] Render useful original-like empty state when no machine is selected.
-- [ ] Keep global backend/app diagnostic details out of the default bottom region unless original MAME would show equivalent user-facing status.
-- [ ] Ensure status updates follow selection changes.
+- [x] Add or restore the original-like green bottom status/driver panel.
+- [x] Populate it with machine metadata when a machine is selected: year, manufacturer, driver parent/clone status, overall status, graphics status, sound status where available.
+- [x] Render useful original-like empty state when no machine is selected.
+- [x] Keep global backend/app diagnostic details out of the default bottom region unless original MAME would show equivalent user-facing status.
+- [x] Ensure status updates follow selection changes.
 
-**Completion evidence required:** bottom status component/CSS changes and evidence with selected/no-selection states.
+**MTP-008 evidence:** Added `MachineDriverStatus.tsx` and routed selected machine/detail state from `MameBrowser.tsx` into a green `mame-driver-status` footer. The status string now updates with selected-machine detail and includes description/short name, year, manufacturer, parent/clone/BIOS status, overall driver status, graphics/orientation, sound, and save-state status. Empty, loading, and detail-error states render useful original-like status text. `MameShell.tsx` no longer fills the default bottom strip with app/backend diagnostics; those controls remain secondary affordances, while the selected-machine driver/status line is rendered in the default browser. Static tripwires assert `MachineDriverStatus`, `Selected machine driver status`, and the driver status class remain wired.
 
 ---
 
@@ -189,7 +189,7 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 - [ ] If practical in CI, add screenshot tests for at least one stable empty/configured browser state.
 - [x] If screenshot tests are not practical, document why and add the strongest available static/component tripwires.
 
-**MTP-012 evidence:** Added `mameParityTheme.test.ts`, which verifies theme import order, palette tokens, selected-row/yellow-text and green-status token usage, absence of default shell `Canvas` / `CanvasText` styling, and removal of the default-visible generic dashboard tab row. Screenshot tests remain open for a later pass if a stable WebView/screenshot harness is added; the current strongest available tripwires are static/source tests and the textual visual checklist.
+**MTP-012 evidence:** Added `mameParityTheme.test.ts`, which verifies theme import order, palette tokens, selected-row/yellow-text and green-status token usage, absence of default shell `Canvas` / `CanvasText` styling, removal of the default-visible generic dashboard tab row, Images/Infos/Snapshots/no-image right-panel landmarks, and selected-machine driver-status wiring. Screenshot tests remain open for a later pass if a stable WebView/screenshot harness is added; the current strongest available tripwires are static/source tests and the textual visual checklist.
 
 ---
 
