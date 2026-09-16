@@ -18,7 +18,9 @@ export type MameBrowserDeferredFilterDefinition = {
   deferred: true;
 };
 
-export type MameBrowserFilterNavItem = MameBrowserFilterDefinition | MameBrowserDeferredFilterDefinition;
+export type MameBrowserFilterNavItem =
+  | MameBrowserFilterDefinition
+  | MameBrowserDeferredFilterDefinition;
 
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },

@@ -129,7 +129,11 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         )}
         {view !== "library" && (
           <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
-            <button type="button" className="mame-secondary-back" onClick={() => setView("library")}>
+            <button
+              type="button"
+              className="mame-secondary-back"
+              onClick={() => setView("library")}
+            >
               ← Machine Selection
             </button>
             {view === "session" && <SessionControlPanel />}
