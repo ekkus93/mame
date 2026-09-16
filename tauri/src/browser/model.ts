@@ -11,6 +11,16 @@ export type MameBrowserFilterDefinition = {
   valueKind?: MameBrowserFilterValueKind;
 };
 
+export type MameBrowserDeferredFilterDefinition = {
+  id: "categoryDeferred" | "customFilterDeferred";
+  label: string;
+  description: string;
+  deferred: true;
+};
+
+export type MameBrowserFilterNavItem =
+  MameBrowserFilterDefinition | MameBrowserDeferredFilterDefinition;
+
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
   { id: "available", label: "Available", description: "Media verified as available" },
@@ -78,6 +88,23 @@ export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
     id: "horizontalScreen",
     label: "Horizontal Screen",
     description: "Systems with displays that are not vertically rotated",
+  },
+];
+
+export const MAME_BROWSER_FILTER_NAV_ITEMS: MameBrowserFilterNavItem[] = [
+  ...MAME_BROWSER_FILTERS.slice(0, 7),
+  {
+    id: "categoryDeferred",
+    label: "Category",
+    description: "Deferred until authoritative category data exists",
+    deferred: true,
+  },
+  ...MAME_BROWSER_FILTERS.slice(7),
+  {
+    id: "customFilterDeferred",
+    label: "Custom Filter",
+    description: "Deferred until persisted composite custom filters exist",
+    deferred: true,
   },
 ];
 

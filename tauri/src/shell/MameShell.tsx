@@ -52,7 +52,6 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     0,
   );
 
-  const navigate = (next: ShellView) => () => setView(next);
   const observeSession = (next: SessionSnapshot | null) => {
     setSession(activeSession(next));
     setGameplayInputOwned(isGameplaySessionState(next?.state));
@@ -106,67 +105,14 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     };
   }, []);
 
+  const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
+  const activeSessionLabel = session
+    ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
+    : "No active MAME session";
+
   return (
     <main className="mame-shell">
-      <header className="mame-shell-header">
-        <button type="button" className="mame-brand" onClick={navigate("library")}>
-          <strong>MAME</strong>
-          <span>Tauri frontend</span>
-        </button>
-        <nav className="mame-shell-nav" aria-label="Application views">
-          <button
-            type="button"
-            aria-current={view === "library" ? "page" : undefined}
-            onClick={navigate("library")}
-          >
-            Machines
-          </button>
-          <button
-            type="button"
-            aria-current={view === "session" ? "page" : undefined}
-            onClick={navigate("session")}
-          >
-            Session
-          </button>
-          <button
-            type="button"
-            aria-current={view === "audit" ? "page" : undefined}
-            onClick={navigate("audit")}
-          >
-            Audit
-          </button>
-          <button
-            type="button"
-            aria-current={view === "history" ? "page" : undefined}
-            onClick={navigate("history")}
-          >
-            History
-          </button>
-          <button
-            type="button"
-            aria-current={view === "collections" ? "page" : undefined}
-            onClick={navigate("collections")}
-          >
-            Collections
-          </button>
-          <button
-            type="button"
-            aria-current={view === "settings" ? "page" : undefined}
-            onClick={navigate("settings")}
-          >
-            Settings
-          </button>
-          <button
-            type="button"
-            aria-current={view === "diagnostics" ? "page" : undefined}
-            onClick={navigate("diagnostics")}
-          >
-            Diagnostics
-          </button>
-        </nav>
-      </header>
-
-      <section className="mame-shell-workspace">
+      <section className="mame-shell-workspace" aria-label="MAME machine browser">
         {view === "library" && (
           <MameBrowser
             availabilityRevision={availabilityRevision}
@@ -175,21 +121,46 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             onSessionStarted={observeSession}
           />
         )}
-        {view === "session" && <SessionControlPanel />}
-        {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
-        {view === "history" && <RecentHistoryPanel />}
-        {view === "collections" && <CollectionManager />}
-        {view === "settings" && (
-          <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+        {view !== "library" && (
+          <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
+            <button
+              type="button"
+              className="mame-secondary-back"
+              onClick={() => setView("library")}
+            >
+              ← Machine Selection
+            </button>
+            {view === "session" && <SessionControlPanel />}
+            {view === "settings" && (
+              <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+            )}
+            {view === "audit" && (
+              <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
+            )}
+            {view === "history" && <RecentHistoryPanel />}
+            {view === "collections" && <CollectionManager />}
+            {view === "diagnostics" && <DiagnosticsPanel />}
+          </section>
         )}
-        {view === "diagnostics" && <DiagnosticsPanel />}
       </section>
-
-      <footer className="mame-status-bar">
-        <button type="button" className="mame-session-status" onClick={navigate("session")}>
-          {session
-            ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
-            : "No active MAME session"}
+      <footer className="mame-status-bar" aria-label="MAME runtime status">
+        <button type="button" className="mame-session-status" onClick={() => setView("session")}>
+          {activeSessionLabel}
+        </button>
+        <button type="button" onClick={() => setView("settings")}>
+          Options
+        </button>
+        <button type="button" onClick={() => setView("audit")}>
+          Audit
+        </button>
+        <button type="button" onClick={() => setView("history")}>
+          History
+        </button>
+        <button type="button" onClick={() => setView("collections")}>
+          Collections
+        </button>
+        <button type="button" onClick={() => setView("diagnostics")}>
+          Diagnostics
         </button>
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>

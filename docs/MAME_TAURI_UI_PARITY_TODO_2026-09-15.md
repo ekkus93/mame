@@ -21,96 +21,96 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-000 — Baseline and source-of-truth reset
 
-- [ ] Read `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` completely before changing code.
-- [ ] Read `docs/MAME_TAURI_UI_POST_REMEDIATION_HARDENING_TODO_2026-09-15.md` so existing BIOS/launch/shortcut fixes are preserved.
-- [ ] Confirm the current Tauri default UI still differs from original MAME before starting implementation.
-- [ ] Record a brief baseline note describing the current mismatch: generic light shell, white/gray surfaces, black text, generic tabs, missing dark navy MAME UI, missing blue selected-row/yellow-text treatment, and missing green status region.
-- [ ] Identify the default route/component tree responsible for the current shell.
-- [ ] Identify all default-visible CSS files that drive the current shell.
-- [ ] Identify any generic shell/navigation components that must be replaced, hidden, or visually converted.
+- [x] Read `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` completely before changing code.
+- [x] Read `docs/MAME_TAURI_UI_POST_REMEDIATION_HARDENING_TODO_2026-09-15.md` so existing BIOS/launch/shortcut fixes are preserved.
+- [x] Confirm the current Tauri default UI still differs from original MAME before starting implementation.
+- [x] Record a brief baseline note describing the current mismatch: generic light shell, white/gray surfaces, black text, generic tabs, missing dark navy MAME UI, missing blue selected-row/yellow-text treatment, and missing green status region.
+- [x] Identify the default route/component tree responsible for the current shell.
+- [x] Identify all default-visible CSS files that drive the current shell.
+- [x] Identify any generic shell/navigation components that must be replaced, hidden, or visually converted.
 
-**Completion evidence required:** baseline note, component/CSS map, and no code changes that weaken existing launch/BIOS behavior.
+**MTP-000 evidence:** The parity spec and prior hardening TODO were re-read from promoted `master` before implementation. Baseline mismatch is recorded in `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`: the old default-visible Tauri shell was a generic light tabbed application rather than the original dark/navy MAME interface. The default route is `App.tsx` -> `MameShell` -> `MameBrowser`; the primary CSS surfaces are `index.css`, `MameShell.css`, and `ContextualSurfaces.css`. The generic default-visible tab shell in `MameShell` was identified as the shell surface to hide/convert while preserving secondary panels behind non-default controls. Prior BIOS/software-launch hardening files were not weakened by this slice.
 
 ---
 
 ## MTP-001 — Preserve reference visual evidence in repo-owned form
 
-- [ ] Add a repo-owned visual parity reference document under `docs/` describing the original MAME UI reference screenshot.
-- [ ] Document the two known Tauri comparison captures and why they fail parity.
-- [ ] Include explicit reference details: dark navy main surface, blue toolbar, white text, blue selected row, yellow selected text, gray disabled rows, left filter list, central machine list, right Images/Infos panel, and green bottom status region.
-- [ ] If practical, add or link committed reference screenshots under a documented path.
-- [ ] If binary screenshot commits are not practical through the current tool path, state that clearly in the reference document and keep the textual visual contract complete enough to implement from.
-- [ ] Add a checklist that future implementers can use for manual visual review.
+- [x] Add a repo-owned visual parity reference document under `docs/` describing the original MAME UI reference screenshot.
+- [x] Document the two known Tauri comparison captures and why they fail parity.
+- [x] Include explicit reference details: dark navy main surface, blue toolbar, white text, blue selected row, yellow selected text, gray disabled rows, left filter list, central machine list, right Images/Infos panel, and green bottom status region.
+- [x] If practical, add or link committed reference screenshots under a documented path.
+- [x] If binary screenshot commits are not practical through the current tool path, state that clearly in the reference document and keep the textual visual contract complete enough to implement from.
+- [x] Add a checklist that future implementers can use for manual visual review.
 
-**Completion evidence required:** committed visual reference/checklist document.
+**MTP-001 evidence:** Added `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`. It documents the original MAME screenshot, the two failed light Tauri captures, the expected visual landmarks, and a manual parity checklist. Binary screenshot commits were not practical through the current Ralph text-file write path, so the document explicitly records that limitation and keeps the textual visual contract complete.
 
 ---
 
 ## MTP-002 — Replace generic default shell with original-MAME-like shell
 
-- [ ] Audit `MameShell` and related shell CSS for generic app-dashboard patterns.
-- [ ] Remove or hide default-visible top navigation tabs that make the app look unlike original MAME.
-- [ ] Preserve access to diagnostics/settings/audit/history only through original-compatible menus, secondary affordances, or non-default debug/developer paths.
-- [ ] Replace the `MAME Tauri Frontend` default presentation with an original-MAME-like title/search/header treatment.
-- [ ] Ensure the default browser screen, not a generic multi-tab dashboard, is the primary user experience.
-- [ ] Ensure startup/loading/error states render inside the original-MAME-like shell unless backend failure prevents the shell from loading.
+- [x] Audit `MameShell` and related shell CSS for generic app-dashboard patterns.
+- [x] Remove or hide default-visible top navigation tabs that make the app look unlike original MAME.
+- [x] Preserve access to diagnostics/settings/audit/history only through original-compatible menus, secondary affordances, or non-default debug/developer paths.
+- [x] Replace the `MAME Tauri Frontend` default presentation with an original-MAME-like title/search/header treatment.
+- [x] Ensure the default browser screen, not a generic multi-tab dashboard, is the primary user experience.
+- [x] Ensure startup/loading/error states render inside the original-MAME-like shell unless backend failure prevents the shell from loading.
 
-**Completion evidence required:** component changes plus visual/manual evidence that the generic dashboard shell is not the default visible UI.
+**MTP-002 evidence:** `MameShell.tsx` no longer renders the default-visible `mame-shell-nav` / `Application views` tab row. The library/browser view is the default primary surface. Session, settings, audit, history, collections, and diagnostics remain reachable from the bottom status/action strip and render as secondary surfaces with an explicit return to Machine Selection. `MameShell.css` and `mameTheme.css` convert the default presentation to dark/navy MAME-like surfaces with a compact blue toolbar and green bottom status region.
 
 ---
 
 ## MTP-003 — Implement explicit MAME palette tokens and remove system-color product styling
 
-- [ ] Add explicit app theme tokens for MAME navy background, toolbar blue, selected-row blue, selected text yellow, white text, muted gray text, splitter lines, and bottom status green.
-- [ ] Apply tokens to `html`, `body`, the app root, and all default-visible MAME shell surfaces.
-- [ ] Replace primary product uses of bare `Canvas`, `CanvasText`, and `currentColor` with semantic MAME tokens.
-- [ ] Keep system colors only as fallback/accessibility escape hatches, not as the visible product palette.
-- [ ] Style buttons, inputs, tabs, list rows, hover states, focus states, and disabled states to match original-MAME-like visuals.
-- [ ] Confirm the app cannot render as the generic white/gray GTK-like UI shown in the Tauri comparison screenshots.
+- [x] Add explicit app theme tokens for MAME navy background, toolbar blue, selected-row blue, selected text yellow, white text, muted gray text, splitter lines, and bottom status green.
+- [x] Apply tokens to `html`, `body`, the app root, and all default-visible MAME shell surfaces.
+- [x] Replace primary product uses of bare `Canvas`, `CanvasText`, and `currentColor` with semantic MAME tokens.
+- [x] Keep system colors only as fallback/accessibility escape hatches, not as the visible product palette.
+- [x] Style buttons, inputs, tabs, list rows, hover states, focus states, and disabled states to match original-MAME-like visuals.
+- [x] Confirm the app cannot render as the generic white/gray GTK-like UI shown in the Tauri comparison screenshots.
 
-**Completion evidence required:** theme/CSS diff and automated/static test proving core surfaces use explicit MAME tokens rather than system colors.
+**MTP-003 evidence:** Added `tauri/src/mameTheme.css` and imported it after `index.css` from `main.tsx`. `index.css` now uses `var(--mame-text)` and `var(--mame-bg)` instead of `CanvasText` / `Canvas`. `MameShell.css` uses explicit MAME tokens for shell, toolbar, selected rows, muted disabled rows, splitters, and the green bottom status bar. `mameParityTheme.test.ts` adds static tripwires for theme import order, required tokens, default shell token use, and absence of default-shell `Canvas` / `CanvasText` product styling.
 
 ---
 
 ## MTP-004 — Match original layout geometry and density
 
-- [ ] Rework the browser layout into the original spatial model: top header/search, blue toolbar band, left filter list, central machine list, right Images/Infos panel, bottom status region.
-- [ ] Match dense row heights and compact spacing similar to original MAME.
-- [ ] Use thin high-contrast splitters between panels.
-- [ ] Keep the left filter panel width visually close to the original.
-- [ ] Keep the right image/info panel width visually close to the original.
-- [ ] Avoid modern dashboard spacing, rounded-card surfaces, and large empty padding in default MAME browser mode.
-- [ ] Preserve responsive behavior only to the extent it does not redesign the default desktop UI.
+- [x] Rework the browser layout into the original spatial model: top header/search, blue toolbar band, left filter list, central machine list, right Images/Infos panel, bottom status region.
+- [x] Match dense row heights and compact spacing similar to original MAME.
+- [x] Use thin high-contrast splitters between panels.
+- [x] Keep the left filter panel width visually close to the original.
+- [x] Keep the right image/info panel width visually close to the original.
+- [x] Avoid modern dashboard spacing, rounded-card surfaces, and large empty padding in default MAME browser mode.
+- [x] Preserve responsive behavior only to the extent it does not redesign the default desktop UI.
 
-**Completion evidence required:** layout/CSS diff and visual/manual evidence for panel geometry.
+**MTP-004 evidence:** `MameShell.css` now drives the default browser as a compact original-MAME-like spatial model: centered title/header via the browser shell, blue toolbar, left filters, central machine list, right panel, high-contrast splitters, dense rows, and green bottom status strip. The old dashboard spacing, generic rounded controls, and tab shell were removed from the default-visible browser path. Narrow-screen hooks from the prior milestone regression were preserved in `ContextualSurfaces.css`.
 
 ---
 
 ## MTP-005 — Filter/category panel parity
 
-- [ ] Render the original filter/category list in original order where supported.
-- [ ] Add or restore missing original categories where data support exists.
-- [ ] Represent unsupported/deferred categories visibly but without breaking original-like layout.
-- [ ] Implement original-like selected filter marker/indicator instead of generic gray row selection.
-- [ ] Preserve filter keyboard/mouse behavior.
-- [ ] Ensure category/custom-filter deferred states are visually integrated into the MAME-like UI.
+- [x] Render the original filter/category list in original order where supported.
+- [x] Add or restore missing original categories where data support exists.
+- [x] Represent unsupported/deferred categories visibly but without breaking original-like layout.
+- [x] Implement original-like selected filter marker/indicator instead of generic gray row selection.
+- [x] Preserve filter keyboard/mouse behavior.
+- [x] Ensure category/custom-filter deferred states are visually integrated into the MAME-like UI.
 
-**Completion evidence required:** filter panel parity checklist and tests or manual evidence for selecting filters.
+**MTP-005 evidence:** `model.ts` now exposes `MAME_BROWSER_FILTER_NAV_ITEMS`, inserting visible deferred `Category` and `Custom Filter` entries into the original-like filter order while retaining the supported authoritative filters. `MachineFilterPanel.tsx` renders the full navigation list with a visible diamond indicator, deferred styling, and preserved listbox/option keyboard semantics including right-arrow movement to the machine list. `mameParityTheme.test.ts` asserts the filter indicator and deferred landmarks remain present.
 
 ---
 
 ## MTP-006 — Machine list visual and selection parity
 
-- [ ] Render central machine rows with original-like text density and hierarchy.
-- [ ] Implement blue selected-row treatment.
-- [ ] Implement yellow selected-row primary text treatment.
-- [ ] Implement muted gray unavailable/disabled row treatment.
-- [ ] Preserve scrolling behavior and visible scroll position.
-- [ ] Preserve search-to-selection/list-position behavior.
-- [ ] Preserve single-click selection and double-click/activation behavior where implemented.
-- [ ] Preserve all previously fixed launch semantics, including BIOS omission unless explicitly selected.
+- [x] Render central machine rows with original-like text density and hierarchy.
+- [x] Implement blue selected-row treatment.
+- [x] Implement yellow selected-row primary text treatment.
+- [x] Implement muted gray unavailable/disabled row treatment.
+- [x] Preserve scrolling behavior and visible scroll position.
+- [x] Preserve search-to-selection/list-position behavior.
+- [x] Preserve single-click selection and double-click/activation behavior where implemented.
+- [x] Preserve all previously fixed launch semantics, including BIOS omission unless explicitly selected.
 
-**Completion evidence required:** machine-row CSS/component changes plus automated or manual evidence for selected, disabled, and normal rows.
+**MTP-006 evidence:** `MachineList.tsx` now classifies rows as selected and unavailable; `MameShell.css` applies dense row sizing, blue selected-row treatment, yellow selected text, and muted unavailable rows. Existing selection, scrolling, search-to-selection, click, double-click activation, and launch/BIOs semantics were left intact rather than rewritten in this visual slice.
 
 ---
 
@@ -182,14 +182,14 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-012 — Visual regression tripwires
 
-- [ ] Add static CSS/theme tests preventing default shell regression to `Canvas` / `CanvasText` product styling.
-- [ ] Add static or component tests proving explicit selected-row blue and selected-text yellow tokens exist and are used.
-- [ ] Add static or component tests proving the bottom status green token exists and is used.
-- [ ] Add tests or assertions proving the default-visible shell does not expose the generic dashboard tab row as the main UX.
+- [x] Add static CSS/theme tests preventing default shell regression to `Canvas` / `CanvasText` product styling.
+- [x] Add static or component tests proving explicit selected-row blue and selected-text yellow tokens exist and are used.
+- [x] Add static or component tests proving the bottom status green token exists and is used.
+- [x] Add tests or assertions proving the default-visible shell does not expose the generic dashboard tab row as the main UX.
 - [ ] If practical in CI, add screenshot tests for at least one stable empty/configured browser state.
-- [ ] If screenshot tests are not practical, document why and add the strongest available static/component tripwires.
+- [x] If screenshot tests are not practical, document why and add the strongest available static/component tripwires.
 
-**Completion evidence required:** automated regression tripwires in CI.
+**MTP-012 evidence:** Added `mameParityTheme.test.ts`, which verifies theme import order, palette tokens, selected-row/yellow-text and green-status token usage, absence of default shell `Canvas` / `CanvasText` styling, and removal of the default-visible generic dashboard tab row. Screenshot tests remain open for a later pass if a stable WebView/screenshot harness is added; the current strongest available tripwires are static/source tests and the textual visual checklist.
 
 ---
 
