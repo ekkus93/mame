@@ -112,7 +112,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   }, []);
 
   const activeSessionLabel = session
-    ? `Session: ${session.machine}${session.software ? ` · ${session.software}` : ""} · ${session.state}`
+    ? `Session: ${session.machine}${
+        session.software ? ` · ${session.software}` : ""
+      } · ${session.state}`
     : "No active MAME session";
 
   return (
@@ -146,11 +148,21 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         <button type="button" className="mame-session-status" onClick={() => setView("session")}>
           {activeSessionLabel}
         </button>
-        <button type="button" onClick={() => setView("settings")}>Options</button>
-        <button type="button" onClick={() => setView("audit")}>Audit</button>
-        <button type="button" onClick={() => setView("history")}>History</button>
-        <button type="button" onClick={() => setView("collections")}>Collections</button>
-        <button type="button" onClick={() => setView("diagnostics")}>Diagnostics</button>
+        <button type="button" onClick={() => setView("settings")}>
+          Options
+        </button>
+        <button type="button" onClick={() => setView("audit")}>
+          Audit
+        </button>
+        <button type="button" onClick={() => setView("history")}>
+          History
+        </button>
+        <button type="button" onClick={() => setView("collections")}>
+          Collections
+        </button>
+        <button type="button" onClick={() => setView("diagnostics")}>
+          Diagnostics
+        </button>
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>
         <span>Backend {appInfo.backend}</span>

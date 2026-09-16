@@ -1,5 +1,5 @@
 import type { MameUiMachineFilter, MameUiMachineSearchRequest } from "../backend/mameUi";
-import type { MachineDetail, MachineListItem } from "../backend/types";
+import type { MachineListItem } from "../backend/types";
 
 export type MameBrowserFilter = MameUiMachineFilter;
 export type MameBrowserFilterValueKind = "manufacturer" | "year" | "sourceFile";
@@ -174,22 +174,4 @@ export function nextBrowserIndex(
     default:
       return null;
   }
-}
-
-export function machineDriverParentLine(detail: MachineDetail): string {
-  if (detail.cloneOf) {
-    return `Driver is clone of ${detail.parentDescription ?? detail.cloneOf}`;
-  }
-  return "Driver is parent";
-}
-
-export function machineGraphicsStatusLine(detail: MachineDetail): string {
-  if (detail.displays.length === 0) return "Graphics: Unknown, Sound: Unknown";
-  const graphics = detail.driverStatus === "good" ? "OK" : "Imperfect";
-  const sound = detail.driverNoSoundHardware
-    ? "None"
-    : detail.driverIncomplete
-      ? "Imperfect"
-      : "OK";
-  return `Graphics: ${graphics}, Sound: ${sound}`;
 }
