@@ -18,10 +18,12 @@ import type {
   MachineDetail,
   MachineListItem,
   MachinePage,
+  MameVersionReport,
   SessionSnapshot,
 } from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { isEditableElement } from "../library/keyboardNavigation";
+import { MachineCatalogState, MachineCatalogSummary } from "./MachineCatalogState";
 import { MachineDriverStatus } from "./MachineDriverStatus";
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
@@ -101,15 +103,60 @@ function primaryLaunchButtonAriaLabel(detail: MachineDetail): string {
   return `Start ${detail.description}`;
 }
 
+function hasActiveBrowserQuery(
+  filter: MameBrowserFilter,
+  search: string,
+  filterValue: string,
+): boolean {
+  return filter !== "all" || search.trim() !== "" || filterValue.trim() !== "";
+}
+
+function browserRangeLabel({
+  page,
+  loadState,
+  uiStateHydrated,
+  mameReport,
+  filter,
+  search,
+  filterValue,
+}: {
+  page: MachinePage | null;
+  loadState: LoadState;
+  uiStateHydrated: boolean;
+  mameReport: MameVersionReport;
+  filter: MameBrowserFilter;
+  search: string;
+  filterValue: string;
+}): string {
+  if (page && page.total > 0) {
+    return `${(page.offset + 1).toLocaleString()}–${Math.min(
+      page.offset + page.items.length,
+      page.total,
+    ).toLocaleString()} of ${page.total.toLocaleString()}`;
+  }
+
+  if (mameReport.status === "notConfigured") return "Configure MAME";
+  if (mameReport.status === "unavailable") return "MAME unavailable";
+  if (!uiStateHydrated || loadState.status === "loading") return "Reading catalog";
+  if (loadState.status === "error") return "Catalog unavailable";
+  if (loadState.status === "awaitingFilterValue") return "Filter value required";
+  if (hasActiveBrowserQuery(filter, search, filterValue)) return "No matches";
+  return "Metadata not imported";
+}
+
 export function MameBrowser({
   availabilityRevision,
   gameplayInputOwned,
+  mameReport,
   onAuditResultsChanged,
+  onConfigureOptions,
   onSessionStarted,
 }: {
   availabilityRevision: number;
   gameplayInputOwned: boolean;
+  mameReport: MameVersionReport;
   onAuditResultsChanged: () => void;
+  onConfigureOptions: () => void;
   onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -290,13 +337,15 @@ export function MameBrowser({
   }, [selected]);
 
   const page = loadState.status === "ready" ? loadState.page : null;
-  const range =
-    page && page.total > 0
-      ? `${(page.offset + 1).toLocaleString()}–${Math.min(
-          page.offset + page.items.length,
-          page.total,
-        ).toLocaleString()} of ${page.total.toLocaleString()}`
-      : "0 machines";
+  const range = browserRangeLabel({
+    page,
+    loadState,
+    uiStateHydrated,
+    mameReport,
+    filter,
+    search: debouncedSearch,
+    filterValue: debouncedFilterValue,
+  });
 
   const focusSelectedMachine = useCallback(() => {
     if (!page || !selected) return;
@@ -615,21 +664,17 @@ export function MameBrowser({
           aria-busy={loadState.status === "loading"}
         >
           <div className="mame-region-heading">Machines</div>
-          {!uiStateHydrated && <div className="mame-panel-state">Restoring browser state…</div>}
-          {uiStateHydrated && loadState.status === "awaitingFilterValue" && (
-            <div className="mame-panel-state">Enter a value for the selected filter.</div>
-          )}
-          {uiStateHydrated && loadState.status === "loading" && (
-            <div className="mame-panel-state">Loading catalog…</div>
-          )}
-          {uiStateHydrated && loadState.status === "error" && (
-            <div className="mame-panel-state" role="alert">
-              {loadState.message}
-            </div>
-          )}
-          {page && page.items.length === 0 && (
-            <div className="mame-panel-state">No machines match this filter.</div>
-          )}
+          <MachineCatalogState
+            mameReport={mameReport}
+            uiStateHydrated={uiStateHydrated}
+            loadState={loadState}
+            page={page}
+            search={debouncedSearch}
+            filter={filter}
+            filterValue={debouncedFilterValue}
+            onConfigureOptions={onConfigureOptions}
+          />
+          {page && page.items.length > 0 && <MachineCatalogSummary page={page} />}
           {page && page.items.length > 0 && (
             <MachineList
               page={page}

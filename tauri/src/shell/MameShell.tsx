@@ -117,7 +117,9 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           <MameBrowser
             availabilityRevision={availabilityRevision}
             gameplayInputOwned={gameplayInputOwned}
+            mameReport={appInfo.mame}
             onAuditResultsChanged={bumpAvailabilityRevision}
+            onConfigureOptions={() => setView("settings")}
             onSessionStarted={observeSession}
           />
         )}
