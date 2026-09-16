@@ -15,9 +15,24 @@ import type {
   SessionSnapshot,
 } from "../backend/types";
 import { MameBrowser } from "../browser/MameBrowser";
+import { BulkAuditPanel } from "../library/BulkAuditPanel";
+import { CollectionManager } from "../library/CollectionManager";
 import { isGameplaySessionState } from "../library/keyboardNavigation";
+import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
+import { SessionControlPanel } from "../session/SessionControlPanel";
+import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
+import { GeneralSettingsPanel } from "../settings/GeneralSettingsPanel";
 import "./MameShell.css";
 import "./ContextualSurfaces.css";
+
+type ShellView =
+  | "library"
+  | "session"
+  | "settings"
+  | "audit"
+  | "history"
+  | "collections"
+  | "diagnostics";
 
 function mameVersionLabel(report: MameVersionReport): string {
   switch (report.status) {
@@ -35,6 +50,7 @@ function activeSession(session: SessionSnapshot | null): SessionSnapshot | null 
 }
 
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
+  const [view, setView] = useState<ShellView>("library");
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
@@ -102,15 +118,39 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   return (
     <main className="mame-shell">
       <section className="mame-shell-workspace" aria-label="MAME machine browser">
-        <MameBrowser
-          availabilityRevision={availabilityRevision}
-          gameplayInputOwned={gameplayInputOwned}
-          onAuditResultsChanged={bumpAvailabilityRevision}
-          onSessionStarted={observeSession}
-        />
+        {view === "library" && (
+          <MameBrowser
+            availabilityRevision={availabilityRevision}
+            gameplayInputOwned={gameplayInputOwned}
+            onAuditResultsChanged={bumpAvailabilityRevision}
+            onSessionStarted={observeSession}
+          />
+        )}
+        {view !== "library" && (
+          <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
+            <button type="button" className="mame-secondary-back" onClick={() => setView("library")}>
+              ← Machine Selection
+            </button>
+            {view === "session" && <SessionControlPanel />}
+            {view === "settings" && (
+              <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+            )}
+            {view === "audit" && <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />}
+            {view === "history" && <RecentHistoryPanel />}
+            {view === "collections" && <CollectionManager />}
+            {view === "diagnostics" && <DiagnosticsPanel />}
+          </section>
+        )}
       </section>
       <footer className="mame-status-bar" aria-label="MAME runtime status">
-        <span>{activeSessionLabel}</span>
+        <button type="button" className="mame-session-status" onClick={() => setView("session")}>
+          {activeSessionLabel}
+        </button>
+        <button type="button" onClick={() => setView("settings")}>Options</button>
+        <button type="button" onClick={() => setView("audit")}>Audit</button>
+        <button type="button" onClick={() => setView("history")}>History</button>
+        <button type="button" onClick={() => setView("collections")}>Collections</button>
+        <button type="button" onClick={() => setView("diagnostics")}>Diagnostics</button>
         <span>{mameVersionLabel(appInfo.mame)}</span>
         <span>App {appInfo.appVersion}</span>
         <span>Backend {appInfo.backend}</span>
