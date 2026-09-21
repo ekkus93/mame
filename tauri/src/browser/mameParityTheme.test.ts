@@ -57,6 +57,11 @@ describe("MAME visual parity tripwires", () => {
     expect(shellCss).not.toContain("color: CanvasText");
   });
 
+  it("removes generic Tauri branding from the default machine browser", () => {
+    expect(shellCss).not.toContain("MAME Tauri Frontend");
+    expect(shellCss).not.toContain(".mame-browser::before");
+  });
+
   it("removes the generic dashboard tab row from the default shell", () => {
     expect(shellSource).not.toContain('className="mame-shell-nav"');
     expect(shellSource).not.toContain('aria-label="Application views"');

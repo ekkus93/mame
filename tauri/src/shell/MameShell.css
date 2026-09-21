@@ -19,27 +19,13 @@
   color: var(--mame-text);
 }
 
-.mame-browser::before {
-  content: "MAME Tauri Frontend";
-  display: block;
-  padding: 0.28rem 0.75rem;
-  border: 1px solid var(--mame-border);
-  background: var(--mame-bg);
-  color: var(--mame-text);
-  font-size: 1.05rem;
-  line-height: 1.25;
-  text-align: center;
-}
-
 .mame-browser-toolbar {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   min-height: 2.7rem;
   padding: 0.35rem 0.75rem;
-  border-right: 1px solid var(--mame-border);
-  border-bottom: 1px solid var(--mame-border);
-  border-left: 1px solid var(--mame-border);
+  border: 1px solid var(--mame-border);
   background: var(--mame-toolbar);
   color: var(--mame-text);
 }
