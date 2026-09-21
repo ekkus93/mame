@@ -1,7 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useReducer, useState } from "react";
 
-import { getMameSession } from "../backend/commands";
+import { getAppInfo, getMameSession } from "../backend/commands";
 import {
   SESSION_CRASHED_EVENT,
   SESSION_EXITED_EVENT,
@@ -45,6 +45,7 @@ function activeSession(session: SessionSnapshot | null): SessionSnapshot | null 
 
 export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const [view, setView] = useState<ShellView>("library");
+  const [mameReport, setMameReport] = useState(appInfo.mame);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
@@ -105,6 +106,13 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     };
   }, []);
 
+  const returnToLibrary = () => {
+    setView("library");
+    void getAppInfo()
+      .then((info) => setMameReport(info.mame))
+      .catch(() => undefined);
+  };
+
   const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
   const activeSessionLabel = session
     ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
@@ -117,17 +125,16 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           <MameBrowser
             availabilityRevision={availabilityRevision}
             gameplayInputOwned={gameplayInputOwned}
+            mame={mameReport}
             onAuditResultsChanged={bumpAvailabilityRevision}
+            onConfigureOptions={() => setView("settings")}
+            onOpenAudit={() => setView("audit")}
             onSessionStarted={observeSession}
           />
         )}
         {view !== "library" && (
           <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
-            <button
-              type="button"
-              className="mame-secondary-back"
-              onClick={() => setView("library")}
-            >
+            <button type="button" className="mame-secondary-back" onClick={returnToLibrary}>
               ← Machine Selection
             </button>
             {view === "session" && <SessionControlPanel />}
@@ -162,7 +169,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         <button type="button" onClick={() => setView("diagnostics")}>
           Diagnostics
         </button>
-        <span>{mameVersionLabel(appInfo.mame)}</span>
+        <span>{mameVersionLabel(mameReport)}</span>
       </footer>
     </main>
   );

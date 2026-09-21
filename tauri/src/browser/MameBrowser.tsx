@@ -9,12 +9,18 @@ import {
 } from "react";
 
 import type { ArtworkKind } from "../backend/artwork";
-import { getMameMachineDetail, launchLibraryMachine } from "../backend/commands";
+import {
+  getMameMachineDetail,
+  getMameMetadataStatus,
+  launchLibraryMachine,
+  refreshMameMetadata,
+} from "../backend/commands";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import { exportMameUiDisplayedList, queryMameUiLibrary } from "../backend/mameUi";
 import { getMameUiState, setMameUiState, type MameUiPanelMode } from "../backend/mameUiState";
 import type {
+  MameVersionReport,
   MachineDetail,
   MachineListItem,
   MachinePage,
@@ -22,9 +28,19 @@ import type {
 } from "../backend/types";
 import { FavoriteToggleButton } from "../library/FavoriteToggleButton";
 import { isEditableElement } from "../library/keyboardNavigation";
+import { MameCatalogStatePanel } from "./MameCatalogStatePanel";
 import { MachineDriverStatus } from "./MachineDriverStatus";
 import { MachineFilterPanel } from "./MachineFilterPanel";
 import { MachineList } from "./MachineList";
+import {
+  catalogCanQuery,
+  catalogRangeLabel,
+  catalogStateFromMetadata,
+  initialMameCatalogState,
+  machineAvailabilityNotice,
+  metadataExecutableRequest,
+  type MameCatalogState,
+} from "./mameCatalogState";
 import {
   EmptyMachineRightPanel,
   MachineRightPanel,
@@ -104,12 +120,18 @@ function primaryLaunchButtonAriaLabel(detail: MachineDetail): string {
 export function MameBrowser({
   availabilityRevision,
   gameplayInputOwned,
+  mame,
   onAuditResultsChanged,
+  onConfigureOptions,
+  onOpenAudit,
   onSessionStarted,
 }: {
   availabilityRevision: number;
   gameplayInputOwned: boolean;
+  mame: MameVersionReport;
   onAuditResultsChanged: () => void;
+  onConfigureOptions: () => void;
+  onOpenAudit: () => void;
   onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +139,7 @@ export function MameBrowser({
   const activeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const rightPanelFirstTabRef = useRef<HTMLButtonElement | null>(null);
   const configureButtonRef = useRef<HTMLButtonElement | null>(null);
+  const catalogSequence = useRef(0);
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
@@ -129,6 +152,9 @@ export function MameBrowser({
   const [offset, setOffset] = useState(0);
   const [preferredMachine, setPreferredMachine] = useState<string | null>(null);
   const [rememberedMachine, setRememberedMachine] = useState<string | null>(null);
+  const [catalogState, setCatalogState] = useState<MameCatalogState>(() =>
+    initialMameCatalogState(mame),
+  );
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [selected, setSelected] = useState<MachineListItem | null>(null);
   const [detailState, setDetailState] = useState<DetailState>({ status: "idle" });
@@ -171,6 +197,40 @@ export function MameBrowser({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const sequence = ++catalogSequence.current;
+    const initial = initialMameCatalogState(mame);
+    setCatalogState(initial);
+    setLoadState({ status: "loading" });
+    setSelected(null);
+
+    if (initial.status !== "checking") return;
+
+    const executable = metadataExecutableRequest(mame);
+    if (!executable) {
+      setCatalogState({
+        status: "executableUnavailable",
+        message: "The active MAME executable cannot be used to inspect metadata.",
+      });
+      return;
+    }
+
+    void getMameMetadataStatus({ executable })
+      .then((status) => {
+        if (catalogSequence.current === sequence) {
+          setCatalogState(catalogStateFromMetadata(status));
+        }
+      })
+      .catch((reason: unknown) => {
+        if (catalogSequence.current === sequence) {
+          setCatalogState({
+            status: "importFailed",
+            message: `Metadata status unavailable: ${errorMessage(reason)}`,
+          });
+        }
+      });
+  }, [mame]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 160);
@@ -223,6 +283,42 @@ export function MameBrowser({
     uiStateHydrated,
   ]);
 
+  const importMetadata = useCallback(() => {
+    if (catalogState.status === "importing") return;
+    const executable = metadataExecutableRequest(mame);
+    if (!executable) {
+      setCatalogState({
+        status: "importFailed",
+        message: "The active MAME executable cannot be used to refresh metadata.",
+      });
+      return;
+    }
+
+    const sequence = ++catalogSequence.current;
+    setCatalogState({ status: "importing" });
+    setLoadState({ status: "loading" });
+    setSelected(null);
+
+    void refreshMameMetadata({ executable })
+      .then((result) => {
+        if (catalogSequence.current !== sequence) return;
+        setCatalogState({
+          status: "ready",
+          machineCount: result.generation.machineCount,
+        });
+        setOffset(0);
+        setPreferredMachine(rememberedMachine);
+      })
+      .catch((reason: unknown) => {
+        if (catalogSequence.current === sequence) {
+          setCatalogState({
+            status: "importFailed",
+            message: errorMessage(reason),
+          });
+        }
+      });
+  }, [catalogState.status, mame, rememberedMachine]);
+
   const valueRequired = filterRequiresValue(filter);
   const request = useMemo(
     () =>
@@ -238,6 +334,11 @@ export function MameBrowser({
 
   useEffect(() => {
     if (!uiStateHydrated) return;
+    if (!catalogCanQuery(catalogState)) {
+      querySequence.current += 1;
+      setSelected(null);
+      return;
+    }
     const sequence = ++querySequence.current;
     if (valueRequired && !debouncedFilterValue) {
       setLoadState({ status: "awaitingFilterValue" });
@@ -261,6 +362,7 @@ export function MameBrowser({
       });
   }, [
     availabilityRevision,
+    catalogState,
     debouncedFilterValue,
     offset,
     preferredMachine,
@@ -290,13 +392,17 @@ export function MameBrowser({
   }, [selected]);
 
   const page = loadState.status === "ready" ? loadState.page : null;
+  const catalogReady = catalogCanQuery(catalogState);
+  const availabilityNotice = catalogReady ? machineAvailabilityNotice(page) : null;
   const range =
-    page && page.total > 0
-      ? `${(page.offset + 1).toLocaleString()}–${Math.min(
-          page.offset + page.items.length,
-          page.total,
-        ).toLocaleString()} of ${page.total.toLocaleString()}`
-      : "0 machines";
+    !catalogReady || !page
+      ? catalogRangeLabel(catalogState)
+      : page.total > 0
+        ? `${(page.offset + 1).toLocaleString()}–${Math.min(
+            page.offset + page.items.length,
+            page.total,
+          ).toLocaleString()} of ${page.total.toLocaleString()}`
+        : "Metadata loaded";
 
   const focusSelectedMachine = useCallback(() => {
     if (!page || !selected) return;
@@ -325,7 +431,13 @@ export function MameBrowser({
   );
 
   const exportDisplayedList = useCallback(() => {
-    if (exportState.status === "exporting" || (valueRequired && !debouncedFilterValue)) return;
+    if (
+      !catalogReady ||
+      exportState.status === "exporting" ||
+      (valueRequired && !debouncedFilterValue)
+    ) {
+      return;
+    }
     setExportState({ status: "exporting" });
     void exportMameUiDisplayedList({
       text: debouncedSearch || null,
@@ -345,7 +457,14 @@ export function MameBrowser({
       .catch((reason: unknown) => {
         setExportState({ status: "error", message: errorMessage(reason) });
       });
-  }, [debouncedFilterValue, debouncedSearch, exportState.status, filter, valueRequired]);
+  }, [
+    catalogReady,
+    debouncedFilterValue,
+    debouncedSearch,
+    exportState.status,
+    filter,
+    valueRequired,
+  ]);
 
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
@@ -492,6 +611,7 @@ export function MameBrowser({
             aria-keyshortcuts="/"
             placeholder="Search systems..."
             autoComplete="off"
+            disabled={!catalogReady}
             onChange={(event) => {
               setSearch(event.target.value);
               setPreferredMachine(null);
@@ -506,7 +626,11 @@ export function MameBrowser({
           type="button"
           className="secondary-button"
           aria-label="Export displayed machine list"
-          disabled={exportState.status === "exporting" || (valueRequired && !debouncedFilterValue)}
+          disabled={
+            !catalogReady ||
+            exportState.status === "exporting" ||
+            (valueRequired && !debouncedFilterValue)
+          }
           onClick={exportDisplayedList}
         >
           {exportState.status === "exporting" ? "Exporting…" : "Export"}
@@ -612,25 +736,61 @@ export function MameBrowser({
         <section
           className="mame-list-region"
           aria-label="Machine list"
-          aria-busy={loadState.status === "loading"}
+          aria-busy={
+            loadState.status === "loading" ||
+            catalogState.status === "checking" ||
+            catalogState.status === "importing"
+          }
         >
           <div className="mame-region-heading">Machines</div>
           {!uiStateHydrated && <div className="mame-panel-state">Restoring browser state…</div>}
-          {uiStateHydrated && loadState.status === "awaitingFilterValue" && (
-            <div className="mame-panel-state">Enter a value for the selected filter.</div>
+          {uiStateHydrated && catalogState.status !== "ready" && (
+            <MameCatalogStatePanel
+              state={catalogState}
+              onConfigureOptions={onConfigureOptions}
+              onImportMetadata={importMetadata}
+            />
           )}
-          {uiStateHydrated && loadState.status === "loading" && (
+          {uiStateHydrated &&
+            catalogState.status === "ready" &&
+            loadState.status === "awaitingFilterValue" && (
+              <div className="mame-panel-state">Enter a value for the selected filter.</div>
+            )}
+          {uiStateHydrated && catalogState.status === "ready" && loadState.status === "loading" && (
             <div className="mame-panel-state">Loading catalog…</div>
           )}
-          {uiStateHydrated && loadState.status === "error" && (
+          {uiStateHydrated && catalogState.status === "ready" && loadState.status === "error" && (
             <div className="mame-panel-state" role="alert">
               {loadState.message}
             </div>
           )}
-          {page && page.items.length === 0 && (
-            <div className="mame-panel-state">No machines match this filter.</div>
+          {catalogState.status === "ready" && page && page.items.length === 0 && (
+            <div className="mame-panel-state">
+              {page.total === 0 && filter === "all" && !debouncedSearch
+                ? "Metadata loaded, but no machines are present in the active catalog."
+                : "No machines match this filter."}
+            </div>
           )}
-          {page && page.items.length > 0 && (
+          {catalogState.status === "ready" && availabilityNotice === "unknown" && page && (
+            <div className="mame-catalog-hint" role="status">
+              <span>ROM availability has not been audited for these machines.</span>
+              <button type="button" className="secondary-button" onClick={onOpenAudit}>
+                Audit
+              </button>
+            </div>
+          )}
+          {catalogState.status === "ready" && availabilityNotice === "noneAvailable" && page && (
+            <div className="mame-catalog-hint" role="status">
+              <span>No verified available ROMs were found in the configured content paths.</span>
+              <button type="button" className="secondary-button" onClick={onConfigureOptions}>
+                Configure Options
+              </button>
+              <button type="button" className="secondary-button" onClick={onOpenAudit}>
+                Audit
+              </button>
+            </div>
+          )}
+          {catalogState.status === "ready" && page && page.items.length > 0 && (
             <MachineList
               page={page}
               selected={selected}
@@ -642,7 +802,7 @@ export function MameBrowser({
               onActivate={activateMachine}
             />
           )}
-          {page && page.total > page.limit && (
+          {catalogState.status === "ready" && page && page.total > page.limit && (
             <nav className="mame-pager" aria-label="Machine result pages">
               <button
                 type="button"

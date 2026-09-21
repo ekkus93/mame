@@ -170,13 +170,13 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-011 — Startup, metadata, and empty-state parity
 
-- [ ] Replace generic `0 machines` / metadata inactive empty state with original-MAME-like visual presentation.
-- [ ] Distinguish not-configured, metadata-import-needed, import-in-progress, import-failed, metadata-loaded, and no-ROMs/unknown-availability states.
-- [ ] Ensure all states remain inside the original-MAME-like layout.
-- [ ] Provide a clear path to configure/import metadata without leaving the user in a generic blank white shell.
-- [ ] Verify that a configured installation reaches a populated machine list rather than a permanent generic empty state.
+- [x] Replace generic `0 machines` / metadata inactive empty state with original-MAME-like visual presentation.
+- [x] Distinguish not-configured, metadata-import-needed, import-in-progress, import-failed, metadata-loaded, and no-ROMs/unknown-availability states.
+- [x] Ensure all states remain inside the original-MAME-like layout.
+- [x] Provide a clear path to configure/import metadata without leaving the user in a generic blank white shell.
+- [x] Verify that a configured installation reaches a populated machine list rather than a permanent generic empty state.
 
-**Completion evidence required:** state rendering tests or manual evidence for each state that can be produced locally/CI.
+**MTP-011 evidence:** `mameCatalogState.ts` defines explicit not-configured, executable-unavailable, metadata-checking/import-needed/importing/import-failed/ready states and gates catalog queries until a fresh generation is active. `MameCatalogStatePanel.tsx` renders Configure Options, Import/Refresh Metadata, retry, progress, and failure states inside the existing original-MAME-like browser layout. `MameBrowser.tsx` routes a successful import immediately back into the authoritative machine query path, distinguishes a genuinely empty catalog from filter misses, and exposes Audit/Configure guidance for unknown or absent ROM availability. `MameShell.tsx` refreshes the authoritative MAME report when returning from configuration and wires Configure/Audit navigation without restoring the generic dashboard. `mameCatalogState.test.tsx` covers setup readiness, empty/stale/fresh metadata, import progress/failure presentation, query gating, and unknown/no-available-ROM states. Exact implementation head `97aa5a3447c6188314093a038bf25a8cba6ca911` passed Tauri project `35623914707`, Tauri security `35623914728`, Linux packaging `35623914688`, Windows packaging `35623914714`, and macOS packaging `35623914733`.
 
 ---
 

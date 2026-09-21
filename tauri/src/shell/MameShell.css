@@ -89,6 +89,7 @@
 }
 
 .mame-context-actions button,
+.mame-catalog-actions button,
 .mame-pager button,
 .mame-right-tabs button,
 .mame-artwork-categories button,
@@ -211,6 +212,48 @@
   margin: 0.75rem;
   color: var(--mame-muted);
   font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mame-catalog-state {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.55rem;
+  min-height: 15rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--mame-border-muted);
+  background: var(--mame-bg);
+  color: var(--mame-muted);
+  text-align: center;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.mame-catalog-state strong {
+  color: var(--mame-text);
+  font-size: 1rem;
+}
+
+.mame-catalog-state.is-executableUnavailable strong,
+.mame-catalog-state.is-importFailed strong {
+  color: var(--mame-error);
+}
+
+.mame-catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.mame-catalog-hint {
+  padding: 0.35rem 0.65rem;
+  border-bottom: 1px solid var(--mame-border-muted);
+  background: var(--mame-surface);
+  color: var(--mame-muted);
+  font-size: 0.8rem;
   line-height: 1.35;
 }
 
