@@ -19,7 +19,8 @@ export function MameCatalogStatePanel({
   switch (state.status) {
     case "notConfigured":
       title = "MAME is not configured";
-      detail = "Choose a MAME executable in Configure Options before importing the machine catalog.";
+      detail =
+        "Choose a MAME executable in Configure Options before importing the machine catalog.";
       showConfigure = true;
       break;
     case "executableUnavailable":
