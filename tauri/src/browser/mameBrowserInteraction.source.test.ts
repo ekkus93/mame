@@ -39,7 +39,7 @@ describe("MAME command and interaction parity tripwires", () => {
 
   it("preserves click paths for filters, rows, activation, and right-panel tabs", () => {
     expect(browserSource).toContain("onChange={changeFilter}");
-    expect(browserSource).toContain("onSelect={setSelected}");
+    expect(browserSource).toContain("onSelect={selectMachine}");
     expect(browserSource).toContain("onActivate={activateMachine}");
     expect(browserSource).toContain("onViewChange={changeRightView}");
     expect(filterSource).toContain("if (!deferred) onChange(filter.id);");
