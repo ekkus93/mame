@@ -20,7 +20,7 @@ describe("Linux desktop compatibility parity tripwires", () => {
   const themeCss = readSource("../mameTheme.css");
   const shellCss = readSource("./MameShell.css");
   const appCss = readSource("../App.css");
-  const tauriConfig = readSource("../src-tauri/tauri.conf.json");
+  const tauriConfig = readSource("../../src-tauri/tauri.conf.json");
 
   it("keeps the product on the Tauri WebView shell instead of a native selector route", () => {
     expect(appSource).toContain("<MameShell");
