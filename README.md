@@ -6,7 +6,7 @@ The product scope is a **production-useful external-window MAME frontend**. MAME
 
 ## Current product UI
 
-The default ready-state UI reproduces the information architecture and interaction model of MAME's machine/software selector rather than the older engineering-dashboard composition.
+The default ready-state UI is intentionally an original-MAME-style machine/software selector, not a new dashboard design. The parity target is to preserve the original selector's visual hierarchy and keyboard/mouse behavior while using the React/Tauri/WebView path to reduce dependence on the native desktop-toolkit behavior that caused Linux desktop-environment compatibility problems.
 
 The primary workspace is organized around the selected machine:
 
@@ -24,7 +24,7 @@ The primary workspace is organized around the selected machine:
 | ...                | Galaga                               |                    |
 |                    | Pac-Man                              |                    |
 +--------------------+--------------------------------------+--------------------+
-| active session / MAME version / app status                                      |
+| selected-machine driver/status                                                   |
 +--------------------------------------------------------------------------------+
 ```
 
@@ -32,23 +32,37 @@ Machine filters are persistent on the left, the dense machine list is the domina
 
 At narrow desktop widths, the machine list remains primary and an explicit **Details** control reveals the right-side context.
 
-The old temporary **Legacy UI** route and vertical dashboard composition have been retired.
+The old temporary **Legacy UI** route and vertical engineering-dashboard composition have been retired and are not the intended product direction. Settings, audit, history, collections, diagnostics, and session controls remain available as secondary surfaces rather than a default dashboard tab row.
+
+### Intentional deviations from original MAME
+
+Parity does not mean embedding the original native selector. The intentional deviations are bounded and documented:
+
+- the selector is rendered by React in a Tauri WebView; MAME itself remains a separately supervised native process;
+- project-only secondary surfaces such as Diagnostics, Collections, and bulk Audit remain available behind secondary actions;
+- Category and Custom Filter positions are represented in the original-like filter list where full data/authoring support remains deferred;
+- narrow-window behavior uses an explicit **Details** control instead of allowing the desktop three-panel layout to become unusable;
+- project Icon/System Image artwork extensions coexist with the canonical MAME artwork categories;
+- screenshot pixel-baseline CI is deferred because the hosted matrix has no stable cross-platform WebView screenshot harness; source/component tripwires plus the repo-owned visual checklist are the current regression guard.
+
+The canonical visual contract is `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`. Linux desktop compatibility boundaries and GNOME/KDE/Wayland/X11 considerations are recorded in `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md`.
 
 ## Current project status
 
-The main engineering phase and post-closeout hardening phase are complete. The MAME-UI reproduction milestone is tracked by:
+The main engineering phase and post-closeout hardening phase are complete. The original-MAME visual/interaction parity pass is tracked by:
 
-- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md` — reproduction specification;
-- `docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md` — canonical upstream behavior inventory and initial dispositions;
-- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_TODO_2026-09-14.md` — milestone reconciliation ledger;
-- `docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md` — accessibility/usability audit;
-- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md` — final implementation/defer record and qualification protocol.
+- `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` — current parity specification;
+- `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` — canonical parity backlog and evidence ledger;
+- `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md` — visual reference contract and manual checklist;
+- `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md` — Linux desktop compatibility boundary and manual checks.
 
-Earlier engineering closure records remain authoritative for the completed external-window architecture:
+Earlier reproduction and engineering closure records remain useful historical evidence:
 
+- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md`;
+- `docs/MAME_TAURI_MAME_UI_PARITY_MATRIX_2026-09-14.md`;
+- `docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md`;
 - `docs/MAME_TAURI_TODO_2026-09-08.md`;
 - `docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md`;
-- `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_SPEC_2026-09-13.md`;
 - `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md`.
 
 The deliberately deferred architecture research tracks remain MT-1000 native-window/embedded-render integration, MT-1100 dedicated Tauri MAME OSD, MT-1200 in-process MAME hosting, and MT-1705 embedded-render performance qualification. They are not part of the external-window product claim.
@@ -78,7 +92,7 @@ Implemented browser capabilities include:
 - application-managed save-state listing/save/load/delete/compatibility checks;
 - secondary Collections, Recent History, bulk Audit, global Settings, and Diagnostics surfaces.
 
-Deliberate MAME-parity gaps are documented in the closure record. They are not silently represented as implemented features.
+Deliberate MAME-parity gaps are documented in the parity TODO and historical closure record. They are not silently represented as implemented features.
 
 ## Repository layout
 
@@ -199,6 +213,22 @@ Build platform bundles where the current host supports them:
 ```bash
 npm run tauri -- build
 ```
+
+## Visual parity verification
+
+For a local visual/interaction check, start from a configured MAME executable and metadata catalog, then run:
+
+```bash
+cd tauri
+npm ci
+npm run tauri -- dev
+```
+
+Compare the default machine-selection window against `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`. Verify the dark/navy main surface, compact blue toolbar, original-order left filters, dense central list, blue selected row with yellow selected text, muted unavailable rows, `Images` / `Infos` right panel, and green selected-machine status region. Exercise Up/Down, PageUp/PageDown, Home/End, Enter, Escape, search focus, filter selection, machine selection, right-panel tabs, Configure, Software List, Audit, and Start/Start Empty. On Linux, also follow `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md` for host-theme and focus checks.
+
+### Updating visual references
+
+When the intended upstream-MAME visual target changes, capture the original/reference selector and the Tauri comparison at the same practical window size and state. Record the date, platform/session, window dimensions, selected filter, selected machine, right-panel tab/category, and any host theme/compositor details. Store binary captures under `docs/reference/mame-ui-parity/` when using a binary-capable repository path, and update `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md` with filenames and any intentional differences. Do not replace the textual checklist: it remains the portable source of truth when screenshots cannot be consumed by CI or the Ralph text-file path.
 
 ## Validation
 
