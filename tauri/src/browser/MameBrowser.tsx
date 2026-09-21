@@ -142,6 +142,8 @@ export function MameBrowser({
   const catalogSequence = useRef(0);
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
+  const activationSequence = useRef(0);
+  const selectedRef = useRef<MachineListItem | null>(null);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
   const [uiStateError, setUiStateError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MameBrowserFilter>("all");
@@ -171,6 +173,19 @@ export function MameBrowser({
   const [launchState, setLaunchState] = useState<LaunchState>({ status: "idle" });
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [favoriteRevision, bumpFavoriteRevision] = useReducer((value: number) => value + 1, 0);
+
+  const selectMachine = useCallback((next: MachineListItem | null) => {
+    const previousShortName = selectedRef.current?.shortName ?? null;
+    const nextShortName = next?.shortName ?? null;
+    selectedRef.current = next;
+    if (previousShortName !== nextShortName) {
+      detailSequence.current += 1;
+      activationSequence.current += 1;
+      setPendingLaunchOverrides(null);
+      setLaunchState({ status: "idle" });
+    }
+    setSelected(next);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,7 +218,7 @@ export function MameBrowser({
     const initial = initialMameCatalogState(mame);
     setCatalogState(initial);
     setLoadState({ status: "loading" });
-    setSelected(null);
+    selectMachine(null);
 
     if (initial.status !== "checking") return;
 
@@ -230,7 +245,7 @@ export function MameBrowser({
           });
         }
       });
-  }, [mame]);
+  }, [mame, selectMachine]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 160);
@@ -297,7 +312,7 @@ export function MameBrowser({
     const sequence = ++catalogSequence.current;
     setCatalogState({ status: "importing" });
     setLoadState({ status: "loading" });
-    setSelected(null);
+    selectMachine(null);
 
     void refreshMameMetadata({ executable })
       .then((result) => {
@@ -317,7 +332,7 @@ export function MameBrowser({
           });
         }
       });
-  }, [catalogState.status, mame, rememberedMachine]);
+  }, [catalogState.status, mame, rememberedMachine, selectMachine]);
 
   const valueRequired = filterRequiresValue(filter);
   const request = useMemo(
@@ -336,13 +351,13 @@ export function MameBrowser({
     if (!uiStateHydrated) return;
     if (!catalogCanQuery(catalogState)) {
       querySequence.current += 1;
-      setSelected(null);
+      selectMachine(null);
       return;
     }
     const sequence = ++querySequence.current;
     if (valueRequired && !debouncedFilterValue) {
       setLoadState({ status: "awaitingFilterValue" });
-      setSelected(null);
+      selectMachine(null);
       return;
     }
 
@@ -352,13 +367,13 @@ export function MameBrowser({
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
         if (page.offset !== offset) setOffset(page.offset);
-        setSelected((current) => reconcileMachineSelection(page.items, current, preferredMachine));
+        selectMachine(reconcileMachineSelection(page.items, selectedRef.current, preferredMachine));
         if (preferredMachine) setPreferredMachine(null);
       })
       .catch((reason: unknown) => {
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "error", message: errorMessage(reason) });
-        setSelected(null);
+        selectMachine(null);
       });
   }, [
     availabilityRevision,
@@ -369,23 +384,31 @@ export function MameBrowser({
     request,
     uiStateHydrated,
     valueRequired,
+    selectMachine,
   ]);
 
   useEffect(() => {
+    const sequence = detailSequence.current;
     if (!selected) {
       setDetailState({ status: "idle" });
       return;
     }
-    const sequence = ++detailSequence.current;
+    const shortName = selected.shortName;
     setDetailState({ status: "loading" });
-    setLaunchState({ status: "idle" });
-    setPendingLaunchOverrides(null);
-    void getMameMachineDetail({ shortName: selected.shortName })
+    void getMameMachineDetail({ shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence) setDetailState({ status: "ready", detail });
+        if (
+          detailSequence.current === sequence &&
+          selectedRef.current?.shortName === shortName
+        ) {
+          setDetailState({ status: "ready", detail });
+        }
       })
       .catch((reason: unknown) => {
-        if (detailSequence.current === sequence) {
+        if (
+          detailSequence.current === sequence &&
+          selectedRef.current?.shortName === shortName
+        ) {
           setDetailState({ status: "error", message: errorMessage(reason) });
         }
       });
@@ -468,9 +491,32 @@ export function MameBrowser({
 
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
+      if (!machine.runnable || selectedRef.current?.shortName !== machine.shortName) return;
+      const activation = ++activationSequence.current;
+      const detailGeneration = detailSequence.current;
       if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
         launchDetail(detailState.detail);
+        return;
       }
+      void getMameMachineDetail({ shortName: machine.shortName })
+        .then((detail) => {
+          if (
+            activationSequence.current === activation &&
+            detailSequence.current === detailGeneration &&
+            selectedRef.current?.shortName === machine.shortName
+          ) {
+            launchDetail(detail);
+          }
+        })
+        .catch((reason: unknown) => {
+          if (
+            activationSequence.current === activation &&
+            detailSequence.current === detailGeneration &&
+            selectedRef.current?.shortName === machine.shortName
+          ) {
+            setLaunchState({ status: "error", message: errorMessage(reason) });
+          }
+        });
     },
     [detailState, launchDetail],
   );
@@ -797,7 +843,7 @@ export function MameBrowser({
               registerRow={(index, element) => {
                 machineRowRefs.current[index] = element;
               }}
-              onSelect={setSelected}
+              onSelect={selectMachine}
               onNavigate={handleMachineRowKeyDown}
               onActivate={activateMachine}
             />
