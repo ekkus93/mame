@@ -754,11 +754,9 @@ export function MameBrowser({
           {uiStateHydrated &&
             catalogState.status === "ready" &&
             loadState.status === "awaitingFilterValue" && (
-            <div className="mame-panel-state">Enter a value for the selected filter.</div>
-          )}
-          {uiStateHydrated &&
-            catalogState.status === "ready" &&
-            loadState.status === "loading" && (
+              <div className="mame-panel-state">Enter a value for the selected filter.</div>
+            )}
+          {uiStateHydrated && catalogState.status === "ready" && loadState.status === "loading" && (
             <div className="mame-panel-state">Loading catalog…</div>
           )}
           {uiStateHydrated && catalogState.status === "ready" && loadState.status === "error" && (
