@@ -207,13 +207,13 @@ This TODO is the canonical backlog for original-MAME visual and interaction pari
 
 ## MTP-014 — Documentation and user-facing explanation cleanup
 
-- [ ] Update README or relevant docs to state that the Tauri frontend aims to preserve original MAME UI behavior while improving Linux desktop-environment compatibility.
-- [ ] Document any intentional deviations from original MAME UI.
-- [ ] Document how to run the app and verify visual parity locally.
-- [ ] Document how to gather/update reference screenshots.
-- [ ] Remove or revise docs that describe the generic Tauri shell as the intended product direction.
+- [x] Update README or relevant docs to state that the Tauri frontend aims to preserve original MAME UI behavior while improving Linux desktop-environment compatibility.
+- [x] Document any intentional deviations from original MAME UI.
+- [x] Document how to run the app and verify visual parity locally.
+- [x] Document how to gather/update reference screenshots.
+- [x] Remove or revise docs that describe the generic Tauri shell as the intended product direction.
 
-**Completion evidence required:** docs diff with clear parity statement and verification instructions.
+**MTP-014 evidence:** `README.md` now states the current original-MAME parity goal and Linux compatibility purpose, points to the active parity spec/TODO/reference/compatibility note, documents intentional implementation-only deviations, and gives local visual-review plus reference-capture instructions. `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md` no longer describes right-panel/interaction work as unfinished and now records the completed parity surface plus the screenshot-harness limitation and capture metadata requirements.
 
 ---
 
