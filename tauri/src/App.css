@@ -497,3 +497,43 @@ button:disabled {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* The transient backend-connect state is still part of the product surface. Keep it on the
+   explicit MAME palette rather than inheriting host Canvas/CanvasText colors. */
+.startup-shell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: var(--mame-bg);
+  color: var(--mame-text);
+}
+
+.startup-shell .status-card,
+.startup-shell .fatal-error {
+  width: min(42rem, calc(100% - 2rem));
+  padding: 1rem;
+  border: 1px solid var(--mame-border);
+  border-radius: 0;
+  background: var(--mame-bg);
+  color: var(--mame-text);
+}
+
+.startup-shell h1 {
+  font-size: 1.1rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.startup-shell h2 {
+  margin: 0.6rem 0 0;
+  font-size: 1rem;
+}
+
+.startup-shell p {
+  margin-bottom: 0;
+  color: var(--mame-muted);
+}
