@@ -13,7 +13,14 @@ describe("default MAME shell composition", () => {
 
   it("keeps secondary tools reachable without permanent footer chrome", () => {
     expect(browserSource).toContain('className="mame-utility-menu"');
-    for (const label of ["Session", "Configure Options", "Audit", "History", "Collections", "Diagnostics"]) {
+    for (const label of [
+      "Session",
+      "Configure Options",
+      "Audit",
+      "History",
+      "Collections",
+      "Diagnostics",
+    ]) {
       expect(browserSource).toContain(`>${label}</button>`);
     }
     expect(shellSource).toContain('view === "history"');

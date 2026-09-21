@@ -696,12 +696,24 @@ export function MameBrowser({
         <details className="mame-utility-menu">
           <summary>More</summary>
           <div className="mame-utility-menu-items" aria-label="Secondary MAME tools">
-            <button type="button" onClick={onOpenSession}>Session</button>
-            <button type="button" onClick={onConfigureOptions}>Configure Options</button>
-            <button type="button" onClick={onOpenAudit}>Audit</button>
-            <button type="button" onClick={onOpenHistory}>History</button>
-            <button type="button" onClick={onOpenCollections}>Collections</button>
-            <button type="button" onClick={onOpenDiagnostics}>Diagnostics</button>
+            <button type="button" onClick={onOpenSession}>
+              Session
+            </button>
+            <button type="button" onClick={onConfigureOptions}>
+              Configure Options
+            </button>
+            <button type="button" onClick={onOpenAudit}>
+              Audit
+            </button>
+            <button type="button" onClick={onOpenHistory}>
+              History
+            </button>
+            <button type="button" onClick={onOpenCollections}>
+              Collections
+            </button>
+            <button type="button" onClick={onOpenDiagnostics}>
+              Diagnostics
+            </button>
           </div>
         </details>
         {detail && (
