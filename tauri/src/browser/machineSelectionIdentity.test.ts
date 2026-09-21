@@ -33,7 +33,11 @@ function activationMayCommit(
 
 describe("machine selection async identity", () => {
   it("invalidates a pending detail request when selection clears", () => {
-    let state: Identity = { shortName: null, detailGeneration: 0, activationGeneration: 0 };
+    let state: Identity = {
+      shortName: null,
+      detailGeneration: 0,
+      activationGeneration: 0,
+    };
     state = select(state, "pacman");
     const requestGeneration = state.detailGeneration;
     state = select(state, null);
@@ -41,7 +45,11 @@ describe("machine selection async identity", () => {
   });
 
   it("rejects out-of-order A detail after B becomes authoritative", () => {
-    let state: Identity = { shortName: null, detailGeneration: 0, activationGeneration: 0 };
+    let state: Identity = {
+      shortName: null,
+      detailGeneration: 0,
+      activationGeneration: 0,
+    };
     state = select(state, "pacman");
     const a = state.detailGeneration;
     state = select(state, "galaga");
@@ -51,7 +59,11 @@ describe("machine selection async identity", () => {
   });
 
   it("invalidates a queued activation when selection identity changes", () => {
-    let state: Identity = { shortName: null, detailGeneration: 0, activationGeneration: 0 };
+    let state: Identity = {
+      shortName: null,
+      detailGeneration: 0,
+      activationGeneration: 0,
+    };
     state = select(state, "pacman");
     const detailGeneration = state.detailGeneration;
     const activationGeneration = state.activationGeneration;
