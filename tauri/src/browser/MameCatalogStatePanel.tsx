@@ -35,14 +35,15 @@ export function MameCatalogStatePanel({
     case "importNeeded":
       title =
         state.freshness === "stale" ? "MAME metadata needs refresh" : "MAME metadata needs import";
-      detail =
-        state.freshness === "stale"
-          ? `The active catalog belongs to a different MAME executable or version${ 
-              state.previousMachineCount === null
-                ? "."
-                : ` and contains ${state.previousMachineCount.toLocaleString()} machines.`
-            } Refresh it before browsing or launching.`
-          : "No successfully imported MAME machine catalog is active. Import metadata to populate the machine list.";
+      if (state.freshness === "stale") {
+        detail =
+          state.previousMachineCount === null
+            ? "The active catalog belongs to a different MAME executable or version. Refresh it before browsing or launching."
+            : `The active catalog belongs to a different MAME executable or version and contains ${state.previousMachineCount.toLocaleString()} machines. Refresh it before browsing or launching.`;
+      } else {
+        detail =
+          "No successfully imported MAME machine catalog is active. Import metadata to populate the machine list.";
+      }
       showConfigure = true;
       showImport = true;
       importLabel = state.freshness === "stale" ? "Refresh Metadata" : "Import Metadata";

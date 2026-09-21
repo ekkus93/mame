@@ -128,6 +128,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             mame={mameReport}
             onAuditResultsChanged={bumpAvailabilityRevision}
             onConfigureOptions={() => setView("settings")}
+            onOpenAudit={() => setView("audit")}
             onSessionStarted={observeSession}
           />
         )}
