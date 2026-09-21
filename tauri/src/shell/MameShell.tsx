@@ -10,7 +10,6 @@ import {
 } from "../backend/events";
 import type {
   AppInfoResponse,
-  MameVersionReport,
   SessionLifecycleEventV1,
   SessionSnapshot,
 } from "../backend/types";
@@ -27,17 +26,6 @@ import "./ContextualSurfaces.css";
 
 type ShellView =
   "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
-
-function mameVersionLabel(report: MameVersionReport): string {
-  switch (report.status) {
-    case "notConfigured":
-      return "MAME not configured";
-    case "available":
-      return report.identity.rawVersionLine;
-    case "unavailable":
-      return `MAME unavailable: ${report.errorMessage}`;
-  }
-}
 
 function activeSession(session: SessionSnapshot | null): SessionSnapshot | null {
   return session && isGameplaySessionState(session.state) ? session : null;
@@ -113,10 +101,6 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
       .catch(() => undefined);
   };
 
-  const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
-  const activeSessionLabel = session
-    ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
-    : "No active MAME session";
 
   return (
     <main className="mame-shell">
