@@ -367,9 +367,7 @@ export function MameBrowser({
         if (querySequence.current !== sequence) return;
         setLoadState({ status: "ready", page });
         if (page.offset !== offset) setOffset(page.offset);
-        selectMachine(
-          reconcileMachineSelection(page.items, selectedRef.current, preferredMachine),
-        );
+        selectMachine(reconcileMachineSelection(page.items, selectedRef.current, preferredMachine));
         if (preferredMachine) setPreferredMachine(null);
       })
       .catch((reason: unknown) => {
@@ -399,10 +397,7 @@ export function MameBrowser({
     setDetailState({ status: "loading" });
     void getMameMachineDetail({ shortName })
       .then((detail) => {
-        if (
-          detailSequence.current === sequence &&
-          selectedRef.current?.shortName === shortName
-        ) {
+        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
           setDetailState({ status: "ready", detail });
         }
       })
@@ -498,10 +493,7 @@ export function MameBrowser({
       }
       const activation = ++activationSequence.current;
       const detailGeneration = detailSequence.current;
-      if (
-        detailState.status === "ready" &&
-        detailState.detail.shortName === machine.shortName
-      ) {
+      if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
         launchDetail(detailState.detail);
         return;
       }
