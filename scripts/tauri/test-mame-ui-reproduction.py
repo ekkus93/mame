@@ -72,7 +72,7 @@ def main() -> int:
     require(shell, "<RecentHistoryPanel", "secondary History surface")
     require(shell, "<CollectionManager", "secondary Collections surface")
     require(browser, 'className="mame-utility-menu"', "secondary utility menu")
-    require(browser, ">Session</button>", "session utility action")
+    require(browser, "onClick={onOpenSession}", "session utility action")
     forbid(shell, '<footer className="mame-status-bar"', "permanent utility footer")
     require(shell, "gameplayInputOwned={gameplayInputOwned}", "shell-owned gameplay input state")
     require(shell, "onSessionStarted={observeSession}", "event-driven session ownership update")
