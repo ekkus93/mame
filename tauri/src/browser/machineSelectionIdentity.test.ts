@@ -15,7 +15,11 @@ function select(state: Identity, shortName: string | null): Identity {
   };
 }
 
-function detailMayCommit(state: Identity, generation: number, shortName: string): boolean {
+function detailMayCommit(
+  state: Identity,
+  generation: number,
+  shortName: string,
+): boolean {
   return state.detailGeneration === generation && state.shortName === shortName;
 }
 
@@ -69,7 +73,12 @@ describe("machine selection async identity", () => {
     const activationGeneration = state.activationGeneration;
     state = select(state, "galaga");
     expect(
-      activationMayCommit(state, detailGeneration, activationGeneration, "pacman"),
+      activationMayCommit(
+        state,
+        detailGeneration,
+        activationGeneration,
+        "pacman",
+      ),
     ).toBe(false);
   });
 });
