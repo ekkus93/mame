@@ -1,0 +1,382 @@
+# MAME Tauri UI Parity Review Remediation TODO — 2026-09-21
+
+**Repository:** ekkus93/mame  
+**Baseline master:** 3a299632cf41e4d9d313c5880708773cc241d186  
+**Spec:** docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md  
+**Original parity TODO:** docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md  
+**Goal:** remediate every issue identified by the post-closure code review and re-qualify original-MAME visual/interaction parity without weakening the existing Tauri architecture or launch/catalog correctness.
+
+## Mandatory execution rules
+
+- Use this file as the canonical remediation ledger.
+- Do not redesign the application.
+- Preserve the Tauri/WebView architecture.
+- Preserve catalog authority, BIOS omission semantics, software-part semantics, Start Empty behavior, and gameplay-input ownership safeguards.
+- Do not mark behavioral work complete using source-string assertions alone.
+- Use executable component/state/unit/integration tests for behavioral claims wherever technically possible.
+- Use exact-head CI evidence for every merge candidate.
+- After every successful merge, reload this TODO from promoted master, identify the next unchecked item, and continue.
+- Do not collapse or delete individual subtasks after completion. Check each subtask and append evidence.
+- Do not claim final closure without rendered visual evidence.
+- Screenshot pixel-baseline automation may remain deferred only under the documented WebView/tooling limitation; that defer does not waive manual/rendered review.
+- A transient tool/API timeout, ordinary test failure, formatting failure, merge conflict, or CI still running is not a user blocker.
+
+---
+
+## MTR-000 — Reopen parity and establish exact baseline
+
+- [ ] Read docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md completely.
+- [ ] Read docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md completely.
+- [ ] Read the detailed historical MTP checklist from repository history if current master contains the reconciled/condensed version.
+- [ ] Read docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md.
+- [ ] Read docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md and identify claims reopened by this remediation.
+- [ ] Confirm current master SHA before implementation.
+- [ ] Record the current frontend test/CI baseline before behavior changes.
+- [ ] Record the exact files currently responsible for selection/detail lifecycle, activation, default shell/footer composition, Software Browser styling, right-panel keyboard behavior, artwork loading, and parity tests.
+- [ ] Do not modify the historical MTP evidence to hide the prior closure; this remediation must remain additive and auditable.
+
+**Evidence:** pending.
+
+---
+
+## MTR-001 — Fix selected-machine detail invalidation
+
+- [ ] Introduce a selection/detail generation, abort mechanism, or equivalent explicit invalidation model.
+- [ ] Invalidate outstanding detail work whenever selection changes from one machine to another.
+- [ ] Invalidate outstanding detail work whenever selection changes to null.
+- [ ] Ensure metadata refresh/import paths invalidate old detail.
+- [ ] Ensure catalog query failure/empty-result paths invalidate old detail.
+- [ ] Ensure value-required/deferred-filter transitions that clear selection invalidate old detail.
+- [ ] Prevent an older successful detail response from replacing a newer selected machine.
+- [ ] Prevent an older failed detail response from replacing a newer successful state.
+- [ ] Clear machine-specific pending launch overrides when machine identity changes or selection clears.
+- [ ] Clear/reset other machine-specific transient action state where required.
+- [ ] Add deterministic regression test: select A -> detail A pending -> clear selection -> resolve A -> no A detail/status/actions return.
+- [ ] Add deterministic regression test: select A -> detail A pending -> select B -> resolve B -> resolve A -> B remains authoritative.
+- [ ] Add deterministic regression test: select A -> detail A pending -> select B -> resolve A -> resolve B -> A is never exposed as B's state.
+- [ ] Verify right-panel, driver/status, BIOS options, launch actions, software actions, configure action, and audit action all obey current selection identity.
+- [ ] Run applicable frontend/component tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-002 — Fix double-click and Enter activation races
+
+- [ ] Define the authoritative activation contract for a machine whose detail is not yet loaded.
+- [ ] Ensure first-selection plus immediate double-click activates that clicked machine exactly once.
+- [ ] Ensure keyboard selection plus immediate Enter activates that selected machine exactly once.
+- [ ] Do not silently drop activation merely because detail is loading.
+- [ ] Ensure activation cannot accidentally use detail from the previously selected machine.
+- [ ] If activation queues behind detail loading, invalidate the queued activation when its machine identity is no longer current unless the launch has already crossed an explicitly documented authoritative boundary.
+- [ ] Preserve machine availability guards.
+- [ ] Preserve BIOS omission unless explicitly selected.
+- [ ] Preserve Start Empty semantics.
+- [ ] Preserve software-list/software-part behavior.
+- [ ] Preserve visible launch-error handling inside the MAME surface.
+- [ ] Add component/state regression test for rapid double-click.
+- [ ] Add component/state regression test for immediate Enter after keyboard movement.
+- [ ] Add regression test covering rapid A activation followed by B selection before A detail completion.
+- [ ] Run applicable frontend/component tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-003 — Remove generic Tauri branding from default UI
+
+- [ ] Remove the default-visible MAME Tauri Frontend pseudo-title from MameShell.css or equivalent.
+- [ ] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
+- [ ] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
+- [ ] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
+- [ ] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
+- [ ] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-004 — Make green driver/status region the true bottom region
+
+- [ ] Remove the permanent project/global utility footer from below MachineDriverStatus in the default browser composition.
+- [ ] Ensure MachineDriverStatus is the bottom-most persistent region in default machine-browser mode.
+- [ ] Preserve Configure Options access without restoring a generic dashboard/tab row.
+- [ ] Preserve Audit access.
+- [ ] Preserve History access.
+- [ ] Preserve Collections access.
+- [ ] Preserve Diagnostics access.
+- [ ] Preserve Session or session-status access where required.
+- [ ] Move secondary/global tools behind an original-compatible secondary affordance, compact menu, command flow, or non-default surface.
+- [ ] Keep backend/global diagnostics out of the permanent green machine driver/status region.
+- [ ] Preserve selected-machine metadata in the green region.
+- [ ] Preserve useful no-selection/loading/error status in the green region.
+- [ ] Add a component structure test proving no persistent footer exists below the green driver/status region.
+- [ ] Add a test proving History/Collections/Diagnostics are not permanently visible in default browser chrome.
+- [ ] Add tests proving required secondary surfaces remain reachable.
+- [ ] Perform rendered inspection of the full-height default shell.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-005 — Complete explicit MAME palette migration
+
+- [ ] Audit parity-relevant CSS/TSX for Canvas.
+- [ ] Audit parity-relevant CSS/TSX for CanvasText.
+- [ ] Audit parity-relevant CSS/TSX for product uses of currentColor.
+- [ ] Audit parity-relevant CSS/TSX for unintentional generic white/gray surfaces.
+- [ ] Include App startup/connect state in the audit.
+- [ ] Include MameShell/MameBrowser and all default machine-browser components.
+- [ ] Include SoftwareBrowser.
+- [ ] Include General Settings/configuration surfaces reachable from the parity flow.
+- [ ] Replace visible product system-color styling with semantic --mame-* tokens.
+- [ ] Add tokens where necessary instead of proliferating unrelated literal colors.
+- [ ] Ensure hover states are intentionally themed.
+- [ ] Ensure selected states are intentionally themed.
+- [ ] Ensure focus-visible states retain strong contrast.
+- [ ] Ensure disabled states are intentionally themed.
+- [ ] Ensure error/loading/empty states are intentionally themed.
+- [ ] Extend static theme tests to scan all parity-relevant stylesheets rather than only MameShell.css.
+- [ ] Add a negative guard for disallowed host-system product styling in parity-relevant files.
+- [ ] Verify under host light and dark preference where practical that the product palette remains MAME-like.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-006 — Bring Software Browser to MAME visual/interaction parity
+
+- [ ] Apply MAME navy/background tokens to Software Browser.
+- [ ] Apply original-like compact toolbar/header treatment.
+- [ ] Apply dense software row/list spacing.
+- [ ] Apply explicit selected-row blue treatment.
+- [ ] Apply selected primary text treatment consistent with the MAME visual contract.
+- [ ] Apply muted unavailable/disabled treatment where applicable.
+- [ ] Apply visible focus treatment.
+- [ ] Apply thin splitter/border treatment using MAME tokens.
+- [ ] Remove system-color product styling.
+- [ ] Keep software errors inside the MAME surface.
+- [ ] Preserve software-part selection.
+- [ ] Preserve Start behavior.
+- [ ] Preserve BIOS semantics.
+- [ ] Preserve Back/Escape behavior.
+- [ ] Add component tests for software selection.
+- [ ] Add component tests for software activation.
+- [ ] Add theme regression tests covering Software Browser.
+- [ ] Perform rendered inspection of Software List with representative states.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-007 — Fix selected-row visibility and scroll reconciliation
+
+- [ ] Define documented scroll behavior for keyboard movement, query/filter changes, search changes, and result replacement.
+- [ ] Ensure an asynchronously selected row is visible after a search result update.
+- [ ] Ensure an asynchronously selected row is visible after a filter result update.
+- [ ] Avoid unnecessary scroll jumps when the selected row is already visible.
+- [ ] Preserve normal keyboard-driven scrolling.
+- [ ] Ensure empty results clear selection and machine-specific detail/action state.
+- [ ] Ensure restored/persisted selection is reconciled safely against the current result set.
+- [ ] Use a deterministic helper for visibility/page calculations if DOM viewport behavior is difficult to test directly.
+- [ ] Add a long-list regression test where the list begins deeply scrolled and a new query selects a result near the beginning.
+- [ ] Add regression test for a new selected result near the end of a long list.
+- [ ] Add regression test for no-results transition.
+- [ ] Run applicable frontend/component tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-008 — Correct keyboard page/home/end semantics
+
+- [ ] Remove the arbitrary fixed ten-row PageUp/PageDown behavior unless ten is demonstrably the computed visible page size.
+- [ ] Define viewport-aware PageUp/PageDown behavior for the machine list.
+- [ ] Implement viewport-aware movement or an equivalent deterministic page-size calculation.
+- [ ] Define Home behavior for the paged catalog model.
+- [ ] Define End behavior for the paged catalog model.
+- [ ] Decide explicitly whether Home/End target the current fetched page or the full matching catalog; document the choice and rationale.
+- [ ] If full-result Home/End is feasible, implement it without breaking catalog pagination.
+- [ ] If current-page semantics are retained, ensure the UI/test/docs do not falsely claim full-result semantics.
+- [ ] Preserve Up/Down behavior.
+- [ ] Preserve Enter activation after MTR-002.
+- [ ] Preserve Escape/back behavior.
+- [ ] Add pure/model tests for page-size calculation.
+- [ ] Add component/integration tests for PageUp/PageDown.
+- [ ] Add tests for documented Home/End behavior.
+- [ ] Ensure shortcuts remain gameplay-input-owner gated.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-009 — Complete right-panel keyboard semantics
+
+- [ ] Treat Images/Infos as a proper keyboard-navigable tablist.
+- [ ] ArrowRight moves from Images to Infos.
+- [ ] ArrowLeft moves from Infos to Images.
+- [ ] Define wrap or clamp behavior and keep it consistent.
+- [ ] Ensure the active tab and focus state remain synchronized.
+- [ ] Preserve mouse click switching.
+- [ ] Preserve machine-list focus return behavior where appropriate.
+- [ ] Do not steal keyboard input when gameplay owns the surface.
+- [ ] Add component tests for right-panel Left/Right switching.
+- [ ] Add focus-state assertions.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-010 — Separate artwork loading, missing, ready, and error states
+
+- [ ] Introduce explicit asset-loading state for a selected artwork slot.
+- [ ] Do not render No image Available while an asset fetch is merely pending.
+- [ ] Distinguish no slots from selected-slot asset missing/unavailable.
+- [ ] Normalize artwork errors through the shared frontend error formatter.
+- [ ] Invalidate stale artwork responses when machine selection changes.
+- [ ] Invalidate stale artwork responses when artwork slot/category changes.
+- [ ] Preserve Snapshots/default category behavior.
+- [ ] Preserve no-machine-selected behavior.
+- [ ] Add component test for slot loading state.
+- [ ] Add component test for true missing-artwork state.
+- [ ] Add component test for artwork error formatting.
+- [ ] Add out-of-order artwork response regression test.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-011 — Reduce MameBrowser state coupling where it improves correctness
+
+- [ ] Map MameBrowser responsibilities before refactoring.
+- [ ] Identify ownership boundaries for catalog query lifecycle.
+- [ ] Identify ownership boundaries for selected-machine/detail lifecycle.
+- [ ] Identify ownership boundaries for activation/launch orchestration.
+- [ ] Identify ownership boundaries for keyboard shortcuts.
+- [ ] Identify ownership boundaries for persisted browser state.
+- [ ] Extract only the boundaries that materially improve correctness/testability.
+- [ ] Prefer explicit hooks/state machines such as useMachineSelectionDetail or equivalent where they make lifecycle identity testable.
+- [ ] Keep authoritative backend/catalog APIs unchanged unless a concrete defect requires change.
+- [ ] Avoid a framework rewrite.
+- [ ] Avoid moving code into new files without reducing implicit coupling.
+- [ ] Keep each behavior-changing refactor covered by executable tests.
+- [ ] Review MameBrowser size/complexity after remediation and document remaining intentional responsibilities.
+- [ ] Run applicable frontend tests on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-012 — Replace false-positive qualification with real interaction tests
+
+- [ ] Inventory existing parity tests and classify each as static/source, pure unit, component, integration, or platform smoke.
+- [ ] Keep useful static source tripwires but stop using them as sole behavioral evidence.
+- [ ] Add executable stale-detail tests from MTR-001.
+- [ ] Add executable activation tests from MTR-002.
+- [ ] Add executable default-shell/footer composition tests from MTR-004.
+- [ ] Add Software Browser component tests from MTR-006.
+- [ ] Add selection-visibility tests from MTR-007.
+- [ ] Add keyboard navigation tests from MTR-008/MTR-009.
+- [ ] Add artwork-state tests from MTR-010.
+- [ ] Add gameplay-input ownership regression coverage.
+- [ ] Add negative regression guard for MAME Tauri Frontend default branding.
+- [ ] Add negative regression guard for disallowed system-color product styling.
+- [ ] Ensure tests fail when the corresponding defect is intentionally reintroduced.
+- [ ] Remove or rewrite misleading tests that merely assert implementation strings while claiming interaction coverage.
+- [ ] Document unavoidable jsdom/WebView limitations precisely.
+- [ ] Run the complete frontend test suite on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-013 — Rendered visual parity re-qualification
+
+- [ ] Update the manual visual checklist with every issue from this remediation.
+- [ ] Render the actual Tauri/WebView application in the strongest available environment.
+- [ ] Inspect default startup shell.
+- [ ] Inspect title/search/header and verify generic Tauri branding is absent.
+- [ ] Inspect left filter, central list, right panel geometry/density.
+- [ ] Inspect selected blue/yellow row.
+- [ ] Inspect muted unavailable row.
+- [ ] Inspect green driver/status region and verify it is truly bottom-most.
+- [ ] Verify History/Collections/Diagnostics are not permanent default footer chrome.
+- [ ] Inspect Software Browser.
+- [ ] Inspect Images and Infos tabs.
+- [ ] Inspect artwork loading state.
+- [ ] Inspect true no-image state.
+- [ ] Inspect metadata not-configured/importing/failure/ready states as practical.
+- [ ] Inspect configuration surface for host-theme leakage.
+- [ ] Inspect visible focus states.
+- [ ] Record environment details for the rendered review.
+- [ ] Attach screenshots/artifacts if the available tool path supports them.
+- [ ] If binary screenshot capture remains unavailable through Ralph, keep the existing defer rationale but record a complete textual rendered review.
+- [ ] Do not mark this task complete from source inspection alone.
+
+**Evidence:** pending.
+
+---
+
+## MTR-014 — Documentation reconciliation
+
+- [ ] Update README or documentation index to reference this remediation track where appropriate.
+- [ ] Preserve the original MTP TODO as historical evidence.
+- [ ] Preserve the original final parity report as historical evidence.
+- [ ] Clearly state that the 2026-09-21 post-closure review reopened affected requirements.
+- [ ] Correct documentation that claims no unresolved parity work while remediation remains open.
+- [ ] Record the traceability from each remediation item to the original MTP areas.
+- [ ] Document the final keyboard PageUp/PageDown/Home/End semantics.
+- [ ] Document the final location/access path for secondary tools moved out of the bottom footer.
+- [ ] Document any intentional remaining visual deviations.
+- [ ] Document test-category distinctions: static tripwire versus behavioral/component/platform evidence.
+- [ ] Keep every individual checkbox in this TODO after completion.
+- [ ] Append exact evidence instead of replacing detailed tasks with summary-only checkboxes.
+- [ ] Run documentation validation on exact head.
+
+**Evidence:** pending.
+
+---
+
+## MTR-015 — Full qualification and closure
+
+- [ ] Re-read every MTR-000 through MTR-014 checkbox from the current candidate head.
+- [ ] Confirm no unresolved behavioral defect from the review remains silently marked complete.
+- [ ] Run the complete frontend/unit/component test suite.
+- [ ] Run applicable Tauri project workflow(s).
+- [ ] Run applicable security workflow(s).
+- [ ] Run applicable Linux packaging/platform workflow(s).
+- [ ] Run applicable Windows packaging/platform workflow(s).
+- [ ] Run applicable macOS packaging/platform workflow(s).
+- [ ] Run documentation workflow(s).
+- [ ] Record every applicable exact-head run ID and conclusion.
+- [ ] Confirm the candidate head SHA is unchanged after qualification.
+- [ ] Attach/update final rendered visual evidence.
+- [ ] Create/open the final reconciliation PR if the current work is not already in a qualified PR.
+- [ ] Merge only the exact-head-qualified candidate through the normal gated path.
+- [ ] Reload this TODO from promoted master immediately after merge.
+- [ ] Record the promoted master SHA.
+- [ ] Verify applicable post-merge master CI.
+- [ ] Record post-merge run IDs and conclusions.
+- [ ] Confirm the default-visible MAME Tauri Frontend branding is absent on promoted master.
+- [ ] Confirm the green driver/status region is the true bottom persistent region on promoted master.
+- [ ] Confirm stale detail and activation race regression tests are present on promoted master.
+- [ ] Confirm Software Browser no longer relies on host-system product colors on promoted master.
+- [ ] Confirm the TODO still contains all individual subtasks and their evidence.
+- [ ] Only then mark this remediation closed and stop/disable any dedicated remediation loop.
+
+**Evidence:** pending.
+
+---
+
+## Completion rule
+
+This remediation is complete only when every checkbox above is individually reconciled and the final promoted master satisfies the companion spec's completion rule.
+
+A passing static/source test is not sufficient evidence for interactive behavior. A passing old CI run is not sufficient evidence for a newer candidate SHA. A documentation-only reconciliation is not sufficient evidence that an implementation defect was fixed.
