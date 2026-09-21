@@ -402,10 +402,7 @@ export function MameBrowser({
         }
       })
       .catch((reason: unknown) => {
-        if (
-          detailSequence.current === sequence &&
-          selectedRef.current?.shortName === shortName
-        ) {
+        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
           setDetailState({ status: "error", message: errorMessage(reason) });
         }
       });
