@@ -56,11 +56,7 @@ function neverValue(): never {
 
 function renderState(state: Exclude<MameCatalogState, { status: "ready" }>): string {
   return renderToStaticMarkup(
-    <MameCatalogStatePanel
-      state={state}
-      onConfigureOptions={vi.fn()}
-      onImportMetadata={vi.fn()}
-    />,
+    <MameCatalogStatePanel state={state} onConfigureOptions={vi.fn()} onImportMetadata={vi.fn()} />,
   );
 }
 
@@ -149,9 +145,7 @@ describe("MAME startup and metadata parity state", () => {
   });
 
   it("distinguishes unknown availability, no available ROMs, and populated availability", () => {
-    expect(machineAvailabilityNotice(pageWithAvailability(["unknown", "unknown"]))).toBe(
-      "unknown",
-    );
+    expect(machineAvailabilityNotice(pageWithAvailability(["unknown", "unknown"]))).toBe("unknown");
     expect(machineAvailabilityNotice(pageWithAvailability(["missing", "missing"]))).toBe(
       "noneAvailable",
     );
