@@ -2,9 +2,8 @@ import type { MachineListItem } from "../backend/types";
 
 type ScrollIntoViewOptions = { block: "nearest" };
 type ScrollableMachineRow = Pick<HTMLElement, "scrollIntoView"> &
-  Partial<Pick<HTMLElement, "getBoundingClientRect">> & {
-    ownerDocument?: Document | null;
-  };
+  Partial<Pick<HTMLElement, "getBoundingClientRect">>;
+type MachineListViewport = Partial<Pick<HTMLElement, "getBoundingClientRect">>;
 
 export type RowVisibilityGeometry = {
   viewportStart: number;
@@ -26,17 +25,18 @@ export function selectedRowVisibilityAction({
   return rowStart >= viewportStart && rowEnd <= viewportEnd ? "already-visible" : "scroll-nearest";
 }
 
-function viewportGeometryFor(row: ScrollableMachineRow): RowVisibilityGeometry | null {
-  if (!row.getBoundingClientRect) return null;
-  const defaultView = row.ownerDocument?.defaultView;
-  const viewportEnd = defaultView?.innerHeight ?? null;
-  if (viewportEnd === null) return null;
-  const rect = row.getBoundingClientRect();
+function visibilityGeometryFor(
+  row: ScrollableMachineRow,
+  viewport: MachineListViewport | null,
+): RowVisibilityGeometry | null {
+  if (!row.getBoundingClientRect || !viewport?.getBoundingClientRect) return null;
+  const rowRect = row.getBoundingClientRect();
+  const viewportRect = viewport.getBoundingClientRect();
   return {
-    viewportStart: 0,
-    viewportEnd,
-    rowStart: rect.top,
-    rowEnd: rect.bottom,
+    viewportStart: viewportRect.top,
+    viewportEnd: viewportRect.bottom,
+    rowStart: rowRect.top,
+    rowEnd: rowRect.bottom,
   };
 }
 
@@ -44,13 +44,14 @@ export function scrollSelectedMachineIntoView(
   items: MachineListItem[],
   selected: MachineListItem | null,
   rows: Array<ScrollableMachineRow | null>,
+  viewport: MachineListViewport | null = null,
 ): boolean {
   if (!selected) return false;
   const index = items.findIndex((machine) => machine.shortName === selected.shortName);
   const row = index >= 0 ? rows[index] : null;
   if (!row) return false;
 
-  const geometry = viewportGeometryFor(row);
+  const geometry = visibilityGeometryFor(row, viewport);
   if (geometry && selectedRowVisibilityAction(geometry) === "already-visible") return false;
 
   row.scrollIntoView(NEAREST_SCROLL);

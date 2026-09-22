@@ -27,27 +27,32 @@ function rows(count: number) {
   return Array.from({ length: count }, () => ({ scrollIntoView: vi.fn() }));
 }
 
-function geometricRow(top: number, bottom: number, viewportEnd = 600) {
+function geometricRow(top: number, bottom: number) {
   return {
-    ownerDocument: { defaultView: { innerHeight: viewportEnd } } as unknown as Document,
     getBoundingClientRect: () => ({ top, bottom }) as DOMRect,
     scrollIntoView: vi.fn(),
   };
 }
 
+function viewport(top: number, bottom: number) {
+  return {
+    getBoundingClientRect: () => ({ top, bottom }) as DOMRect,
+  };
+}
+
 describe("machine-list selection visibility", () => {
-  it("documents nearest-scroll behavior for rows outside the viewport", () => {
+  it("documents nearest-scroll behavior for rows outside the list viewport", () => {
     expect(
       selectedRowVisibilityAction({
-        viewportStart: 0,
+        viewportStart: 100,
         viewportEnd: 500,
-        rowStart: -32,
-        rowEnd: 0,
+        rowStart: 68,
+        rowEnd: 100,
       }),
     ).toBe("scroll-nearest");
     expect(
       selectedRowVisibilityAction({
-        viewportStart: 0,
+        viewportStart: 100,
         viewportEnd: 500,
         rowStart: 480,
         rowEnd: 532,
@@ -58,10 +63,10 @@ describe("machine-list selection visibility", () => {
   it("documents no-op behavior when the selected row is already fully visible", () => {
     expect(
       selectedRowVisibilityAction({
-        viewportStart: 0,
+        viewportStart: 100,
         viewportEnd: 500,
-        rowStart: 25,
-        rowEnd: 75,
+        rowStart: 125,
+        rowEnd: 175,
       }),
     ).toBe("already-visible");
   });
@@ -85,22 +90,42 @@ describe("machine-list selection visibility", () => {
     expect(rowRefs[97]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
-  it("avoids an unnecessary scroll jump when the selected row is already visible", () => {
+  it("avoids an unnecessary scroll jump when the selected row is visible in the scrolling region", () => {
     const items = [machine(0), machine(1), machine(2)];
     const selected = reconcileMachineSelection(items, null, "machine-1");
-    const rowRefs = [geometricRow(-50, -1), geometricRow(100, 140), geometricRow(700, 760)];
+    const rowRefs = [geometricRow(50, 90), geometricRow(200, 240), geometricRow(700, 760)];
 
-    expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(false);
+    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(false);
     expect(rowRefs[1]!.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("scrolls a row clipped by the list region even when it is inside the WebView window", () => {
+    const items = [machine(0), machine(1), machine(2)];
+    const selected = reconcileMachineSelection(items, null, "machine-0");
+    const rowRefs = [geometricRow(50, 90), geometricRow(200, 240), geometricRow(580, 640)];
+
+    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(true);
+    expect(rowRefs[0]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
   it("scrolls a partially hidden selected row using nearest alignment", () => {
     const items = [machine(0), machine(1), machine(2)];
     const selected = reconcileMachineSelection(items, null, "machine-2");
-    const rowRefs = [geometricRow(10, 40), geometricRow(100, 140), geometricRow(580, 640)];
+    const rowRefs = [geometricRow(110, 140), geometricRow(200, 240), geometricRow(580, 640)];
 
-    expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(true);
+    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(true);
     expect(rowRefs[2]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("preserves a current selection that remains in replacement results", () => {
+    const items = Array.from({ length: 100 }, (_, index) => machine(index));
+    expect(reconcileMachineSelection(items, machine(52), "machine-2")?.shortName).toBe("machine-52");
+  });
+
+  it("restores a persisted preferred machine only when it exists in the current result set", () => {
+    const items = Array.from({ length: 100 }, (_, index) => machine(index));
+    expect(reconcileMachineSelection(items, null, "machine-61")?.shortName).toBe("machine-61");
+    expect(reconcileMachineSelection(items, null, "missing-machine")?.shortName).toBe("machine-0");
   });
 
   it("does not scroll and clears selection when replacement results are empty", () => {

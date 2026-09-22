@@ -19,21 +19,28 @@ export function MachineList({
   onNavigate: (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => void;
   onActivate: (machine: MachineListItem) => void;
 }) {
+  const listRef = useRef<HTMLUListElement | null>(null);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = Math.max(
     0,
     page.items.findIndex((machine) => machine.shortName === selected?.shortName),
   );
 
-  // Query/filter/search replacement may select a row outside the old viewport. "nearest"
-  // reveals it while leaving an already-visible row stationary; keyboard focus continues to
-  // provide the normal browser-driven scrolling path for direct navigation.
+  // Query/filter/search replacement may select a row outside the old viewport. Measure against
+  // the actual scrolling list region (the list parent), not the WebView window. Nearest scrolling
+  // reveals clipped rows while leaving a fully visible row stationary. Keyboard focus remains the
+  // normal browser-driven scrolling path for direct navigation.
   useEffect(() => {
-    scrollSelectedMachineIntoView(page.items, selected, rowRefs.current);
+    scrollSelectedMachineIntoView(
+      page.items,
+      selected,
+      rowRefs.current,
+      listRef.current?.parentElement ?? null,
+    );
   }, [page.items, selected]);
 
   return (
-    <ul className="mame-machine-list" role="listbox" aria-label="MAME machines">
+    <ul ref={listRef} className="mame-machine-list" role="listbox" aria-label="MAME machines">
       {page.items.map((machine, index) => {
         const availability = page.availabilityByShortName[machine.shortName] ?? "unknown";
         const isSelected = selected?.shortName === machine.shortName;
