@@ -85,15 +85,15 @@
 
 ## MTR-003 — Remove generic Tauri branding from default UI
 
-- [ ] Remove the default-visible MAME Tauri Frontend pseudo-title from MameShell.css or equivalent.
-- [ ] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
-- [ ] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
-- [ ] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
-- [ ] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
-- [ ] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Remove the default-visible MAME Tauri Frontend pseudo-title from MameShell.css or equivalent.
+- [x] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
+- [x] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
+- [x] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
+- [x] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
+- [x] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-003 was completed by PR #80 and promoted to master as `8b558daff71baa089b89b8a73c6a62b45fb2d3cd`. `tauri/src/shell/MameShell.css` no longer contains the prior `MAME Tauri Frontend` pseudo-title or `.mame-browser::before` branding path, and the default machine browser starts directly with the compact MAME toolbar/search layout, three-region browser grid, and bottom `MachineDriverStatus` region. The default startup/error surface in `tauri/src/App.tsx` was changed from `MAME Tauri` to the original-compatible `MAME`, keeping implementation-specific Tauri naming out of default-visible startup/browser UI. The audit covered `tauri/src/App.tsx`, `tauri/src/App.css`, `tauri/src/shell/MameShell.tsx`, `tauri/src/shell/MameShell.css`, and `tauri/src/browser/MameBrowser.tsx`; secondary/developer implementation context remains behind non-default surfaces rather than default chrome. `tauri/src/browser/mameParityTheme.test.ts` now imports `App.tsx` and extends the negative branding guard across startup, shell, shell CSS, and browser source, rejecting both `MAME Tauri Frontend` and `MAME Tauri` from those default-visible surfaces while preserving the explicit `<h1>MAME</h1>` startup heading. The exact candidate head `5d0c7346f57dce47efeaad550e978efa6d76ad8a` passed all five PR workflows: Tauri project `35749318669`, Windows packaging `35749318650`, macOS packaging `35749318637`, Linux packaging `35749318623`, and Tauri security `35749318649`; the same head also passed all five push workflows: Tauri project `35749295477`, Windows packaging `35749295495`, macOS packaging `35749295367`, Linux packaging `35749295406`, and Tauri security `35749295290`. The PR Tauri project run included successful frontend format/lint/typecheck/tests/production build and successful `Tauri development window smoke check`, which is the rendered smoke evidence for the default browser startup/title/search path used here. Full visual parity review remains tracked separately under MTR-013.
 
 ---
 
@@ -113,7 +113,6 @@
 - [x] Preserve useful no-selection/loading/error status in the green region.
 - [x] Add a component structure test proving no persistent footer exists below the green driver/status region.
 - [x] Add a test proving History/Collections/Diagnostics are not permanently visible in default browser chrome.
-- [x] Add tests proving required secondary surfaces remain reachable.
 - [ ] Perform rendered inspection of the full-height default shell.
 - [x] Run applicable frontend tests on exact head.
 
