@@ -15,7 +15,6 @@ export function artworkAssetError(
   return { status: "error", message: format(reason) };
 }
 
-
 export function isCurrentArtworkRequest(
   currentRequestId: number,
   responseRequestId: number,

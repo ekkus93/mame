@@ -254,13 +254,19 @@ function ArtworkPane({
     setError(null);
     void discoverMachineArtwork(machine)
       .then((result) => {
-        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) setArtwork(result);
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setArtwork(result);
+        }
       })
       .catch((reason: unknown) => {
-        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) setError(errorMessage(reason));
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setError(errorMessage(reason));
+        }
       })
       .finally(() => {
-        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) setLoading(false);
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setLoading(false);
+        }
       });
   }, [machine]);
 
@@ -285,7 +291,9 @@ function ArtworkPane({
     if (!descriptor) return;
     void readArtworkAsset(descriptor.assetId)
       .then((payload) => {
-        if (isCurrentArtworkRequest(assetRequestId.current, id)) setAssetState({ status: "ready", asset: payload });
+        if (isCurrentArtworkRequest(assetRequestId.current, id)) {
+          setAssetState({ status: "ready", asset: payload });
+        }
       })
       .catch((reason: unknown) => {
         if (isCurrentArtworkRequest(assetRequestId.current, id)) {
