@@ -14,11 +14,17 @@ import {
   type ArtworkKind,
   type MachineArtwork,
 } from "../backend/artwork";
+import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import type { MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
 import { machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
+import {
+  artworkAssetError,
+  initialArtworkAssetState,
+  type ArtworkAssetState,
+} from "./artworkState";
 import { nextPrimaryRightView, type PrimaryRightView } from "./rightPanelKeyboard";
 
 export type MachineRightView = "images" | "info" | "audit" | "settings";
@@ -231,7 +237,9 @@ function ArtworkPane({
   const discoveryRequestId = useRef(0);
   const assetRequestId = useRef(0);
   const [artwork, setArtwork] = useState<MachineArtwork | null>(null);
-  const [asset, setAsset] = useState<ArtworkAssetPayload | null>(null);
+  const [assetState, setAssetState] = useState<ArtworkAssetState<ArtworkAssetPayload>>({
+    status: "missing",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -239,7 +247,7 @@ function ArtworkPane({
     const id = ++discoveryRequestId.current;
     assetRequestId.current += 1;
     setArtwork(null);
-    setAsset(null);
+    setAssetState({ status: "missing" });
     setLoading(true);
     setError(null);
     void discoverMachineArtwork(machine)
@@ -247,7 +255,7 @@ function ArtworkPane({
         if (discoveryRequestId.current === id) setArtwork(result);
       })
       .catch((reason: unknown) => {
-        if (discoveryRequestId.current === id) setError(String(reason));
+        if (discoveryRequestId.current === id) setError(errorMessage(reason));
       })
       .finally(() => {
         if (discoveryRequestId.current === id) setLoading(false);
@@ -270,17 +278,17 @@ function ArtworkPane({
   useEffect(() => {
     const descriptor = slot?.asset;
     const id = ++assetRequestId.current;
-    setAsset(null);
     setError(null);
-    if (!descriptor) {
-      return;
-    }
+    setAssetState(initialArtworkAssetState(Boolean(descriptor)));
+    if (!descriptor) return;
     void readArtworkAsset(descriptor.assetId)
       .then((payload) => {
-        if (assetRequestId.current === id) setAsset(payload);
+        if (assetRequestId.current === id) setAssetState({ status: "ready", asset: payload });
       })
       .catch((reason: unknown) => {
-        if (assetRequestId.current === id) setError(String(reason));
+        if (assetRequestId.current === id) {
+          setAssetState(artworkAssetError(reason, errorMessage));
+        }
       });
   }, [slot]);
 
@@ -296,8 +304,8 @@ function ArtworkPane({
     return (
       <div className="mame-artwork-frame" role="alert">
         <div className="mame-no-image-placeholder">
-          <strong>No image Available</strong>
-          <span>Artwork unavailable: {error}</span>
+          <strong>Artwork unavailable</strong>
+          <span>{error}</span>
         </div>
       </div>
     );
@@ -319,12 +327,22 @@ function ArtworkPane({
         ))}
       </div>
       <div className="mame-artwork-frame">
-        {asset ? (
+        {assetState.status === "loading" && (
+          <div className="mame-panel-state">Loading {ARTWORK_LABELS[selectedKind]}…</div>
+        )}
+        {assetState.status === "error" && (
+          <div className="mame-no-image-placeholder" role="alert">
+            <strong>Artwork unavailable</strong>
+            <span>{assetState.message}</span>
+          </div>
+        )}
+        {assetState.status === "ready" && (
           <img
-            src={asset.dataUrl}
+            src={assetState.asset.dataUrl}
             alt={`${slot?.asset?.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
           />
-        ) : (
+        )}
+        {assetState.status === "missing" && (
           <div className="mame-no-image-placeholder">
             <strong>No image Available</strong>
             <span>{ARTWORK_LABELS[selectedKind]}</span>
