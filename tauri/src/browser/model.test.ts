@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MachineListItem } from "../backend/types";
 import {
+  browserPageStep,
   buildMameBrowserRequest,
   filterRequiresValue,
   nextBrowserIndex,
@@ -74,13 +75,20 @@ describe("MAME browser model", () => {
     expect(reconcileMachineSelection([], machine("missing", "Missing"), null)).toBeNull();
   });
 
-  it("supports bounded row, edge and page navigation", () => {
+  it("computes viewport-aware page movement with one-row context", () => {
+    expect(browserPageStep(360, 30)).toBe(11);
+    expect(browserPageStep(95, 30)).toBe(2);
+    expect(browserPageStep(20, 30)).toBe(1);
+    expect(browserPageStep(0, 30)).toBe(1);
+  });
+
+  it("supports bounded rows and current-fetched-page Home/End semantics", () => {
     expect(nextBrowserIndex("ArrowDown", 0, 30)).toBe(1);
     expect(nextBrowserIndex("ArrowUp", 0, 30)).toBe(0);
     expect(nextBrowserIndex("Home", 17, 30)).toBe(0);
     expect(nextBrowserIndex("End", 2, 30)).toBe(29);
-    expect(nextBrowserIndex("PageDown", 4, 30, 10)).toBe(14);
-    expect(nextBrowserIndex("PageUp", 4, 30, 10)).toBe(0);
+    expect(nextBrowserIndex("PageDown", 4, 30, 11)).toBe(15);
+    expect(nextBrowserIndex("PageUp", 4, 30, 11)).toBe(0);
     expect(nextBrowserIndex("x", 4, 30)).toBeNull();
   });
 });

@@ -149,11 +149,25 @@ export function reconcileMachineSelection(
   return items[0] ?? null;
 }
 
+export function browserPageStep(viewportHeight: number, rowHeight: number): number {
+  if (
+    !Number.isFinite(viewportHeight) ||
+    !Number.isFinite(rowHeight) ||
+    viewportHeight <= 0 ||
+    rowHeight <= 0
+  ) {
+    return 1;
+  }
+  return Math.max(1, Math.floor(viewportHeight / rowHeight) - 1);
+}
+
+// Home/End intentionally target the current fetched catalog page. The explicit pager is the
+// authoritative way to cross backend page boundaries.
 export function nextBrowserIndex(
   key: string,
   current: number,
   count: number,
-  pageStep = 10,
+  pageStep = 1,
 ): number | null {
   if (count <= 0) return null;
   const bounded = Math.min(Math.max(current, 0), count - 1);
