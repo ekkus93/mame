@@ -1,7 +1,15 @@
+/// <reference types="node" />
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
-import css from "./SoftwareBrowser.css?raw";
 import source from "./SoftwareBrowser.tsx?raw";
+
+const SOURCE_DIR = dirname(fileURLToPath(import.meta.url));
+const css = readFileSync(join(SOURCE_DIR, "SoftwareBrowser.css"), "utf8");
 
 describe("Software Browser parity surface", () => {
   it("uses explicit MAME palette and dense selected-row treatment", () => {
