@@ -119,7 +119,11 @@ export function softwareStartButtonDisabled({
   selectedPart: string | null;
   launchStatus: string;
 }): boolean {
-  return !selected || (selected.parts.length > 1 && !selectedPart) || launchStatus === "launching";
+  return (
+    !selected ||
+    (selected.parts.length > 1 && !selectedPart) ||
+    launchStatus === "launching"
+  );
 }
 
 export function canBeginSoftwareLaunch({
