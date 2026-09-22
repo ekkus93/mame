@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { activationMayCommit, detailMayCommit, selectMachineIdentity } from "./machineAsyncIdentity";
+import {
+  activationMayCommit,
+  detailMayCommit,
+  selectMachineIdentity,
+} from "./machineAsyncIdentity";
 
 type Identity = Parameters<typeof selectMachineIdentity>[0];
 
