@@ -54,6 +54,12 @@ import {
   type MameBrowserFilter,
 } from "./model";
 import { SoftwareBrowser } from "./SoftwareBrowser";
+import {
+  activationMayCommit,
+  detailMayCommit,
+  selectMachineIdentity,
+  type MachineAsyncIdentity,
+} from "./machineAsyncIdentity";
 
 type LoadState =
   | { status: "awaitingFilterValue" }
@@ -153,6 +159,11 @@ export function MameBrowser({
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
   const activationSequence = useRef(0);
+  const asyncIdentityRef = useRef<MachineAsyncIdentity>({
+    shortName: null,
+    detailGeneration: 0,
+    activationGeneration: 0,
+  });
   const selectedRef = useRef<MachineListItem | null>(null);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
   const [uiStateError, setUiStateError] = useState<string | null>(null);
@@ -189,8 +200,9 @@ export function MameBrowser({
     const nextShortName = next?.shortName ?? null;
     selectedRef.current = next;
     if (previousShortName !== nextShortName) {
-      detailSequence.current += 1;
-      activationSequence.current += 1;
+      asyncIdentityRef.current = selectMachineIdentity(asyncIdentityRef.current, nextShortName);
+      detailSequence.current = asyncIdentityRef.current.detailGeneration;
+      activationSequence.current = asyncIdentityRef.current.activationGeneration;
       setPendingLaunchOverrides(null);
       setLaunchState({ status: "idle" });
     }
@@ -407,12 +419,12 @@ export function MameBrowser({
     setDetailState({ status: "loading" });
     void getMameMachineDetail({ shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
+        if (detailMayCommit(asyncIdentityRef.current, sequence, shortName)) {
           setDetailState({ status: "ready", detail });
         }
       })
       .catch((reason: unknown) => {
-        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
+        if (detailMayCommit(asyncIdentityRef.current, sequence, shortName)) {
           setDetailState({ status: "error", message: errorMessage(reason) });
         }
       });
@@ -499,6 +511,10 @@ export function MameBrowser({
         return;
       }
       const activation = ++activationSequence.current;
+      asyncIdentityRef.current = {
+        ...asyncIdentityRef.current,
+        activationGeneration: activation,
+      };
       const detailGeneration = detailSequence.current;
       if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
         launchDetail(detailState.detail);
@@ -507,18 +523,24 @@ export function MameBrowser({
       void getMameMachineDetail({ shortName: machine.shortName })
         .then((detail) => {
           if (
-            activationSequence.current === activation &&
-            detailSequence.current === detailGeneration &&
-            selectedRef.current?.shortName === machine.shortName
+            activationMayCommit(
+              asyncIdentityRef.current,
+              detailGeneration,
+              activation,
+              machine.shortName,
+            )
           ) {
             launchDetail(detail);
           }
         })
         .catch((reason: unknown) => {
           if (
-            activationSequence.current === activation &&
-            detailSequence.current === detailGeneration &&
-            selectedRef.current?.shortName === machine.shortName
+            activationMayCommit(
+              asyncIdentityRef.current,
+              detailGeneration,
+              activation,
+              machine.shortName,
+            )
           ) {
             setLaunchState({ status: "error", message: errorMessage(reason) });
           }
@@ -618,325 +640,3 @@ export function MameBrowser({
   const detail = detailState.status === "ready" ? detailState.detail : null;
   const detailErrorMessage = detailState.status === "error" ? detailState.message : null;
   const emptyRightPanelStatus = emptyRightPanelStatusFor(detailState);
-
-  function changeFilter(next: MameBrowserFilter) {
-    if (next !== filter) {
-      setFilter(next);
-      setFilterValue("");
-      setPreferredMachine(null);
-      setExportState({ status: "idle" });
-    }
-  }
-
-  function changeRightView(next: MachineRightView) {
-    setRightView(next);
-    setShowNarrowDetails(true);
-    if (next === "images" || next === "info") setPrimaryRightView(next);
-  }
-
-  if (softwareMode && detail) {
-    return (
-      <SoftwareBrowser
-        detail={detail as SoftwareCapableMachineDetail}
-        gameplayInputOwned={gameplayInputOwned}
-        launchOverrides={pendingLaunchOverrides}
-        panelMode={softwareRightPanelMode}
-        onPanelModeChange={setSoftwareRightPanelMode}
-        onBack={() => setSoftwareMode(false)}
-        onSessionStarted={(session) => {
-          setPendingLaunchOverrides(null);
-          onSessionStarted(session);
-        }}
-      />
-    );
-  }
-
-  return (
-    <section className="mame-browser" aria-label="MAME machine selection">
-      <div className="mame-browser-toolbar" role="toolbar" aria-label="Machine browser actions">
-        <label className="mame-search">
-          <span className="visually-hidden">Search machines</span>
-          <input
-            ref={searchInputRef}
-            type="search"
-            value={search}
-            aria-keyshortcuts="/"
-            placeholder="Search systems..."
-            autoComplete="off"
-            disabled={!catalogReady}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPreferredMachine(null);
-              setExportState({ status: "idle" });
-            }}
-          />
-        </label>
-        <span className="mame-browser-range" aria-live="polite">
-          {range}
-        </span>
-        <button
-          type="button"
-          className="secondary-button"
-          aria-label="Export displayed machine list"
-          disabled={
-            !catalogReady ||
-            exportState.status === "exporting" ||
-            (valueRequired && !debouncedFilterValue)
-          }
-          onClick={exportDisplayedList}
-        >
-          {exportState.status === "exporting" ? "Exporting…" : "Export"}
-        </button>
-        <button
-          type="button"
-          className="secondary-button mame-narrow-details-toggle"
-          aria-expanded={showNarrowDetails}
-          onClick={() => setShowNarrowDetails((current) => !current)}
-        >
-          {showNarrowDetails ? "Hide details" : "Details"}
-        </button>
-        <details className="mame-utility-menu">
-          <summary>More</summary>
-          <div className="mame-utility-menu-items" aria-label="Secondary MAME tools">
-            <button type="button" onClick={onOpenSession}>
-              {sessionLabel}
-            </button>
-            <button type="button" onClick={onConfigureOptions}>
-              Configure Options
-            </button>
-            <button type="button" onClick={onOpenAudit}>
-              Audit
-            </button>
-            <button type="button" onClick={onOpenHistory}>
-              History
-            </button>
-            <button type="button" onClick={onOpenCollections}>
-              Collections
-            </button>
-            <button type="button" onClick={onOpenDiagnostics}>
-              Diagnostics
-            </button>
-          </div>
-        </details>
-        {detail && (
-          <div className="mame-context-actions" aria-label="Selected machine actions">
-            <button
-              type="button"
-              className="mame-start-button"
-              aria-label={primaryLaunchButtonAriaLabel(detail)}
-              disabled={!detail.runnable || launchState.status === "launching"}
-              title={!detail.runnable ? "Machine is unavailable" : undefined}
-              onClick={() => launchDetail(detail)}
-            >
-              {primaryLaunchButtonLabel(detail, launchState)}
-            </button>
-            <FavoriteToggleButton
-              shortName={detail.shortName}
-              revision={favoriteRevision}
-              onChanged={bumpFavoriteRevision}
-            />
-            <button
-              ref={configureButtonRef}
-              type="button"
-              className="secondary-button mame-configure-machine-button"
-              aria-label={`Configure Machine for ${detail.description}`}
-              onClick={() => changeRightView("settings")}
-            >
-              {MAME_MACHINE_ACTION_LABELS.configureMachine}
-            </button>
-            {detail.softwareLists.length > 0 && (
-              <button
-                type="button"
-                className="secondary-button mame-software-list-button"
-                aria-label={`Open Software List for ${detail.description}`}
-                onClick={() => setSoftwareMode(true)}
-              >
-                {MAME_MACHINE_ACTION_LABELS.softwareList}
-              </button>
-            )}
-            <button
-              type="button"
-              className="secondary-button mame-audit-button"
-              aria-label={`Audit ${detail.description}`}
-              onClick={() => changeRightView("audit")}
-            >
-              {MAME_MACHINE_ACTION_LABELS.audit}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {uiStateError && (
-        <div className="mame-browser-banner is-error" role="status">
-          {uiStateError}
-        </div>
-      )}
-      {exportState.status === "success" && (
-        <div className="mame-browser-banner" role="status">
-          {exportState.message}
-        </div>
-      )}
-      {exportState.status === "error" && (
-        <div className="mame-browser-banner is-error" role="alert">
-          Export failed: {exportState.message}
-        </div>
-      )}
-      {launchState.status === "error" && (
-        <div className="mame-browser-banner is-error" role="alert">
-          {launchState.message}
-        </div>
-      )}
-      {launchState.status === "launched" && (
-        <div className="mame-browser-banner" role="status">
-          Session {launchState.session.sessionId} started.
-        </div>
-      )}
-
-      <div className={`mame-browser-grid ${showNarrowDetails ? "show-details" : ""}`}>
-        <MachineFilterPanel
-          active={filter}
-          filterValue={filterValue}
-          onChange={changeFilter}
-          onFilterValueChange={(value) => {
-            setFilterValue(value);
-            setPreferredMachine(null);
-            setExportState({ status: "idle" });
-          }}
-          registerActiveButton={(element) => {
-            activeFilterButtonRef.current = element;
-          }}
-          onNavigateToMachines={focusSelectedMachine}
-        />
-
-        <section
-          className="mame-list-region"
-          aria-label="Machine list"
-          aria-busy={
-            loadState.status === "loading" ||
-            catalogState.status === "checking" ||
-            catalogState.status === "importing"
-          }
-        >
-          <div className="mame-region-heading">Machines</div>
-          {!uiStateHydrated && <div className="mame-panel-state">Restoring browser state…</div>}
-          {uiStateHydrated && catalogState.status !== "ready" && (
-            <MameCatalogStatePanel
-              state={catalogState}
-              onConfigureOptions={onConfigureOptions}
-              onImportMetadata={importMetadata}
-            />
-          )}
-          {uiStateHydrated &&
-            catalogState.status === "ready" &&
-            loadState.status === "awaitingFilterValue" && (
-              <div className="mame-panel-state">Enter a value for the selected filter.</div>
-            )}
-          {uiStateHydrated && catalogState.status === "ready" && loadState.status === "loading" && (
-            <div className="mame-panel-state">Loading catalog…</div>
-          )}
-          {uiStateHydrated && catalogState.status === "ready" && loadState.status === "error" && (
-            <div className="mame-panel-state" role="alert">
-              {loadState.message}
-            </div>
-          )}
-          {catalogState.status === "ready" && page && page.items.length === 0 && (
-            <div className="mame-panel-state">
-              {page.total === 0 && filter === "all" && !debouncedSearch
-                ? "Metadata loaded, but no machines are present in the active catalog."
-                : "No machines match this filter."}
-            </div>
-          )}
-          {catalogState.status === "ready" && availabilityNotice === "unknown" && page && (
-            <div className="mame-catalog-hint" role="status">
-              <span>ROM availability has not been audited for these machines.</span>
-              <button type="button" className="secondary-button" onClick={onOpenAudit}>
-                Audit
-              </button>
-            </div>
-          )}
-          {catalogState.status === "ready" && availabilityNotice === "noneAvailable" && page && (
-            <div className="mame-catalog-hint" role="status">
-              <span>No verified available ROMs were found in the configured content paths.</span>
-              <button type="button" className="secondary-button" onClick={onConfigureOptions}>
-                Configure Options
-              </button>
-              <button type="button" className="secondary-button" onClick={onOpenAudit}>
-                Audit
-              </button>
-            </div>
-          )}
-          {catalogState.status === "ready" && page && page.items.length > 0 && (
-            <MachineList
-              page={page}
-              selected={selected}
-              registerRow={(index, element) => {
-                machineRowRefs.current[index] = element;
-              }}
-              onSelect={selectMachine}
-              onNavigate={handleMachineRowKeyDown}
-              onActivate={activateMachine}
-            />
-          )}
-          {catalogState.status === "ready" && page && page.total > page.limit && (
-            <nav className="mame-pager" aria-label="Machine result pages">
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={page.offset === 0}
-                onClick={() => {
-                  setPreferredMachine(null);
-                  setOffset(Math.max(0, page.offset - page.limit));
-                }}
-              >
-                Previous
-              </button>
-              <span>{range}</span>
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={page.offset + page.items.length >= page.total}
-                onClick={() => {
-                  setPreferredMachine(null);
-                  setOffset(page.offset + page.limit);
-                }}
-              >
-                Next
-              </button>
-            </nav>
-          )}
-        </section>
-
-        {detail ? (
-          <MachineRightPanel
-            detail={detail}
-            view={rightView}
-            onViewChange={changeRightView}
-            artworkKind={artworkKind}
-            onArtworkKindChange={setArtworkKind}
-            pendingLaunchOverrides={pendingLaunchOverrides}
-            onPendingLaunchOverridesChanged={setPendingLaunchOverrides}
-            onAuditResultChanged={onAuditResultsChanged}
-            firstTabRef={rightPanelFirstTabRef}
-            onNavigateToMachines={focusSelectedMachine}
-            gameplayInputOwned={gameplayInputOwned}
-            onSettingsClose={() => {
-              changeRightView("info");
-              configureButtonRef.current?.focus();
-            }}
-          />
-        ) : (
-          <EmptyMachineRightPanel
-            status={emptyRightPanelStatus}
-            message={detailErrorMessage ?? undefined}
-          />
-        )}
-      </div>
-      <MachineDriverStatus
-        detail={detail}
-        selected={selected}
-        detailStatus={detailState.status}
-        errorMessage={detailErrorMessage}
-      />
-    </section>
-  );
-}
