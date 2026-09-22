@@ -255,22 +255,22 @@
 
 ## MTR-011 — Reduce MameBrowser state coupling where it improves correctness
 
-- [ ] Map MameBrowser responsibilities before refactoring.
-- [ ] Identify ownership boundaries for catalog query lifecycle.
-- [ ] Identify ownership boundaries for selected-machine/detail lifecycle.
-- [ ] Identify ownership boundaries for activation/launch orchestration.
-- [ ] Identify ownership boundaries for keyboard shortcuts.
-- [ ] Identify ownership boundaries for persisted browser state.
-- [ ] Extract only the boundaries that materially improve correctness/testability.
-- [ ] Prefer explicit hooks/state machines such as useMachineSelectionDetail or equivalent where they make lifecycle identity testable.
-- [ ] Keep authoritative backend/catalog APIs unchanged unless a concrete defect requires change.
-- [ ] Avoid a framework rewrite.
-- [ ] Avoid moving code into new files without reducing implicit coupling.
-- [ ] Keep each behavior-changing refactor covered by executable tests.
-- [ ] Review MameBrowser size/complexity after remediation and document remaining intentional responsibilities.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Map MameBrowser responsibilities before refactoring.
+- [x] Identify ownership boundaries for catalog query lifecycle.
+- [x] Identify ownership boundaries for selected-machine/detail lifecycle.
+- [x] Identify ownership boundaries for activation/launch orchestration.
+- [x] Identify ownership boundaries for keyboard shortcuts.
+- [x] Identify ownership boundaries for persisted browser state.
+- [x] Extract only the boundaries that materially improve correctness/testability.
+- [x] Prefer explicit hooks/state machines such as useMachineSelectionDetail or equivalent where they make lifecycle identity testable.
+- [x] Keep authoritative backend/catalog APIs unchanged unless a concrete defect requires change.
+- [x] Avoid a framework rewrite.
+- [x] Avoid moving code into new files without reducing implicit coupling.
+- [x] Keep each behavior-changing refactor covered by executable tests.
+- [x] Review MameBrowser size/complexity after remediation and document remaining intentional responsibilities.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-011 is reconciled by `docs/MAME_TAURI_MTR_011_STATE_COUPLING_REVIEW_2026-09-22.md` on candidate `fdb3f945d3e539598a1fda1d505d787339a5d120`. The review maps `MameBrowser.tsx` responsibilities and documents ownership boundaries for catalog query lifecycle, selected-machine/detail lifecycle, activation/launch orchestration, keyboard shortcuts, and persisted browser state. It records the correctness/testability boundaries already extracted during this remediation track: `machineAsyncIdentity.ts` for selected-machine async identity and activation/detail generation guards; `model.ts` for request construction, filter requirements, selection reconciliation, list navigation, and page-size logic; `machineListVisibility.ts` for deterministic selected-row visibility; `rightPanelKeyboard.ts` for right-panel primary tab keyboard semantics; `artworkState.ts` and `ArtworkAssetFrame.tsx` for explicit artwork state and rendered state isolation; and Software Browser component coverage for row rendering. The review deliberately keeps `MameBrowser.tsx` as the top-level browser composition/orchestration component because remaining responsibilities coordinate live React refs, setter state, backend dispatch, session callbacks, and layout composition. No authoritative backend/catalog APIs were changed, no framework rewrite was introduced, no files were moved solely for line count, and this pass introduces no behavior-changing refactor that would require new behavioral tests beyond the already-promoted executable state/helper/component coverage. Applicable qualification for this docs-only candidate is documentation validation on exact head; frontend/platform behavior remains covered by the exact-head implementation runs recorded in MTR-001 through MTR-010.
 
 ---
 
