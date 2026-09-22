@@ -67,7 +67,9 @@ describe("machine selection async identity", () => {
       const enterActivation = state.activationGeneration + 1;
       state = { ...state, activationGeneration: enterActivation };
 
-      expect(activationMayCommit(state, detailGeneration, enterActivation, "galaga")).toBe(true);
+      expect(
+        activationMayCommit(state, detailGeneration, enterActivation, "galaga"),
+      ).toBe(true);
     },
   );
 
