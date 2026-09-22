@@ -30,6 +30,8 @@ import {
   SOFTWARE_FILTERS,
   SOFTWARE_PAGE_SIZE,
   softwareFilterRequiresValue,
+  softwareRowClassName,
+  softwareStartButtonDisabled,
 } from "./softwareModel";
 import "./SoftwareBrowser.css";
 
@@ -44,6 +46,54 @@ type LaunchState =
   | { status: "launching"; target: string }
   | { status: "launched"; session: SessionSnapshot }
   | { status: "error"; message: string };
+
+type SoftwareResultsListProps = {
+  page: MameSoftwarePage;
+  selected: MameSoftwareItem | null;
+  registerRow: (index: number, element: HTMLButtonElement | null) => void;
+  onSelect: (item: MameSoftwareItem) => void;
+  onActivate: (item: MameSoftwareItem) => void;
+  onNavigate: (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => void;
+};
+
+export function SoftwareResultsList({
+  page,
+  selected,
+  registerRow,
+  onSelect,
+  onActivate,
+  onNavigate,
+}: SoftwareResultsListProps) {
+  return (
+    <ul className="mame-software-listbox" role="listbox" aria-label="Software results">
+      {page.items.map((item, index) => {
+        const isSelected = selected?.shortName === item.shortName;
+        return (
+          <li key={item.shortName} role="presentation">
+            <button
+              ref={(element) => registerRow(index, element)}
+              type="button"
+              role="option"
+              className={softwareRowClassName({ isSelected, supported: item.supported })}
+              data-support={item.supported}
+              aria-selected={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => onSelect(item)}
+              onDoubleClick={() => onActivate(item)}
+              onKeyDown={(event) => onNavigate(event, index)}
+            >
+              <span className="mame-software-title">{item.description}</span>
+              <span className="mame-machine-short">{item.shortName}</span>
+              <span>{item.year}</span>
+              <span className="mame-software-publisher">{item.publisher}</span>
+              <span className="mame-software-support">{item.supported}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export function SoftwareBrowser({
   detail,
@@ -316,11 +366,11 @@ export function SoftwareBrowser({
         <button
           type="button"
           className="mame-start-button"
-          disabled={
-            !selected ||
-            (selected.parts.length > 1 && !selectedPart) ||
-            launch.status === "launching"
-          }
+          disabled={softwareStartButtonDisabled({
+            selected,
+            selectedPart,
+            launchStatus: launch.status,
+          })}
           onClick={launchSelected}
         >
           {launch.status === "launching" ? "Starting…" : "Start"}
@@ -407,34 +457,16 @@ export function SoftwareBrowser({
             <div className="mame-panel-state">No software matches.</div>
           )}
           {page && page.items.length > 0 && (
-            <ul className="mame-software-listbox" role="listbox" aria-label="Software results">
-              {page.items.map((item, index) => {
-                const isSelected = selected?.shortName === item.shortName;
-                return (
-                  <li key={item.shortName} role="presentation">
-                    <button
-                      ref={(element) => {
-                        rowRefs.current[index] = element;
-                      }}
-                      type="button"
-                      role="option"
-                      className={`mame-software-row ${isSelected ? "is-selected" : ""}`}
-                      aria-selected={isSelected}
-                      tabIndex={isSelected ? 0 : -1}
-                      onClick={() => setSelected(item)}
-                      onDoubleClick={() => activateItem(item)}
-                      onKeyDown={(event) => handleRowKey(event, index)}
-                    >
-                      <span className="mame-software-title">{item.description}</span>
-                      <span className="mame-machine-short">{item.shortName}</span>
-                      <span>{item.year}</span>
-                      <span className="mame-software-publisher">{item.publisher}</span>
-                      <span>{item.supported}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <SoftwareResultsList
+              page={page}
+              selected={selected}
+              registerRow={(index, element) => {
+                rowRefs.current[index] = element;
+              }}
+              onSelect={setSelected}
+              onActivate={activateItem}
+              onNavigate={handleRowKey}
+            />
           )}
           {page && page.total > page.limit && (
             <nav className="mame-pager" aria-label="Software result pages">
