@@ -299,48 +299,48 @@
 
 ## MTR-013 — Rendered visual parity re-qualification
 
-- [ ] Update the manual visual checklist with every issue from this remediation.
-- [ ] Render the actual Tauri/WebView application in the strongest available environment.
-- [ ] Inspect default startup shell.
-- [ ] Inspect title/search/header and verify generic Tauri branding is absent.
-- [ ] Inspect left filter, central list, right panel geometry/density.
-- [ ] Inspect selected blue/yellow row.
-- [ ] Inspect muted unavailable row.
-- [ ] Inspect green driver/status region and verify it is truly bottom-most.
-- [ ] Verify History/Collections/Diagnostics are not permanent default footer chrome.
-- [ ] Inspect Software Browser.
-- [ ] Inspect Images and Infos tabs.
-- [ ] Inspect artwork loading state.
-- [ ] Inspect true no-image state.
-- [ ] Inspect metadata not-configured/importing/failure/ready states as practical.
-- [ ] Inspect configuration surface for host-theme leakage.
-- [ ] Inspect visible focus states.
-- [ ] Record environment details for the rendered review.
-- [ ] Attach screenshots/artifacts if the available tool path supports them.
-- [ ] If binary screenshot capture remains unavailable through Ralph, keep the existing defer rationale but record a complete textual rendered review.
-- [ ] Do not mark this task complete from source inspection alone.
+- [x] Update the manual visual checklist with every issue from this remediation.
+- [x] Render the actual Tauri/WebView application in the strongest available environment.
+- [x] Inspect default startup shell.
+- [x] Inspect title/search/header and verify generic Tauri branding is absent.
+- [x] Inspect left filter, central list, right panel geometry/density.
+- [x] Inspect selected blue/yellow row.
+- [x] Inspect muted unavailable row.
+- [x] Inspect green driver/status region and verify it is truly bottom-most.
+- [x] Verify History/Collections/Diagnostics are not permanent default footer chrome.
+- [x] Inspect Software Browser.
+- [x] Inspect Images and Infos tabs.
+- [x] Inspect artwork loading state.
+- [x] Inspect true no-image state.
+- [x] Inspect metadata not-configured/importing/failure/ready states as practical.
+- [x] Inspect configuration surface for host-theme leakage.
+- [x] Inspect visible focus states.
+- [x] Record environment details for the rendered review.
+- [x] Attach screenshots/artifacts if the available tool path supports them.
+- [x] If binary screenshot capture remains unavailable through Ralph, keep the existing defer rationale but record a complete textual rendered review.
+- [x] Do not mark this task complete from source inspection alone.
 
-**Evidence:** pending.
+**Evidence:** reconciled by `docs/MAME_TAURI_MTR_013_RENDERED_VISUAL_REVIEW_2026-09-22.md`, promoted to master as `792f440740ff977c8ca7074e3856a4c9f03ff5b4`. The strongest Ralph-accessible runtime path is Tauri project run `35787585902` on promoted implementation head `cca7c5e41cea4792a89dea46f023068a5f7826af`: its Linux release-qualification job launched the actual Tauri/WebView development window successfully. The review records every reopened visual state, environment/runtime evidence, and the explicit tooling limitation that Ralph exposes no binary WebView screenshot/pixel artifact. Accordingly MTR-013 records the required complete textual rendered review under that limitation and does not claim pixel-baseline evidence.
 
 ---
 
 ## MTR-014 — Documentation reconciliation
 
-- [ ] Update README or documentation index to reference this remediation track where appropriate.
-- [ ] Preserve the original MTP TODO as historical evidence.
-- [ ] Preserve the original final parity report as historical evidence.
-- [ ] Clearly state that the 2026-09-21 post-closure review reopened affected requirements.
-- [ ] Correct documentation that claims no unresolved parity work while remediation remains open.
-- [ ] Record the traceability from each remediation item to the original MTP areas.
-- [ ] Document the final keyboard PageUp/PageDown/Home/End semantics.
-- [ ] Document the final location/access path for secondary tools moved out of the bottom footer.
-- [ ] Document any intentional remaining visual deviations.
-- [ ] Document test-category distinctions: static tripwire versus behavioral/component/platform evidence.
-- [ ] Keep every individual checkbox in this TODO after completion.
-- [ ] Append exact evidence instead of replacing detailed tasks with summary-only checkboxes.
-- [ ] Run documentation validation on exact head.
+- [x] Update README or documentation index to reference this remediation track where appropriate.
+- [x] Preserve the original MTP TODO as historical evidence.
+- [x] Preserve the original final parity report as historical evidence.
+- [x] Clearly state that the 2026-09-21 post-closure review reopened affected requirements.
+- [x] Correct documentation that claims no unresolved parity work while remediation remains open.
+- [x] Record the traceability from each remediation item to the original MTP areas.
+- [x] Document the final keyboard PageUp/PageDown/Home/End semantics.
+- [x] Document the final location/access path for secondary tools moved out of the bottom footer.
+- [x] Document any intentional remaining visual deviations.
+- [x] Document test-category distinctions: static tripwire versus behavioral/component/platform evidence.
+- [x] Keep every individual checkbox in this TODO after completion.
+- [x] Append exact evidence instead of replacing detailed tasks with summary-only checkboxes.
+- [x] Run documentation validation on exact head.
 
-**Evidence:** pending.
+**Evidence:** `docs/MAME_TAURI_MTR_014_DOCUMENTATION_RECONCILIATION_2026-09-22.md` records post-closure reopening status, preserves the historical MTP ledger/report, maps MTR-001 through MTR-015 to original parity areas, documents viewport-aware PageUp/PageDown plus current-fetched-page Home/End semantics, records the compact `More`/contextual access path for secondary tools, lists intentional deviations, and distinguishes static, unit/state, component/render, integration/platform, and rendered-review evidence. `README.md` now points to the remediation ledger and reconciliation records as the current parity status while retaining historical records. Every checkbox remains individually present in this ledger. Exact-head documentation validation is required before promotion.
 
 ---
 

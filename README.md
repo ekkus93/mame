@@ -49,12 +49,16 @@ The canonical visual contract is `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15
 
 ## Current project status
 
-The main engineering phase and post-closeout hardening phase are complete. The original-MAME visual/interaction parity pass is tracked by:
+The main engineering phase and post-closeout hardening phase are complete. The 2026-09-21 post-closure review reopened affected original-MAME visual/interaction parity requirements. Current remediation status is tracked by:
 
-- `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` — current parity specification;
-- `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` — canonical parity backlog and evidence ledger;
+- `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md` — current remediation specification;
+- `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_TODO_2026-09-21.md` — canonical current remediation backlog and evidence ledger;
+- `docs/MAME_TAURI_MTR_013_RENDERED_VISUAL_REVIEW_2026-09-22.md` — strongest available rendered/runtime visual re-qualification and screenshot limitation;
+- `docs/MAME_TAURI_MTR_014_DOCUMENTATION_RECONCILIATION_2026-09-22.md` — documentation/traceability reconciliation;
 - `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md` — visual reference contract and manual checklist;
 - `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md` — Linux desktop compatibility boundary and manual checks.
+
+The original parity spec/TODO and 2026-09-21 final report are retained as historical evidence of the earlier closure state; they do not override the later remediation ledger while MTR work remains open.
 
 Earlier reproduction and engineering closure records remain useful historical evidence:
 
