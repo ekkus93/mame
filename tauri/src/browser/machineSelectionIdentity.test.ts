@@ -58,15 +58,18 @@ describe("machine selection async identity", () => {
     ).toBe(true);
   });
 
-  it("allows immediate Enter activation after keyboard selection to wait for selected detail", () => {
-    let state = initialIdentity();
-    state = selectMachineIdentity(state, "galaga");
-    const detailGeneration = state.detailGeneration;
-    const enterActivation = state.activationGeneration + 1;
-    state = { ...state, activationGeneration: enterActivation };
+  it(
+    "allows immediate Enter activation after keyboard selection to wait for selected detail",
+    () => {
+      let state = initialIdentity();
+      state = selectMachineIdentity(state, "galaga");
+      const detailGeneration = state.detailGeneration;
+      const enterActivation = state.activationGeneration + 1;
+      state = { ...state, activationGeneration: enterActivation };
 
-    expect(activationMayCommit(state, detailGeneration, enterActivation, "galaga")).toBe(true);
-  });
+      expect(activationMayCommit(state, detailGeneration, enterActivation, "galaga")).toBe(true);
+    },
+  );
 
   it("rejects rapid A activation when B is selected before A detail returns", () => {
     let state = initialIdentity();
