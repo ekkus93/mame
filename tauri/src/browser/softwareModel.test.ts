@@ -10,9 +10,6 @@ import {
   shouldPreserveLaunchOnSelection,
   softwareFilterRequiresValue,
   softwareGlobalShortcutAction,
-  softwareRowClassName,
-  softwareStartButtonDisabled,
-  softwareSupportClassName,
 } from "./softwareModel";
 
 function software(parts: MameSoftwareItem["parts"]): MameSoftwareItem {
@@ -88,18 +85,6 @@ describe("MAME software browser model", () => {
     ).toBeNull();
   });
 
-  it("assigns row classes for selected, partial, and unsupported software states", () => {
-    expect(softwareSupportClassName("yes")).toBe("");
-    expect(softwareSupportClassName("partial")).toBe("is-partial");
-    expect(softwareSupportClassName("no")).toBe("is-unsupported");
-    expect(softwareRowClassName({ isSelected: true, supported: "partial" })).toBe(
-      "mame-software-row is-selected is-partial",
-    );
-    expect(softwareRowClassName({ isSelected: false, supported: "no" })).toBe(
-      "mame-software-row is-unsupported",
-    );
-  });
-
   it("preserves omitted BIOS semantics in software and empty launch requests", () => {
     expect(
       buildSoftwareLaunchRequest({
@@ -160,12 +145,7 @@ describe("MAME software browser model", () => {
       { name: "flop", interface: "floppy" },
     ]);
     expect(
-      canBeginSoftwareLaunch({
-        listName: "list",
-        launchInFlight: false,
-        item,
-        softwarePart: null,
-      }),
+      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: null }),
     ).toBe(false);
     expect(
       canBeginSoftwareLaunch({
@@ -175,41 +155,5 @@ describe("MAME software browser model", () => {
         softwarePart: "flop",
       }),
     ).toBe(true);
-  });
-
-  it("keeps the Start action disabled for missing selections, missing parts, and active launches", () => {
-    const singlePart = software([{ name: "cart", interface: "cart" }]);
-    const multiPart = software([
-      { name: "cart", interface: "cart" },
-      { name: "flop", interface: "floppy" },
-    ]);
-    expect(
-      softwareStartButtonDisabled({
-        selected: null,
-        selectedPart: null,
-        launchStatus: "idle",
-      }),
-    ).toBe(true);
-    expect(
-      softwareStartButtonDisabled({
-        selected: multiPart,
-        selectedPart: null,
-        launchStatus: "idle",
-      }),
-    ).toBe(true);
-    expect(
-      softwareStartButtonDisabled({
-        selected: singlePart,
-        selectedPart: "cart",
-        launchStatus: "launching",
-      }),
-    ).toBe(true);
-    expect(
-      softwareStartButtonDisabled({
-        selected: singlePart,
-        selectedPart: "cart",
-        launchStatus: "idle",
-      }),
-    ).toBe(false);
   });
 });

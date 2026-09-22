@@ -30,8 +30,6 @@ import {
   SOFTWARE_FILTERS,
   SOFTWARE_PAGE_SIZE,
   softwareFilterRequiresValue,
-  softwareRowClassName,
-  softwareStartButtonDisabled,
 } from "./softwareModel";
 import "./SoftwareBrowser.css";
 
@@ -56,6 +54,12 @@ type SoftwareResultsListProps = {
   onNavigate: (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => void;
 };
 
+function softwareSupportClassName(supported: MameSoftwareItem["supported"]): string {
+  if (supported === "no") return "is-unsupported";
+  if (supported === "partial") return "is-partial";
+  return "";
+}
+
 export function SoftwareResultsList({
   page,
   selected,
@@ -68,13 +72,17 @@ export function SoftwareResultsList({
     <ul className="mame-software-listbox" role="listbox" aria-label="Software results">
       {page.items.map((item, index) => {
         const isSelected = selected?.shortName === item.shortName;
+        const supportClass = softwareSupportClassName(item.supported);
+        const rowClassName = `mame-software-row${isSelected ? " is-selected" : ""}${
+          supportClass ? ` ${supportClass}` : ""
+        }`;
         return (
           <li key={item.shortName} role="presentation">
             <button
               ref={(element) => registerRow(index, element)}
               type="button"
               role="option"
-              className={softwareRowClassName({ isSelected, supported: item.supported })}
+              className={rowClassName}
               data-support={item.supported}
               aria-selected={isSelected}
               tabIndex={isSelected ? 0 : -1}
@@ -366,11 +374,11 @@ export function SoftwareBrowser({
         <button
           type="button"
           className="mame-start-button"
-          disabled={softwareStartButtonDisabled({
-            selected,
-            selectedPart,
-            launchStatus: launch.status,
-          })}
+          disabled={
+            !selected ||
+            (selected.parts.length > 1 && !selectedPart) ||
+            launch.status === "launching"
+          }
           onClick={launchSelected}
         >
           {launch.status === "launching" ? "Starting…" : "Start"}

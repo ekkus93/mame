@@ -83,49 +83,6 @@ export function selectedPartForSoftware(item: MameSoftwareItem | null): string |
   return item?.parts.length === 1 ? (item.parts[0]?.name ?? null) : null;
 }
 
-export function softwareSupportClassName(supported: MameSoftwareItem["supported"]): string {
-  switch (supported) {
-    case "partial":
-      return "is-partial";
-    case "no":
-      return "is-unsupported";
-    case "yes":
-      return "";
-  }
-}
-
-export function softwareRowClassName({
-  isSelected,
-  supported,
-}: {
-  isSelected: boolean;
-  supported: MameSoftwareItem["supported"];
-}): string {
-  return [
-    "mame-software-row",
-    isSelected ? "is-selected" : "",
-    softwareSupportClassName(supported),
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
-
-export function softwareStartButtonDisabled({
-  selected,
-  selectedPart,
-  launchStatus,
-}: {
-  selected: MameSoftwareItem | null;
-  selectedPart: string | null;
-  launchStatus: string;
-}): boolean {
-  return (
-    !selected ||
-    (selected.parts.length > 1 && !selectedPart) ||
-    launchStatus === "launching"
-  );
-}
-
 export function canBeginSoftwareLaunch({
   listName,
   launchInFlight,
