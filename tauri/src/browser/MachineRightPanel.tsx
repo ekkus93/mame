@@ -20,9 +20,11 @@ import type { MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
 import { machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
+import { ArtworkAssetFrame } from "./ArtworkAssetFrame";
 import {
   artworkAssetError,
   initialArtworkAssetState,
+  isCurrentArtworkRequest,
   type ArtworkAssetState,
 } from "./artworkState";
 import { nextPrimaryRightView, type PrimaryRightView } from "./rightPanelKeyboard";
@@ -252,13 +254,19 @@ function ArtworkPane({
     setError(null);
     void discoverMachineArtwork(machine)
       .then((result) => {
-        if (discoveryRequestId.current === id) setArtwork(result);
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setArtwork(result);
+        }
       })
       .catch((reason: unknown) => {
-        if (discoveryRequestId.current === id) setError(errorMessage(reason));
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setError(errorMessage(reason));
+        }
       })
       .finally(() => {
-        if (discoveryRequestId.current === id) setLoading(false);
+        if (isCurrentArtworkRequest(discoveryRequestId.current, id)) {
+          setLoading(false);
+        }
       });
   }, [machine]);
 
@@ -283,10 +291,12 @@ function ArtworkPane({
     if (!descriptor) return;
     void readArtworkAsset(descriptor.assetId)
       .then((payload) => {
-        if (assetRequestId.current === id) setAssetState({ status: "ready", asset: payload });
+        if (isCurrentArtworkRequest(assetRequestId.current, id)) {
+          setAssetState({ status: "ready", asset: payload });
+        }
       })
       .catch((reason: unknown) => {
-        if (assetRequestId.current === id) {
+        if (isCurrentArtworkRequest(assetRequestId.current, id)) {
           setAssetState(artworkAssetError(reason, errorMessage));
         }
       });
@@ -326,29 +336,11 @@ function ArtworkPane({
           </button>
         ))}
       </div>
-      <div className="mame-artwork-frame">
-        {assetState.status === "loading" && (
-          <div className="mame-panel-state">Loading {ARTWORK_LABELS[selectedKind]}…</div>
-        )}
-        {assetState.status === "error" && (
-          <div className="mame-no-image-placeholder" role="alert">
-            <strong>Artwork unavailable</strong>
-            <span>{assetState.message}</span>
-          </div>
-        )}
-        {assetState.status === "ready" && (
-          <img
-            src={assetState.asset.dataUrl}
-            alt={`${slot?.asset?.machine ?? machine} ${ARTWORK_LABELS[selectedKind]}`}
-          />
-        )}
-        {assetState.status === "missing" && (
-          <div className="mame-no-image-placeholder">
-            <strong>No image Available</strong>
-            <span>{ARTWORK_LABELS[selectedKind]}</span>
-          </div>
-        )}
-      </div>
+      <ArtworkAssetFrame
+        state={assetState}
+        label={ARTWORK_LABELS[selectedKind]}
+        machine={slot?.asset?.machine ?? machine}
+      />
     </div>
   );
 }

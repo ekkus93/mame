@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { artworkAssetError, initialArtworkAssetState } from "./artworkState";
+import {
+  artworkAssetError,
+  initialArtworkAssetState,
+  isCurrentArtworkRequest,
+} from "./artworkState";
 
 describe("MAME artwork asset state", () => {
   it("distinguishes a selected asset that is loading from a missing slot", () => {
@@ -14,5 +18,9 @@ describe("MAME artwork asset state", () => {
       status: "error",
       message: "formatted artwork failure",
     });
+  });
+  it("rejects out-of-order artwork responses after request identity changes", () => {
+    expect(isCurrentArtworkRequest(8, 7)).toBe(false);
+    expect(isCurrentArtworkRequest(8, 8)).toBe(true);
   });
 });
