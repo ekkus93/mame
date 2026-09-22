@@ -149,27 +149,27 @@
 
 ## MTR-006 — Bring Software Browser to MAME visual/interaction parity
 
-- [ ] Apply MAME navy/background tokens to Software Browser.
-- [ ] Apply original-like compact toolbar/header treatment.
-- [ ] Apply dense software row/list spacing.
-- [ ] Apply explicit selected-row blue treatment.
-- [ ] Apply selected primary text treatment consistent with the MAME visual contract.
-- [ ] Apply muted unavailable/disabled treatment where applicable.
-- [ ] Apply visible focus treatment.
-- [ ] Apply thin splitter/border treatment using MAME tokens.
-- [ ] Remove system-color product styling.
-- [ ] Keep software errors inside the MAME surface.
-- [ ] Preserve software-part selection.
-- [ ] Preserve Start behavior.
-- [ ] Preserve BIOS semantics.
-- [ ] Preserve Back/Escape behavior.
-- [ ] Add component tests for software selection.
-- [ ] Add component tests for software activation.
-- [ ] Add theme regression tests covering Software Browser.
+- [x] Apply MAME navy/background tokens to Software Browser.
+- [x] Apply original-like compact toolbar/header treatment.
+- [x] Apply dense software row/list spacing.
+- [x] Apply explicit selected-row blue treatment.
+- [x] Apply selected primary text treatment consistent with the MAME visual contract.
+- [x] Apply muted unavailable/disabled treatment where applicable.
+- [x] Apply visible focus treatment.
+- [x] Apply thin splitter/border treatment using MAME tokens.
+- [x] Remove system-color product styling.
+- [x] Keep software errors inside the MAME surface.
+- [x] Preserve software-part selection.
+- [x] Preserve Start behavior.
+- [x] Preserve BIOS semantics.
+- [x] Preserve Back/Escape behavior.
+- [x] Add component tests for software selection.
+- [x] Add component tests for software activation.
+- [x] Add theme regression tests covering Software Browser.
 - [ ] Perform rendered inspection of Software List with representative states.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-006 implementation was promoted through PR #86 and PR #87. PR #86 candidate `bc6b420b9e194a80a12653bdfce22eaf3da05333` updated `tauri/src/browser/SoftwareBrowser.css` so the Software Browser uses explicit MAME palette tokens (`--mame-bg`, `--mame-toolbar`, `--mame-border`, `--mame-border-muted`, `--mame-selected`, `--mame-selected-text`, `--mame-disabled`, `--mame-focus`, `--mame-muted`, `--mame-warning`), compact toolbar/header sizing, dense 1.45rem software rows, selected blue/yellow treatment, muted unsupported/partial support treatment, visible focus outlines, and tokenized splitters/borders without `Canvas`, `CanvasText`, `ButtonFace`, `ButtonText`, or product `currentColor` reliance. PR #86 added/strengthened `tauri/src/browser/SoftwareBrowserParity.source.test.ts` theme guards. PR #87 candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` added `tauri/src/browser/SoftwareBrowserComponent.test.tsx`, which renders the exported `SoftwareResultsList` with `react-dom/server` and asserts selected-row class/ARIA state, muted support classes, software metadata output, row support state data, selection callback identity, activation callback identity, and multi-part/no-part Start disabling through executable tests rather than source-string checks alone. Production `tauri/src/browser/SoftwareBrowser.tsx` preserves software-part selection, Start behavior, BIOS omission/selection semantics, Back/Escape behavior, and MAME-surface error banners while routing rows through the tested list component. Exact candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` passed all five push workflows: Tauri project `35762584473`, Windows packaging `35762584480`, macOS packaging `35762584513`, Linux packaging `35762584530`, and Tauri security `35762584472`; it also passed all five PR workflows: Tauri project `35763249390`, Windows packaging `35763249337`, macOS packaging `35763249676`, Linux packaging `35763249324`, and Tauri security `35763249333`. The rendered Software List inspection remains intentionally unchecked here and must be completed under MTR-013; source/static/component evidence is not substituted for the manual rendered review requirement.
 
 ---
 
