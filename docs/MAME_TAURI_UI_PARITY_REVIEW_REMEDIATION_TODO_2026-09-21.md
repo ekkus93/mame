@@ -25,17 +25,17 @@
 
 ## MTR-000 — Reopen parity and establish exact baseline
 
-- [ ] Read docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md completely.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md completely.
-- [ ] Read the detailed historical MTP checklist from repository history if current master contains the reconciled/condensed version.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md and identify claims reopened by this remediation.
-- [ ] Confirm current master SHA before implementation.
-- [ ] Record the current frontend test/CI baseline before behavior changes.
-- [ ] Record the exact files currently responsible for selection/detail lifecycle, activation, default shell/footer composition, Software Browser styling, right-panel keyboard behavior, artwork loading, and parity tests.
-- [ ] Do not modify the historical MTP evidence to hide the prior closure; this remediation must remain additive and auditable.
+- [x] Read docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md completely.
+- [x] Read docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md completely.
+- [x] Read the detailed historical MTP checklist from repository history if current master contains the reconciled/condensed version.
+- [x] Read docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md.
+- [x] Read docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md and identify claims reopened by this remediation.
+- [x] Confirm current master SHA before implementation.
+- [x] Record the current frontend test/CI baseline before behavior changes.
+- [x] Record the exact files currently responsible for selection/detail lifecycle, activation, default shell/footer composition, Software Browser styling, right-panel keyboard behavior, artwork loading, and parity tests.
+- [x] Do not modify the historical MTP evidence to hide the prior closure; this remediation must remain additive and auditable.
 
-**Evidence:** pending.
+**Evidence:** MTR-000 baseline reconciliation was performed from promoted master `d11481284ce83724084a0ad874d0fb6dfc27fbae`. The remediation spec `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md`, original parity spec `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md`, current reference `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`, and final report `docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md` were reread. Because current `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` is condensed, the detailed historical checklist was read from pre-condense parent commit `9a7f1e7441f67709a3231289ed4517df151d2c87`, where MTP-000 through MTP-015 remained expanded. The claims reopened by this remediation are the prior final report's no-unresolved-parity-work closure, source/static tripwire sufficiency for interaction behavior, complete keyboard/mouse parity, Software Browser visual parity, default shell footer disposition, host-system color removal, selected-detail/activation race safety, selected-row visibility, right-panel tab keyboard handling, and artwork loading/missing/error separation. Current promoted-master CI baseline for `d11481284ce83724084a0ad874d0fb6dfc27fbae` was all green: Tauri project run `35730623025`, Windows packaging `35730622875`, macOS packaging `35730622891`, Linux packaging `35730622749`, and Tauri security `35730623007`. Current responsibility files are: `tauri/src/browser/MameBrowser.tsx` plus `tauri/src/browser/machineAsyncIdentity.ts` for selection/detail and activation identity; `tauri/src/browser/model.ts`, `tauri/src/browser/MachineList.tsx`, and `tauri/src/browser/machineListVisibility.ts` for query selection, keyboard movement, and selected-row visibility; `tauri/src/shell/MameShell.tsx`, `tauri/src/shell/MameShell.css`, and `tauri/src/browser/MachineDriverStatus.tsx` for default shell, secondary-surface access, and bottom driver/status composition; `tauri/src/browser/SoftwareBrowser.tsx` and `tauri/src/browser/SoftwareBrowser.css` for Software Browser behavior/styling; `tauri/src/browser/MachineRightPanel.tsx`, `tauri/src/browser/rightPanelKeyboard.ts`, `tauri/src/browser/artworkState.ts`, and `tauri/src/browser/ArtworkAssetFrame.tsx` for right-panel keyboard and artwork lifecycle; and the parity/interaction tests under `tauri/src/browser/*test*` plus `tauri/src/shell/mameShellComposition.source.test.ts` for regression coverage. This update is additive: the historical MTP TODO and final report remain intact as evidence, while this remediation ledger records the reopened requirements.
 
 ---
 
