@@ -19,9 +19,9 @@ import type { MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
 import { machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
+import { nextPrimaryRightView, type PrimaryRightView } from "./rightPanelKeyboard";
 
 export type MachineRightView = "images" | "info" | "audit" | "settings";
-type PrimaryRightView = Extract<MachineRightView, "images" | "info">;
 
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
@@ -44,15 +44,6 @@ const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   icon: "Icon",
   systemImage: "System image",
 };
-
-export function nextPrimaryRightView(
-  current: PrimaryRightView,
-  key: string,
-): PrimaryRightView | null {
-  if (key === "ArrowRight") return current === "images" ? "info" : "info";
-  if (key === "ArrowLeft") return current === "info" ? "images" : null;
-  return current;
-}
 
 function panelDataView(view: MachineRightView): string {
   switch (view) {

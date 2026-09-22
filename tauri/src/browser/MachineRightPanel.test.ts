@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextPrimaryRightView } from "./MachineRightPanel";
+import { nextPrimaryRightView } from "./rightPanelKeyboard";
 
 describe("MAME right-panel tab keyboard model", () => {
   it("moves right from Images to Infos and clamps on Infos", () => {
