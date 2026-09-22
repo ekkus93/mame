@@ -505,8 +505,7 @@ button:disabled {
   }
 }
 
-/* The transient backend-connect state is still part of the product surface. Keep it on the
-   explicit MAME palette rather than inheriting host Canvas/CanvasText colors. */
+/* Keep the transient backend-connect state on the explicit MAME palette too. */
 .startup-shell {
   display: grid;
   place-items: center;
