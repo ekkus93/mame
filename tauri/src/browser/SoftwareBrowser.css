@@ -10,8 +10,8 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  min-height: 3.3rem;
-  padding: 0.5rem 0.75rem;
+  min-height: 2.65rem;
+  padding: 0.35rem 0.55rem;
   border-bottom: 1px solid var(--mame-border);
   background: var(--mame-toolbar);
   color: var(--mame-text);
@@ -66,10 +66,10 @@
   display: grid;
   grid-template-columns: minmax(12rem, 2fr) 7rem 4rem minmax(8rem, 1fr) 6rem;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
   width: 100%;
-  min-height: 2.15rem;
-  padding: 0.25rem 0.55rem;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.45rem;
   border: 0;
   border-radius: 0;
   color: var(--mame-text);
@@ -152,4 +152,27 @@
   .mame-software-row > :last-child {
     display: none;
   }
+}
+
+
+.mame-software-toolbar .secondary-button,
+.mame-software-toolbar .mame-start-button {
+  min-height: 1.85rem;
+  padding-block: 0.2rem;
+}
+
+.mame-software-toolbar input,
+.mame-software-toolbar select {
+  min-height: 1.85rem;
+}
+
+.mame-software-grid > .mame-filter-panel,
+.mame-software-grid > .mame-list-region,
+.mame-software-grid > .mame-right-panel {
+  border-color: var(--mame-border-muted);
+}
+
+.mame-software-row[aria-disabled="true"] {
+  color: var(--mame-disabled);
+  background: var(--mame-surface);
 }
