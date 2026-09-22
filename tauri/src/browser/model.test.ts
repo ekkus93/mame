@@ -1,19 +1,54 @@
 import { describe, expect, it } from "vitest";
 
 import type { MachineListItem } from "../backend/types";
-import { browserPageStep, buildMameBrowserRequest, filterRequiresValue, nextBrowserIndex, reconcileMachineSelection } from "./model";
+import {
+  browserPageStep,
+  buildMameBrowserRequest,
+  filterRequiresValue,
+  nextBrowserIndex,
+  reconcileMachineSelection,
+} from "./model";
 
 function machine(shortName: string, description: string): MachineListItem {
-  return { shortName, description, year: null, manufacturer: null, sourceFile: null, cloneOf: null, runnable: true, isDevice: false, driverStatus: "good", displayCount: 1, softwareListCount: 0 };
+  return {
+    shortName,
+    description,
+    year: null,
+    manufacturer: null,
+    sourceFile: null,
+    cloneOf: null,
+    runnable: true,
+    isDevice: false,
+    driverStatus: "good",
+    displayCount: 1,
+    softwareListCount: 0,
+  };
 }
 
 describe("MAME browser model", () => {
   it("maps canonical frontend filters to bounded MAME UI queries", () => {
-    expect(buildMameBrowserRequest("available", " pac ", "", 10)).toEqual({ text: "pac", filter: "available", filterValue: null, preferredMachine: null, limit: 100, offset: 10 });
-    expect(buildMameBrowserRequest("notWorking", "", "")).toMatchObject({ filter: "notWorking" });
-    expect(buildMameBrowserRequest("manufacturer", "", " Namco ")).toMatchObject({ filter: "manufacturer", filterValue: "Namco" });
-    expect(buildMameBrowserRequest("chdRequired", "", "", 0, "area51")).toMatchObject({ filter: "chdRequired", preferredMachine: "area51" });
-    expect(buildMameBrowserRequest("noChdRequired", "", "")).toMatchObject({ filter: "noChdRequired" });
+    expect(buildMameBrowserRequest("available", " pac ", "", 10)).toEqual({
+      text: "pac",
+      filter: "available",
+      filterValue: null,
+      preferredMachine: null,
+      limit: 100,
+      offset: 10,
+    });
+    expect(buildMameBrowserRequest("notWorking", "", "")).toMatchObject({
+      filter: "notWorking",
+    });
+    expect(buildMameBrowserRequest("manufacturer", "", " Namco ")).toMatchObject({
+      filter: "manufacturer",
+      filterValue: "Namco",
+    });
+    expect(buildMameBrowserRequest("chdRequired", "", "", 0, "area51")).toMatchObject({
+      filter: "chdRequired",
+      preferredMachine: "area51",
+    });
+    expect(buildMameBrowserRequest("noChdRequired", "", "")).toMatchObject({
+      filter: "noChdRequired",
+    });
   });
 
   it("identifies canonical filters that require a bounded value", () => {
@@ -33,7 +68,9 @@ describe("MAME browser model", () => {
   it("falls back deterministically when a selected machine disappears", () => {
     const first = machine("galaga", "Galaga");
     const preferred = machine("pacman", "Pac-Man");
-    expect(reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman")).toBe(preferred);
+    expect(
+      reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman"),
+    ).toBe(preferred);
     expect(reconcileMachineSelection([first], machine("missing", "Missing"), null)).toBe(first);
     expect(reconcileMachineSelection([], machine("missing", "Missing"), null)).toBeNull();
   });
