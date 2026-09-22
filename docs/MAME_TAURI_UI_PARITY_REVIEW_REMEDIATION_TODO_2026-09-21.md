@@ -25,39 +25,39 @@
 
 ## MTR-000 — Reopen parity and establish exact baseline
 
-- [ ] Read docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md completely.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md completely.
-- [ ] Read the detailed historical MTP checklist from repository history if current master contains the reconciled/condensed version.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md.
-- [ ] Read docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md and identify claims reopened by this remediation.
-- [ ] Confirm current master SHA before implementation.
-- [ ] Record the current frontend test/CI baseline before behavior changes.
-- [ ] Record the exact files currently responsible for selection/detail lifecycle, activation, default shell/footer composition, Software Browser styling, right-panel keyboard behavior, artwork loading, and parity tests.
-- [ ] Do not modify the historical MTP evidence to hide the prior closure; this remediation must remain additive and auditable.
+- [x] Read docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md completely.
+- [x] Read docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md completely.
+- [x] Read the detailed historical MTP checklist from repository history if current master contains the reconciled/condensed version.
+- [x] Read docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md.
+- [x] Read docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md and identify claims reopened by this remediation.
+- [x] Confirm current master SHA before implementation.
+- [x] Record the current frontend test/CI baseline before behavior changes.
+- [x] Record the exact files currently responsible for selection/detail lifecycle, activation, default shell/footer composition, Software Browser styling, right-panel keyboard behavior, artwork loading, and parity tests.
+- [x] Do not modify the historical MTP evidence to hide the prior closure; this remediation must remain additive and auditable.
 
-**Evidence:** pending.
+**Evidence:** MTR-000 baseline reconciliation was performed from promoted master `d11481284ce83724084a0ad874d0fb6dfc27fbae`. The remediation spec `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md`, original parity spec `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md`, current reference `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md`, and final report `docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md` were reread. Because current `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` is condensed, the detailed historical checklist was read from pre-condense parent commit `9a7f1e7441f67709a3231289ed4517df151d2c87`, where MTP-000 through MTP-015 remained expanded. The claims reopened by this remediation are the prior final report's no-unresolved-parity-work closure, source/static tripwire sufficiency for interaction behavior, complete keyboard/mouse parity, Software Browser visual parity, default shell footer disposition, host-system color removal, selected-detail/activation race safety, selected-row visibility, right-panel tab keyboard handling, and artwork loading/missing/error separation. Current promoted-master CI baseline for `d11481284ce83724084a0ad874d0fb6dfc27fbae` was all green: Tauri project run `35730623025`, Windows packaging `35730622875`, macOS packaging `35730622891`, Linux packaging `35730622749`, and Tauri security `35730623007`. Current responsibility files are: `tauri/src/browser/MameBrowser.tsx` plus `tauri/src/browser/machineAsyncIdentity.ts` for selection/detail and activation identity; `tauri/src/browser/model.ts`, `tauri/src/browser/MachineList.tsx`, and `tauri/src/browser/machineListVisibility.ts` for query selection, keyboard movement, and selected-row visibility; `tauri/src/shell/MameShell.tsx`, `tauri/src/shell/MameShell.css`, and `tauri/src/browser/MachineDriverStatus.tsx` for default shell, secondary-surface access, and bottom driver/status composition; `tauri/src/browser/SoftwareBrowser.tsx` and `tauri/src/browser/SoftwareBrowser.css` for Software Browser behavior/styling; `tauri/src/browser/MachineRightPanel.tsx`, `tauri/src/browser/rightPanelKeyboard.ts`, `tauri/src/browser/artworkState.ts`, and `tauri/src/browser/ArtworkAssetFrame.tsx` for right-panel keyboard and artwork lifecycle; and the parity/interaction tests under `tauri/src/browser/*test*` plus `tauri/src/shell/mameShellComposition.source.test.ts` for regression coverage. This update is additive: the historical MTP TODO and final report remain intact as evidence, while this remediation ledger records the reopened requirements.
 
 ---
 
 ## MTR-001 — Fix selected-machine detail invalidation
 
-- [ ] Introduce a selection/detail generation, abort mechanism, or equivalent explicit invalidation model.
-- [ ] Invalidate outstanding detail work whenever selection changes from one machine to another.
-- [ ] Invalidate outstanding detail work whenever selection changes to null.
-- [ ] Ensure metadata refresh/import paths invalidate old detail.
-- [ ] Ensure catalog query failure/empty-result paths invalidate old detail.
-- [ ] Ensure value-required/deferred-filter transitions that clear selection invalidate old detail.
-- [ ] Prevent an older successful detail response from replacing a newer selected machine.
-- [ ] Prevent an older failed detail response from replacing a newer successful state.
-- [ ] Clear machine-specific pending launch overrides when machine identity changes or selection clears.
-- [ ] Clear/reset other machine-specific transient action state where required.
-- [ ] Add deterministic regression test: select A -> detail A pending -> clear selection -> resolve A -> no A detail/status/actions return.
-- [ ] Add deterministic regression test: select A -> detail A pending -> select B -> resolve B -> resolve A -> B remains authoritative.
-- [ ] Add deterministic regression test: select A -> detail A pending -> select B -> resolve A -> resolve B -> A is never exposed as B's state.
-- [ ] Verify right-panel, driver/status, BIOS options, launch actions, software actions, configure action, and audit action all obey current selection identity.
-- [ ] Run applicable frontend/component tests on exact head.
+- [x] Introduce a selection/detail generation, abort mechanism, or equivalent explicit invalidation model.
+- [x] Invalidate outstanding detail work whenever selection changes from one machine to another.
+- [x] Invalidate outstanding detail work whenever selection changes to null.
+- [x] Ensure metadata refresh/import paths invalidate old detail.
+- [x] Ensure catalog query failure/empty-result paths invalidate old detail.
+- [x] Ensure value-required/deferred-filter transitions that clear selection invalidate old detail.
+- [x] Prevent an older successful detail response from replacing a newer selected machine.
+- [x] Prevent an older failed detail response from replacing a newer successful state.
+- [x] Clear machine-specific pending launch overrides when machine identity changes or selection clears.
+- [x] Clear/reset other machine-specific transient action state where required.
+- [x] Add deterministic regression test: select A -> detail A pending -> clear selection -> resolve A -> no A detail/status/actions return.
+- [x] Add deterministic regression test: select A -> detail A pending -> select B -> resolve B -> resolve A -> B remains authoritative.
+- [x] Add deterministic regression test: select A -> detail A pending -> select B -> resolve A -> resolve B -> A is never exposed as B's state.
+- [x] Verify right-panel, driver/status, BIOS options, launch actions, software actions, configure action, and audit action all obey current selection identity.
+- [x] Run applicable frontend/component tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-001 was implemented by the PR #74 candidate head `a6b7f7495a76ce7f7e00b75e07d71be680f2cbca` and promoted to master as `d11481284ce83724084a0ad874d0fb6dfc27fbae`. `tauri/src/browser/machineAsyncIdentity.ts` introduces explicit selected-machine async identity with `detailGeneration` and `activationGeneration`; `selectMachineIdentity` increments both generations whenever the selected short name changes, including transitions to `null`. `tauri/src/browser/MameBrowser.tsx` routes all selection changes through `selectMachine`, synchronously updates `selectedRef`, advances the async identity, resets `detailSequence`/`activationSequence`, clears `pendingLaunchOverrides`, and resets `launchState` when machine identity changes. Metadata refresh/import, catalog-not-queryable, value-required, query failure, and empty-result reconciliation paths all call `selectMachine(null)` or `selectMachine(reconcileMachineSelection(...))`, so stale detail work is invalidated across those paths. Detail success and failure continuations both use `detailMayCommit(asyncIdentityRef.current, sequence, shortName)` before mutating `detailState`, preventing stale success or stale error from replacing the current selected-machine state. Right-panel, driver/status, BIOS/configuration/software/audit actions, and launch controls are all rendered from `detailState.status === "ready" ? detailState.detail : null`, so they cannot observe a stale detail once the identity guard rejects it. `tauri/src/browser/machineSelectionIdentity.test.ts` adds deterministic executable identity regressions for pending detail invalidation after selection clear, out-of-order A/B detail completion, and activation invalidation when identity changes. Exact candidate `a6b7f7495a76ce7f7e00b75e07d71be680f2cbca` passed all five PR workflows: Tauri project `35729905106`, Windows packaging `35729905090`, macOS packaging `35729905021`, Linux packaging `35729905031`, and Tauri security `35729905103`; the same head also had passing push workflows `35725817004`, `35725817012`, `35725817047`, `35725817011`, and `35725817089`. Promoted master `d11481284ce83724084a0ad874d0fb6dfc27fbae` then passed post-merge push workflows `35730623025`, `35730622875`, `35730622891`, `35730622749`, and `35730623007`.
 
 ---
 
