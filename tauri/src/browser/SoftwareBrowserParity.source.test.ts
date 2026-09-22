@@ -59,7 +59,7 @@ describe("Software Browser parity surface", () => {
     expect(source).toContain("buildSoftwareLaunchRequest");
     expect(source).toContain("bios: selectedBios");
     expect(source).toContain("selected.parts.length > 1");
-    expect(source).toContain("softwareStartButtonDisabled");
+    expect(source).toContain('launch.status === "launching"');
     expect(source).toContain("launchMameEmpty");
     expect(source).toContain("onClick={onBack}");
     expect(source).toContain('event.key === "Escape"');
