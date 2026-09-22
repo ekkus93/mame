@@ -54,6 +54,12 @@ import {
   type MameBrowserFilter,
 } from "./model";
 import { SoftwareBrowser } from "./SoftwareBrowser";
+import {
+  activationMayCommit,
+  detailMayCommit,
+  selectMachineIdentity,
+  type MachineAsyncIdentity,
+} from "./machineAsyncIdentity";
 
 type LoadState =
   | { status: "awaitingFilterValue" }
@@ -153,6 +159,11 @@ export function MameBrowser({
   const querySequence = useRef(0);
   const detailSequence = useRef(0);
   const activationSequence = useRef(0);
+  const asyncIdentityRef = useRef<MachineAsyncIdentity>({
+    shortName: null,
+    detailGeneration: 0,
+    activationGeneration: 0,
+  });
   const selectedRef = useRef<MachineListItem | null>(null);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
   const [uiStateError, setUiStateError] = useState<string | null>(null);
@@ -189,8 +200,9 @@ export function MameBrowser({
     const nextShortName = next?.shortName ?? null;
     selectedRef.current = next;
     if (previousShortName !== nextShortName) {
-      detailSequence.current += 1;
-      activationSequence.current += 1;
+      asyncIdentityRef.current = selectMachineIdentity(asyncIdentityRef.current, nextShortName);
+      detailSequence.current = asyncIdentityRef.current.detailGeneration;
+      activationSequence.current = asyncIdentityRef.current.activationGeneration;
       setPendingLaunchOverrides(null);
       setLaunchState({ status: "idle" });
     }
@@ -407,12 +419,12 @@ export function MameBrowser({
     setDetailState({ status: "loading" });
     void getMameMachineDetail({ shortName })
       .then((detail) => {
-        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
+        if (detailMayCommit(asyncIdentityRef.current, sequence, shortName)) {
           setDetailState({ status: "ready", detail });
         }
       })
       .catch((reason: unknown) => {
-        if (detailSequence.current === sequence && selectedRef.current?.shortName === shortName) {
+        if (detailMayCommit(asyncIdentityRef.current, sequence, shortName)) {
           setDetailState({ status: "error", message: errorMessage(reason) });
         }
       });
@@ -499,6 +511,10 @@ export function MameBrowser({
         return;
       }
       const activation = ++activationSequence.current;
+      asyncIdentityRef.current = {
+        ...asyncIdentityRef.current,
+        activationGeneration: activation,
+      };
       const detailGeneration = detailSequence.current;
       if (detailState.status === "ready" && detailState.detail.shortName === machine.shortName) {
         launchDetail(detailState.detail);
@@ -507,18 +523,24 @@ export function MameBrowser({
       void getMameMachineDetail({ shortName: machine.shortName })
         .then((detail) => {
           if (
-            activationSequence.current === activation &&
-            detailSequence.current === detailGeneration &&
-            selectedRef.current?.shortName === machine.shortName
+            activationMayCommit(
+              asyncIdentityRef.current,
+              detailGeneration,
+              activation,
+              machine.shortName,
+            )
           ) {
             launchDetail(detail);
           }
         })
         .catch((reason: unknown) => {
           if (
-            activationSequence.current === activation &&
-            detailSequence.current === detailGeneration &&
-            selectedRef.current?.shortName === machine.shortName
+            activationMayCommit(
+              asyncIdentityRef.current,
+              detailGeneration,
+              activation,
+              machine.shortName,
+            )
           ) {
             setLaunchState({ status: "error", message: errorMessage(reason) });
           }

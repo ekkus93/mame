@@ -1,35 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-type Identity = {
-  shortName: string | null;
-  detailGeneration: number;
-  activationGeneration: number;
-};
+import {
+  activationMayCommit,
+  detailMayCommit,
+  selectMachineIdentity,
+} from "./machineAsyncIdentity";
 
-function select(state: Identity, shortName: string | null): Identity {
-  if (state.shortName === shortName) return state;
-  return {
-    shortName,
-    detailGeneration: state.detailGeneration + 1,
-    activationGeneration: state.activationGeneration + 1,
-  };
-}
-
-function detailMayCommit(state: Identity, generation: number, shortName: string): boolean {
-  return state.detailGeneration === generation && state.shortName === shortName;
-}
-
-function activationMayCommit(
-  state: Identity,
-  detailGeneration: number,
-  activationGeneration: number,
-  shortName: string,
-): boolean {
-  return (
-    detailMayCommit(state, detailGeneration, shortName) &&
-    state.activationGeneration === activationGeneration
-  );
-}
+type Identity = Parameters<typeof selectMachineIdentity>[0];
 
 describe("machine selection async identity", () => {
   it("invalidates a pending detail request when selection clears", () => {
@@ -38,9 +15,9 @@ describe("machine selection async identity", () => {
       detailGeneration: 0,
       activationGeneration: 0,
     };
-    state = select(state, "pacman");
+    state = selectMachineIdentity(state, "pacman");
     const requestGeneration = state.detailGeneration;
-    state = select(state, null);
+    state = selectMachineIdentity(state, null);
     expect(detailMayCommit(state, requestGeneration, "pacman")).toBe(false);
   });
 
@@ -50,9 +27,9 @@ describe("machine selection async identity", () => {
       detailGeneration: 0,
       activationGeneration: 0,
     };
-    state = select(state, "pacman");
+    state = selectMachineIdentity(state, "pacman");
     const a = state.detailGeneration;
-    state = select(state, "galaga");
+    state = selectMachineIdentity(state, "galaga");
     const b = state.detailGeneration;
     expect(detailMayCommit(state, b, "galaga")).toBe(true);
     expect(detailMayCommit(state, a, "pacman")).toBe(false);
@@ -64,10 +41,10 @@ describe("machine selection async identity", () => {
       detailGeneration: 0,
       activationGeneration: 0,
     };
-    state = select(state, "pacman");
+    state = selectMachineIdentity(state, "pacman");
     const detailGeneration = state.detailGeneration;
     const activationGeneration = state.activationGeneration;
-    state = select(state, "galaga");
+    state = selectMachineIdentity(state, "galaga");
     expect(activationMayCommit(state, detailGeneration, activationGeneration, "pacman")).toBe(
       false,
     );
