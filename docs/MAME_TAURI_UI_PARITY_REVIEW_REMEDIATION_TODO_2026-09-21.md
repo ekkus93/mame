@@ -123,27 +123,27 @@
 
 ## MTR-005 — Complete explicit MAME palette migration
 
-- [ ] Audit parity-relevant CSS/TSX for Canvas.
-- [ ] Audit parity-relevant CSS/TSX for CanvasText.
-- [ ] Audit parity-relevant CSS/TSX for product uses of currentColor.
-- [ ] Audit parity-relevant CSS/TSX for unintentional generic white/gray surfaces.
-- [ ] Include App startup/connect state in the audit.
-- [ ] Include MameShell/MameBrowser and all default machine-browser components.
-- [ ] Include SoftwareBrowser.
-- [ ] Include General Settings/configuration surfaces reachable from the parity flow.
-- [ ] Replace visible product system-color styling with semantic --mame-* tokens.
-- [ ] Add tokens where necessary instead of proliferating unrelated literal colors.
-- [ ] Ensure hover states are intentionally themed.
-- [ ] Ensure selected states are intentionally themed.
-- [ ] Ensure focus-visible states retain strong contrast.
-- [ ] Ensure disabled states are intentionally themed.
-- [ ] Ensure error/loading/empty states are intentionally themed.
-- [ ] Extend static theme tests to scan all parity-relevant stylesheets rather than only MameShell.css.
-- [ ] Add a negative guard for disallowed host-system product styling in parity-relevant files.
-- [ ] Verify under host light and dark preference where practical that the product palette remains MAME-like.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Audit parity-relevant CSS/TSX for Canvas.
+- [x] Audit parity-relevant CSS/TSX for CanvasText.
+- [x] Audit parity-relevant CSS/TSX for product uses of currentColor.
+- [x] Audit parity-relevant CSS/TSX for unintentional generic white/gray surfaces.
+- [x] Include App startup/connect state in the audit.
+- [x] Include MameShell/MameBrowser and all default machine-browser components.
+- [x] Include SoftwareBrowser.
+- [x] Include General Settings/configuration surfaces reachable from the parity flow.
+- [x] Replace visible product system-color styling with semantic --mame-* tokens.
+- [x] Add tokens where necessary instead of proliferating unrelated literal colors.
+- [x] Ensure hover states are intentionally themed.
+- [x] Ensure selected states are intentionally themed.
+- [x] Ensure focus-visible states retain strong contrast.
+- [x] Ensure disabled states are intentionally themed.
+- [x] Ensure error/loading/empty states are intentionally themed.
+- [x] Extend static theme tests to scan all parity-relevant stylesheets rather than only MameShell.css.
+- [x] Add a negative guard for disallowed host-system product styling in parity-relevant files.
+- [x] Verify under host light and dark preference where practical that the product palette remains MAME-like.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** implementation promoted to master in PR #63. The parity audit covers startup/connect styling, default browser surfaces, Software Browser, and configuration surfaces. Visible host-system palette dependencies were replaced with semantic MAME palette tokens, and the static theme guard scans the parity stylesheets for prohibited host-system product styling. Exact candidate eabfb6f48b4b72b3df55bb3bbb8bc9afc960ea24 passed all five push workflows and all five PR workflows.
 
 ---
 
