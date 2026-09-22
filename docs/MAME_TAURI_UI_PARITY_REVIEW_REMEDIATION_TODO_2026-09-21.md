@@ -63,23 +63,23 @@
 
 ## MTR-002 — Fix double-click and Enter activation races
 
-- [ ] Define the authoritative activation contract for a machine whose detail is not yet loaded.
-- [ ] Ensure first-selection plus immediate double-click activates that clicked machine exactly once.
-- [ ] Ensure keyboard selection plus immediate Enter activates that selected machine exactly once.
-- [ ] Do not silently drop activation merely because detail is loading.
-- [ ] Ensure activation cannot accidentally use detail from the previously selected machine.
-- [ ] If activation queues behind detail loading, invalidate the queued activation when its machine identity is no longer current unless the launch has already crossed an explicitly documented authoritative boundary.
-- [ ] Preserve machine availability guards.
-- [ ] Preserve BIOS omission unless explicitly selected.
-- [ ] Preserve Start Empty semantics.
-- [ ] Preserve software-list/software-part behavior.
-- [ ] Preserve visible launch-error handling inside the MAME surface.
-- [ ] Add component/state regression test for rapid double-click.
-- [ ] Add component/state regression test for immediate Enter after keyboard movement.
-- [ ] Add regression test covering rapid A activation followed by B selection before A detail completion.
-- [ ] Run applicable frontend/component tests on exact head.
+- [x] Define the authoritative activation contract for a machine whose detail is not yet loaded.
+- [x] Ensure first-selection plus immediate double-click activates that clicked machine exactly once.
+- [x] Ensure keyboard selection plus immediate Enter activates that selected machine exactly once.
+- [x] Do not silently drop activation merely because detail is loading.
+- [x] Ensure activation cannot accidentally use detail from the previously selected machine.
+- [x] If activation queues behind detail loading, invalidate the queued activation when its machine identity is no longer current unless the launch has already crossed an explicitly documented authoritative boundary.
+- [x] Preserve machine availability guards.
+- [x] Preserve BIOS omission unless explicitly selected.
+- [x] Preserve Start Empty semantics.
+- [x] Preserve software-list/software-part behavior.
+- [x] Preserve visible launch-error handling inside the MAME surface.
+- [x] Add component/state regression test for rapid double-click.
+- [x] Add component/state regression test for immediate Enter after keyboard movement.
+- [x] Add regression test covering rapid A activation followed by B selection before A detail completion.
+- [x] Run applicable frontend/component tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-002 activation race coverage was implemented and promoted through PR #76. The authoritative activation contract is: an activation gesture targets the currently selected machine identity for that gesture; if matching detail is already ready, launch may proceed immediately, otherwise activation fetches matching detail and may commit only while `activationMayCommit(asyncIdentityRef.current, detailGeneration, activationGeneration, shortName)` still proves the selected machine, detail generation, and activation generation are current. `tauri/src/browser/MameBrowser.tsx` preserves machine availability guards by returning early when `!machine.runnable` or when the activated row is no longer the selected short name. It preserves BIOS omission, Start Empty, software-list/software-part behavior, and visible in-surface launch errors by continuing to route actual launches through the existing `launchDetail`, `pendingLaunchOverrides`, `SoftwareBrowser`, and `mame-browser-banner is-error` paths. `tauri/src/browser/machineSelectionIdentity.test.ts` now includes executable state regressions for rapid double-click activation waiting for current machine detail, immediate Enter activation after keyboard selection waiting for selected detail, and rapid A activation invalidated when B is selected before A detail returns. Exact candidate head `90505ed09c26c4eec982271e0b34a2c687816bf9` passed all five PR workflows: Tauri project `35744067325`, Windows packaging `35744067306`, macOS packaging `35744067377`, Linux packaging `35744067314`, and Tauri security `35744067324`; the same head also passed all five push workflows: Tauri project `35744059478`, Windows packaging `35744059523`, macOS packaging `35744059446`, Linux packaging `35744059486`, and Tauri security `35744059549`. The qualified candidate was promoted to master as `2388e2ad752e3f2be707aa0b73d94dc9b5009a81`.
 
 ---
 
