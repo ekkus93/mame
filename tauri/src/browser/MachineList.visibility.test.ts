@@ -95,7 +95,9 @@ describe("machine-list selection visibility", () => {
     const selected = reconcileMachineSelection(items, null, "machine-1");
     const rowRefs = [geometricRow(50, 90), geometricRow(200, 240), geometricRow(700, 760)];
 
-    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(false);
+    expect(
+      scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600)),
+    ).toBe(false);
     expect(rowRefs[1]!.scrollIntoView).not.toHaveBeenCalled();
   });
 
@@ -104,7 +106,9 @@ describe("machine-list selection visibility", () => {
     const selected = reconcileMachineSelection(items, null, "machine-0");
     const rowRefs = [geometricRow(50, 90), geometricRow(200, 240), geometricRow(580, 640)];
 
-    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(true);
+    expect(
+      scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600)),
+    ).toBe(true);
     expect(rowRefs[0]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
@@ -113,13 +117,17 @@ describe("machine-list selection visibility", () => {
     const selected = reconcileMachineSelection(items, null, "machine-2");
     const rowRefs = [geometricRow(110, 140), geometricRow(200, 240), geometricRow(580, 640)];
 
-    expect(scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600))).toBe(true);
+    expect(
+      scrollSelectedMachineIntoView(items, selected, rowRefs, viewport(100, 600)),
+    ).toBe(true);
     expect(rowRefs[2]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
   it("preserves a current selection that remains in replacement results", () => {
     const items = Array.from({ length: 100 }, (_, index) => machine(index));
-    expect(reconcileMachineSelection(items, machine(52), "machine-2")?.shortName).toBe("machine-52");
+    expect(reconcileMachineSelection(items, machine(52), "machine-2")?.shortName).toBe(
+      "machine-52",
+    );
   });
 
   it("restores a persisted preferred machine only when it exists in the current result set", () => {
