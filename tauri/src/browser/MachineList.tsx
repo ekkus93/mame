@@ -1,7 +1,22 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 
 import type { MachineListItem, MachinePage } from "../backend/types";
 import { machineAvailabilityLabel, machineStatusLabel } from "../library/libraryQuery";
+
+type ScrollableMachineRow = Pick<HTMLElement, "scrollIntoView">;
+
+export function scrollSelectedMachineIntoView(
+  items: MachineListItem[],
+  selected: MachineListItem | null,
+  rows: Array<ScrollableMachineRow | null>,
+): boolean {
+  if (!selected) return false;
+  const index = items.findIndex((machine) => machine.shortName === selected.shortName);
+  const row = index >= 0 ? rows[index] : null;
+  if (!row) return false;
+  row.scrollIntoView({ block: "nearest" });
+  return true;
+}
 
 export function MachineList({
   page,
@@ -18,10 +33,18 @@ export function MachineList({
   onNavigate: (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => void;
   onActivate: (machine: MachineListItem) => void;
 }) {
+  const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = Math.max(
     0,
     page.items.findIndex((machine) => machine.shortName === selected?.shortName),
   );
+
+  // Query/filter/search replacement may select a row outside the old viewport. "nearest"
+  // reveals it while leaving an already-visible row stationary; keyboard focus continues to
+  // provide the normal browser-driven scrolling path for direct navigation.
+  useEffect(() => {
+    scrollSelectedMachineIntoView(page.items, selected, rowRefs.current);
+  }, [page.items, selected]);
 
   return (
     <ul className="mame-machine-list" role="listbox" aria-label="MAME machines">
@@ -39,7 +62,10 @@ export function MachineList({
         return (
           <li key={machine.shortName} role="presentation">
             <button
-              ref={(element) => registerRow(index, element)}
+              ref={(element) => {
+                rowRefs.current[index] = element;
+                registerRow(index, element);
+              }}
               type="button"
               role="option"
               aria-selected={isSelected}
