@@ -41,9 +41,9 @@ describe("machine selection async identity", () => {
     const detailGeneration = state.detailGeneration;
     const activationGeneration = state.activationGeneration;
     state = selectMachineIdentity(state, "galaga");
-    expect(
-      activationMayCommit(state, detailGeneration, activationGeneration, "pacman"),
-    ).toBe(false);
+    expect(activationMayCommit(state, detailGeneration, activationGeneration, "pacman")).toBe(
+      false,
+    );
   });
 
   it("allows rapid double-click activation to wait for current machine detail", () => {
@@ -53,9 +53,9 @@ describe("machine selection async identity", () => {
     const doubleClickActivation = state.activationGeneration + 1;
     state = { ...state, activationGeneration: doubleClickActivation };
 
-    expect(
-      activationMayCommit(state, detailGeneration, doubleClickActivation, "pacman"),
-    ).toBe(true);
+    expect(activationMayCommit(state, detailGeneration, doubleClickActivation, "pacman")).toBe(
+      true,
+    );
   });
 
   it("allows immediate Enter activation to wait for selected detail", () => {
@@ -65,9 +65,7 @@ describe("machine selection async identity", () => {
     const enterActivation = state.activationGeneration + 1;
     state = { ...state, activationGeneration: enterActivation };
 
-    expect(
-      activationMayCommit(state, detailGeneration, enterActivation, "galaga"),
-    ).toBe(true);
+    expect(activationMayCommit(state, detailGeneration, enterActivation, "galaga")).toBe(true);
   });
 
   it("rejects rapid A activation when B is selected before A detail returns", () => {
@@ -79,8 +77,8 @@ describe("machine selection async identity", () => {
 
     state = selectMachineIdentity(state, "galaga");
 
-    expect(
-      activationMayCommit(state, aDetailGeneration, aActivationGeneration, "pacman"),
-    ).toBe(false);
+    expect(activationMayCommit(state, aDetailGeneration, aActivationGeneration, "pacman")).toBe(
+      false,
+    );
   });
 });
