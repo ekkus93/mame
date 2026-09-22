@@ -8,11 +8,7 @@ import {
   SESSION_FAILED_EVENT,
   SESSION_STARTED_EVENT,
 } from "../backend/events";
-import type {
-  AppInfoResponse,
-  SessionLifecycleEventV1,
-  SessionSnapshot,
-} from "../backend/types";
+import type { AppInfoResponse, SessionLifecycleEventV1, SessionSnapshot } from "../backend/types";
 import { MameBrowser } from "../browser/MameBrowser";
 import { BulkAuditPanel } from "../library/BulkAuditPanel";
 import { CollectionManager } from "../library/CollectionManager";
