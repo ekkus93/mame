@@ -25,13 +25,7 @@ import "./MameShell.css";
 import "./ContextualSurfaces.css";
 
 type ShellView =
-  | "library"
-  | "session"
-  | "settings"
-  | "audit"
-  | "history"
-  | "collections"
-  | "diagnostics";
+  "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
 
 function activeSession(session: SessionSnapshot | null): SessionSnapshot | null {
   return session && isGameplaySessionState(session.state) ? session : null;
@@ -132,10 +126,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           />
         )}
         {view !== "library" && (
-          <section
-            className="mame-secondary-surface"
-            aria-label="Secondary MAME tool surface"
-          >
+          <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
             <button type="button" className="mame-secondary-back" onClick={returnToLibrary}>
               ← Machine Selection
             </button>
