@@ -918,6 +918,7 @@ export function MameBrowser({
             onAuditResultChanged={onAuditResultsChanged}
             firstTabRef={rightPanelFirstTabRef}
             onNavigateToMachines={focusSelectedMachine}
+            gameplayInputOwned={gameplayInputOwned}
             onSettingsClose={() => {
               changeRightView("info");
               configureButtonRef.current?.focus();
