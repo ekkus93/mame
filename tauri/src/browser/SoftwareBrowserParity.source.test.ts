@@ -27,6 +27,7 @@ describe("Software Browser parity surface", () => {
       "var(--mame-disabled)",
       "var(--mame-focus)",
       "var(--mame-muted)",
+      "var(--mame-warning)",
     ]) {
       expect(css).toContain(requiredToken);
     }
@@ -37,24 +38,28 @@ describe("Software Browser parity surface", () => {
     expect(css).toContain("padding: 0.04rem 0.4rem");
     expect(css).toContain(".mame-software-row.is-selected");
     expect(css).toContain(".mame-software-row.is-selected .mame-software-title");
-    expect(css).toContain(".mame-software-row > :last-child");
+    expect(css).toContain(".mame-software-row.is-unsupported:not(.is-selected)");
+    expect(css).toContain(".mame-software-row.is-partial:not(.is-selected)");
     expect(css).toContain(".mame-software-row:disabled");
     expect(css).toContain(".mame-software-row:focus-visible");
   });
 
   it("keeps software selection and activation wired to the row component", () => {
-    expect(source).toContain("onClick={() => setSelected(item)}");
-    expect(source).toContain("onDoubleClick={() => activateItem(item)}");
-    expect(source).toContain("onKeyDown={(event) => handleRowKey(event, index)}");
-    expect(source).toContain('event.key === "Enter"');
+    expect(source).toContain("<SoftwareResultsList");
+    expect(source).toContain("onSelect={setSelected}");
+    expect(source).toContain("onActivate={activateItem}");
+    expect(source).toContain("onNavigate={handleRowKey}");
     expect(source).toContain("aria-selected={isSelected}");
+    expect(source).toContain("data-support={item.supported}");
+    expect(source).toContain("mame-software-support");
   });
 
   it("keeps launch, BIOS, software-part, error, and Back/Escape behavior in the MAME surface", () => {
     expect(source).toContain("launchMameSoftware");
     expect(source).toContain("buildSoftwareLaunchRequest");
     expect(source).toContain("bios: selectedBios");
-    expect(source).toContain("selected.parts.length > 1 && !selectedPart");
+    expect(source).toContain("selected.parts.length > 1");
+    expect(source).toContain('launch.status === "launching"');
     expect(source).toContain("launchMameEmpty");
     expect(source).toContain("onClick={onBack}");
     expect(source).toContain('event.key === "Escape"');
