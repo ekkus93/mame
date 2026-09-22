@@ -166,9 +166,8 @@
   min-height: 1.85rem;
 }
 
-.mame-software-grid > .mame-filter-panel,
-.mame-software-grid > .mame-list-region,
-.mame-software-grid > .mame-right-panel {
+.mame-software-grid
+  > :is(.mame-filter-panel, .mame-list-region, .mame-right-panel) {
   border-color: var(--mame-border-muted);
 }
 
