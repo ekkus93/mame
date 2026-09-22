@@ -8,6 +8,9 @@ export function initialArtworkAssetState(hasDescriptor: boolean): ArtworkAssetSt
   return hasDescriptor ? { status: "loading" } : { status: "missing" };
 }
 
-export function artworkAssetError(reason: unknown, format: (reason: unknown) => string): ArtworkAssetState<never> {
+export function artworkAssetError(
+  reason: unknown,
+  format: (reason: unknown) => string,
+): ArtworkAssetState<never> {
   return { status: "error", message: format(reason) };
 }
