@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { MachineListItem } from "../backend/types";
-import { scrollSelectedMachineIntoView } from "./machineListVisibility";
+import { scrollSelectedMachineIntoView, selectedRowVisibilityAction } from "./machineListVisibility";
 import { reconcileMachineSelection } from "./model";
 
 function machine(index: number): MachineListItem {
@@ -24,7 +24,45 @@ function rows(count: number) {
   return Array.from({ length: count }, () => ({ scrollIntoView: vi.fn() }));
 }
 
+function geometricRow(top: number, bottom: number, viewportEnd = 600) {
+  return {
+    ownerDocument: { defaultView: { innerHeight: viewportEnd } } as unknown as Document,
+    getBoundingClientRect: () => ({ top, bottom }) as DOMRect,
+    scrollIntoView: vi.fn(),
+  };
+}
+
 describe("machine-list selection visibility", () => {
+  it("documents nearest-scroll behavior for rows outside the viewport", () => {
+    expect(
+      selectedRowVisibilityAction({
+        viewportStart: 0,
+        viewportEnd: 500,
+        rowStart: -32,
+        rowEnd: 0,
+      }),
+    ).toBe("scroll-nearest");
+    expect(
+      selectedRowVisibilityAction({
+        viewportStart: 0,
+        viewportEnd: 500,
+        rowStart: 480,
+        rowEnd: 532,
+      }),
+    ).toBe("scroll-nearest");
+  });
+
+  it("documents no-op behavior when the selected row is already fully visible", () => {
+    expect(
+      selectedRowVisibilityAction({
+        viewportStart: 0,
+        viewportEnd: 500,
+        rowStart: 25,
+        rowEnd: 75,
+      }),
+    ).toBe("already-visible");
+  });
+
   it("reveals an asynchronously selected result near the beginning with nearest scrolling", () => {
     const items = Array.from({ length: 100 }, (_, index) => machine(index));
     const selected = reconcileMachineSelection(items, null, "machine-2");
@@ -42,6 +80,24 @@ describe("machine-list selection visibility", () => {
 
     expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(true);
     expect(rowRefs[97]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("avoids an unnecessary scroll jump when the selected row is already visible", () => {
+    const items = [machine(0), machine(1), machine(2)];
+    const selected = reconcileMachineSelection(items, null, "machine-1");
+    const rowRefs = [geometricRow(-50, -1), geometricRow(100, 140), geometricRow(700, 760)];
+
+    expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(false);
+    expect(rowRefs[1]!.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("scrolls a partially hidden selected row using nearest alignment", () => {
+    const items = [machine(0), machine(1), machine(2)];
+    const selected = reconcileMachineSelection(items, null, "machine-2");
+    const rowRefs = [geometricRow(10, 40), geometricRow(100, 140), geometricRow(580, 640)];
+
+    expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(true);
+    expect(rowRefs[2]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
   it("does not scroll and clears selection when replacement results are empty", () => {
