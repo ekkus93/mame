@@ -188,3 +188,13 @@ export function nextBrowserIndex(
       return null;
   }
 }
+
+export function viewportBrowserIndex(
+  key: string,
+  current: number,
+  count: number,
+  viewportHeight: number,
+  rowHeight: number,
+): number | null {
+  return nextBrowserIndex(key, current, count, browserPageStep(viewportHeight, rowHeight));
+}

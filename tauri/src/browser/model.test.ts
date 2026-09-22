@@ -7,6 +7,7 @@ import {
   filterRequiresValue,
   nextBrowserIndex,
   reconcileMachineSelection,
+  viewportBrowserIndex,
 } from "./model";
 
 function machine(shortName: string, description: string): MachineListItem {
@@ -90,5 +91,12 @@ describe("MAME browser model", () => {
     expect(nextBrowserIndex("PageDown", 4, 30, 11)).toBe(15);
     expect(nextBrowserIndex("PageUp", 4, 30, 11)).toBe(0);
     expect(nextBrowserIndex("x", 4, 30)).toBeNull();
+  });
+
+  it("integrates viewport measurements into PageUp/PageDown navigation", () => {
+    expect(viewportBrowserIndex("PageDown", 4, 30, 360, 30)).toBe(15);
+    expect(viewportBrowserIndex("PageUp", 20, 30, 360, 30)).toBe(9);
+    expect(viewportBrowserIndex("PageDown", 25, 30, 360, 30)).toBe(29);
+    expect(viewportBrowserIndex("PageUp", 3, 30, 95, 30)).toBe(1);
   });
 });
