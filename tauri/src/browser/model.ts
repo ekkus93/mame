@@ -24,32 +24,88 @@ export type MameBrowserFilterNavItem =
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
   { id: "available", label: "Available", description: "Media verified as available" },
-  { id: "unavailable", label: "Unavailable", description: "Required media is missing or incorrect" },
+  {
+    id: "unavailable",
+    label: "Unavailable",
+    description: "Required media is missing or incorrect",
+  },
   { id: "working", label: "Working", description: "Systems not marked not-working" },
-  { id: "notWorking", label: "Not Working", description: "Systems marked preliminary / not working" },
+  {
+    id: "notWorking",
+    label: "Not Working",
+    description: "Systems marked preliminary / not working",
+  },
   { id: "mechanical", label: "Mechanical", description: "Mechanical systems" },
-  { id: "notMechanical", label: "Not Mechanical", description: "Non-mechanical systems" },
+  {
+    id: "notMechanical",
+    label: "Not Mechanical",
+    description: "Non-mechanical systems",
+  },
   { id: "favorites", label: "Favorites", description: "User-favorited systems" },
   { id: "bios", label: "BIOS", description: "BIOS root systems" },
   { id: "notBios", label: "Not BIOS", description: "Systems that are not BIOS roots" },
   { id: "parents", label: "Parents", description: "Parent systems only" },
   { id: "clones", label: "Clones", description: "Clone systems only" },
-  { id: "manufacturer", label: "Manufacturer", description: "Systems from a manufacturer", valueKind: "manufacturer" },
+  {
+    id: "manufacturer",
+    label: "Manufacturer",
+    description: "Systems from a manufacturer",
+    valueKind: "manufacturer",
+  },
   { id: "year", label: "Year", description: "Systems from a year", valueKind: "year" },
-  { id: "sourceFile", label: "Source File", description: "Systems imported from a MAME source file", valueKind: "sourceFile" },
-  { id: "saveSupported", label: "Save Supported", description: "Systems whose MAME driver supports save states" },
-  { id: "saveUnsupported", label: "Save Unsupported", description: "Systems whose MAME driver does not support save states" },
-  { id: "chdRequired", label: "CHD Required", description: "Systems whose authoritative MAME metadata contains disk media" },
-  { id: "noChdRequired", label: "No CHD Required", description: "Systems whose authoritative MAME metadata contains no disk media" },
-  { id: "verticalScreen", label: "Vertical Screen", description: "Systems with a rotated vertical display" },
-  { id: "horizontalScreen", label: "Horizontal Screen", description: "Systems with displays that are not vertically rotated" },
+  {
+    id: "sourceFile",
+    label: "Source File",
+    description: "Systems imported from a MAME source file",
+    valueKind: "sourceFile",
+  },
+  {
+    id: "saveSupported",
+    label: "Save Supported",
+    description: "Systems whose MAME driver supports save states",
+  },
+  {
+    id: "saveUnsupported",
+    label: "Save Unsupported",
+    description: "Systems whose MAME driver does not support save states",
+  },
+  {
+    id: "chdRequired",
+    label: "CHD Required",
+    description: "Systems whose authoritative MAME metadata contains disk media",
+  },
+  {
+    id: "noChdRequired",
+    label: "No CHD Required",
+    description: "Systems whose authoritative MAME metadata contains no disk media",
+  },
+  {
+    id: "verticalScreen",
+    label: "Vertical Screen",
+    description: "Systems with a rotated vertical display",
+  },
+  {
+    id: "horizontalScreen",
+    label: "Horizontal Screen",
+    description: "Systems with displays that are not vertically rotated",
+  },
 ];
 
 export const MAME_BROWSER_FILTER_NAV_ITEMS: MameBrowserFilterNavItem[] = [
   ...MAME_BROWSER_FILTERS.slice(0, 7),
-  { id: "categoryDeferred", label: "Category", description: "Deferred until authoritative category data exists", deferred: true },
+  {
+    id: "categoryDeferred",
+    label: "Category",
+    description: "Deferred until authoritative category data exists",
+    deferred: true,
+  },
   ...MAME_BROWSER_FILTERS.slice(7),
-  { id: "customFilterDeferred", label: "Custom Filter", description: "Deferred until persisted composite custom filters exist", deferred: true },
+  {
+    id: "customFilterDeferred",
+    label: "Custom Filter",
+    description: "Deferred until persisted composite custom filters exist",
+    deferred: true,
+  },
 ];
 
 export const MAME_BROWSER_PAGE_SIZE = 100;
