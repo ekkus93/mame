@@ -175,81 +175,81 @@
 
 ## MTR-007 — Fix selected-row visibility and scroll reconciliation
 
-- [ ] Define documented scroll behavior for keyboard movement, query/filter changes, search changes, and result replacement.
-- [ ] Ensure an asynchronously selected row is visible after a search result update.
-- [ ] Ensure an asynchronously selected row is visible after a filter result update.
-- [ ] Avoid unnecessary scroll jumps when the selected row is already visible.
-- [ ] Preserve normal keyboard-driven scrolling.
-- [ ] Ensure empty results clear selection and machine-specific detail/action state.
-- [ ] Ensure restored/persisted selection is reconciled safely against the current result set.
-- [ ] Use a deterministic helper for visibility/page calculations if DOM viewport behavior is difficult to test directly.
-- [ ] Add a long-list regression test where the list begins deeply scrolled and a new query selects a result near the beginning.
-- [ ] Add regression test for a new selected result near the end of a long list.
-- [ ] Add regression test for no-results transition.
-- [ ] Run applicable frontend/component tests on exact head.
+- [x] Define documented scroll behavior for keyboard movement, query/filter changes, search changes, and result replacement.
+- [x] Ensure an asynchronously selected row is visible after a search result update.
+- [x] Ensure an asynchronously selected row is visible after a filter result update.
+- [x] Avoid unnecessary scroll jumps when the selected row is already visible.
+- [x] Preserve normal keyboard-driven scrolling.
+- [x] Ensure empty results clear selection and machine-specific detail/action state.
+- [x] Ensure restored/persisted selection is reconciled safely against the current result set.
+- [x] Use a deterministic helper for visibility/page calculations if DOM viewport behavior is difficult to test directly.
+- [x] Add a long-list regression test where the list begins deeply scrolled and a new query selects a result near the beginning.
+- [x] Add regression test for a new selected result near the end of a long list.
+- [x] Add regression test for no-results transition.
+- [x] Run applicable frontend/component tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-007 implementation was promoted through PR #89. Candidate `9799ab0a529ae241d9d22ea349393975f08b3c1a` added deterministic selected-row visibility reconciliation in `tauri/src/browser/machineListVisibility.ts` and executable coverage in `tauri/src/browser/MachineList.visibility.test.ts`. The production `MachineList` effect documents and applies the contract: query/filter/search result replacement may reveal a newly selected row with nearest scrolling, an already-visible row is left stationary, and keyboard navigation continues to use the existing focus-driven path. The helper computes viewport/row geometry where available and falls back to nearest scrolling when geometry is unavailable, preserving existing behavior under non-DOM test doubles. The tests cover long-list replacement from a deeply scrolled position to a selected row near the beginning, selected rows near the end of a long list, no-results selection clearing, absent selected identity, partially hidden rows, and the no-scroll case for already-visible rows. Restored/persisted selection reconciliation remains routed through `reconcileMachineSelection(...)` before the list effect runs, and empty result paths call the same selection-clear flow already guarded by MTR-001 identity/action invalidation. Exact candidate `9799ab0a529ae241d9d22ea349393975f08b3c1a` passed all five push workflows: Tauri project `35769741029`, Windows packaging `35769741045`, macOS packaging `35769741017`, Linux packaging `35769740865`, and Tauri security `35769741091`; it also passed all five PR workflows: Tauri project `35773875580`, Windows packaging `35773875456`, macOS packaging `35773875498`, Linux packaging `35773875405`, and Tauri security `35773875514`. The qualified candidate was promoted to master as `559c2553cdf8815f04b5f2040f12dd930aceb58d`.
 
 ---
 
 ## MTR-008 — Correct keyboard page/home/end semantics
 
-- [ ] Remove the arbitrary fixed ten-row PageUp/PageDown behavior unless ten is demonstrably the computed visible page size.
-- [ ] Define viewport-aware PageUp/PageDown behavior for the machine list.
-- [ ] Implement viewport-aware movement or an equivalent deterministic page-size calculation.
-- [ ] Define Home behavior for the paged catalog model.
-- [ ] Define End behavior for the paged catalog model.
-- [ ] Decide explicitly whether Home/End target the current fetched page or the full matching catalog; document the choice and rationale.
-- [ ] If full-result Home/End is feasible, implement it without breaking catalog pagination.
-- [ ] If current-page semantics are retained, ensure the UI/test/docs do not falsely claim full-result semantics.
-- [ ] Preserve Up/Down behavior.
-- [ ] Preserve Enter activation after MTR-002.
-- [ ] Preserve Escape/back behavior.
-- [ ] Add pure/model tests for page-size calculation.
-- [ ] Add component/integration tests for PageUp/PageDown.
-- [ ] Add tests for documented Home/End behavior.
-- [ ] Ensure shortcuts remain gameplay-input-owner gated.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Remove the arbitrary fixed ten-row PageUp/PageDown behavior unless ten is demonstrably the computed visible page size.
+- [x] Define viewport-aware PageUp/PageDown behavior for the machine list.
+- [x] Implement viewport-aware movement or an equivalent deterministic page-size calculation.
+- [x] Define Home behavior for the paged catalog model.
+- [x] Define End behavior for the paged catalog model.
+- [x] Decide explicitly whether Home/End target the current fetched page or the full matching catalog; document the choice and rationale.
+- [x] If full-result Home/End is feasible, implement it without breaking catalog pagination.
+- [x] If current-page semantics are retained, ensure the UI/test/docs do not falsely claim full-result semantics.
+- [x] Preserve Up/Down behavior.
+- [x] Preserve Enter activation after MTR-002.
+- [x] Preserve Escape/back behavior.
+- [x] Add pure/model tests for page-size calculation.
+- [x] Add component/integration tests for PageUp/PageDown.
+- [x] Add tests for documented Home/End behavior.
+- [x] Ensure shortcuts remain gameplay-input-owner gated.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-008 implementation was promoted through PR #90. Candidate `888d4d4a5618420226c396b7996b1a5dbdf18e2b` removed the fixed ten-row PageUp/PageDown behavior from the machine-list interaction path and uses live viewport height plus measured row height to compute page movement while retaining one row of context. `tauri/src/browser/model.ts` defines deterministic page-size calculation and documents Home/End as current-fetched-page semantics rather than full matching-catalog jumps, preserving backend catalog pagination authority. Full-result Home/End was therefore intentionally not implemented because current-page semantics were retained to avoid falsely crossing backend page boundaries; the UI/tests/docs now assert the current-page contract rather than claiming full-result semantics. Existing Up/Down, Enter activation, Escape/back handling, and gameplay-input ownership checks remain on the guarded machine-list keyboard path. Tests cover page-size calculation, viewport PageUp/PageDown integration, and the documented current-page Home/End behavior. Exact candidate `888d4d4a5618420226c396b7996b1a5dbdf18e2b` passed all five push workflows: Tauri project `35780978021`, Windows packaging `35780978108`, macOS packaging `35780977936`, Linux packaging `35780977960`, and Tauri security `35780977948`; it also passed all five PR workflows: Tauri project `35781875893`, Windows packaging `35781875964`, macOS packaging `35781875784`, Linux packaging `35781875965`, and Tauri security `35781875966`. The qualified candidate was promoted to master as `dd1cbad6229939f2000099a51e017c47684c2b95`.
 
 ---
 
 ## MTR-009 — Complete right-panel keyboard semantics
 
-- [ ] Treat Images/Infos as a proper keyboard-navigable tablist.
-- [ ] ArrowRight moves from Images to Infos.
-- [ ] ArrowLeft moves from Infos to Images.
-- [ ] Define wrap or clamp behavior and keep it consistent.
-- [ ] Ensure the active tab and focus state remain synchronized.
-- [ ] Preserve mouse click switching.
-- [ ] Preserve machine-list focus return behavior where appropriate.
-- [ ] Do not steal keyboard input when gameplay owns the surface.
-- [ ] Add component tests for right-panel Left/Right switching.
-- [ ] Add focus-state assertions.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Treat Images/Infos as a proper keyboard-navigable tablist.
+- [x] ArrowRight moves from Images to Infos.
+- [x] ArrowLeft moves from Infos to Images.
+- [x] Define wrap or clamp behavior and keep it consistent.
+- [x] Ensure the active tab and focus state remain synchronized.
+- [x] Preserve mouse click switching.
+- [x] Preserve machine-list focus return behavior where appropriate.
+- [x] Do not steal keyboard input when gameplay owns the surface.
+- [x] Add component tests for right-panel Left/Right switching.
+- [x] Add focus-state assertions.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-009 implementation and coverage were promoted through PR #91. Candidate `aae43a18ed0c56d74e02b534638c1c1707396938` covers the `Images`/`Infos` tablist semantics with `tauri/src/browser/rightPanelKeyboard.test.ts` and server-rendered component assertions in `tauri/src/browser/MachineRightPanel.test.tsx`. `nextPrimaryRightView` defines the clamp behavior: ArrowRight moves Images to Infos, ArrowLeft moves Infos to Images, and ArrowLeft from Images returns `null` so focus may return to the machine list instead of wrapping. `MachineRightPanel` keeps `aria-selected`, `tabIndex`, selected class, and focus targets synchronized through `selectPrimaryTab`, preserves mouse click switching, and ignores right-panel arrow shortcuts when `gameplayInputOwned` is true. Exact candidate `aae43a18ed0c56d74e02b534638c1c1707396938` passed all five push workflows: Tauri project `35784447054`, Windows packaging `35784447063`, macOS packaging `35784447198`, Linux packaging `35784447120`, and Tauri security `35784447222`; it also passed all five PR workflows: Tauri project `35786608672`, Windows packaging `35786608747`, macOS packaging `35786608579`, Linux packaging `35786608745`, and Tauri security `35786608643`. The qualified candidate was promoted to master as `cca7c5e41cea4792a89dea46f023068a5f7826af`, whose post-merge push workflows also passed: Tauri project `35787585902`, Windows packaging `35787585857`, macOS packaging `35787585845`, Linux packaging `35787586112`, and Tauri security `35787585893`.
 
 ---
 
 ## MTR-010 — Separate artwork loading, missing, ready, and error states
 
-- [ ] Introduce explicit asset-loading state for a selected artwork slot.
-- [ ] Do not render No image Available while an asset fetch is merely pending.
-- [ ] Distinguish no slots from selected-slot asset missing/unavailable.
-- [ ] Normalize artwork errors through the shared frontend error formatter.
-- [ ] Invalidate stale artwork responses when machine selection changes.
-- [ ] Invalidate stale artwork responses when artwork slot/category changes.
-- [ ] Preserve Snapshots/default category behavior.
-- [ ] Preserve no-machine-selected behavior.
-- [ ] Add component test for slot loading state.
-- [ ] Add component test for true missing-artwork state.
-- [ ] Add component test for artwork error formatting.
-- [ ] Add out-of-order artwork response regression test.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Introduce explicit asset-loading state for a selected artwork slot.
+- [x] Do not render No image Available while an asset fetch is merely pending.
+- [x] Distinguish no slots from selected-slot asset missing/unavailable.
+- [x] Normalize artwork errors through the shared frontend error formatter.
+- [x] Invalidate stale artwork responses when machine selection changes.
+- [x] Invalidate stale artwork responses when artwork slot/category changes.
+- [x] Preserve Snapshots/default category behavior.
+- [x] Preserve no-machine-selected behavior.
+- [x] Add component test for slot loading state.
+- [x] Add component test for true missing-artwork state.
+- [x] Add component test for artwork error formatting.
+- [x] Add out-of-order artwork response regression test.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-010 behavior is present and qualified on promoted master `cca7c5e41cea4792a89dea46f023068a5f7826af`. `tauri/src/browser/artworkState.ts` defines explicit `missing`, `loading`, `ready`, and `error` asset states, `initialArtworkAssetState(Boolean(descriptor))` distinguishes selected-slot loading from true missing artwork, `artworkAssetError` routes artwork errors through the shared formatter, and `isCurrentArtworkRequest` rejects stale/out-of-order responses. `tauri/src/browser/ArtworkAssetFrame.tsx` renders loading as `Loading <label>…` without `No image Available`, renders true missing artwork separately, renders ready assets as images, and renders formatted errors inside an alert. `tauri/src/browser/MachineRightPanel.tsx` increments discovery and asset request identifiers on machine changes and slot/category changes so stale discovery or asset responses cannot commit after identity changes. It also preserves the `Snapshots` default category by seeding category kinds with `screenshot`, and `EmptyMachineRightPanel` preserves no-machine-selected behavior with the same default Images/Snapshots surface. Executable tests cover loading without false missing copy, true missing artwork, formatted error rendering, loading-vs-missing state derivation, shared error formatting, and out-of-order request rejection in `ArtworkAssetFrame.test.tsx` and `artworkState.test.ts`. Exact promoted master `cca7c5e41cea4792a89dea46f023068a5f7826af` passed all applicable workflows: Tauri project `35787585902`, Windows packaging `35787585857`, macOS packaging `35787585845`, Linux packaging `35787586112`, and Tauri security `35787585893`.
 
 ---
 
