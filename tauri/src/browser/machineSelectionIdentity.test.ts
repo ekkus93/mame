@@ -41,9 +41,9 @@ describe("machine selection async identity", () => {
     const detailGeneration = state.detailGeneration;
     const activationGeneration = state.activationGeneration;
     state = selectMachineIdentity(state, "galaga");
-    expect(activationMayCommit(state, detailGeneration, activationGeneration, "pacman")).toBe(
-      false,
-    );
+    expect(
+      activationMayCommit(state, detailGeneration, activationGeneration, "pacman"),
+    ).toBe(false);
   });
 
   it("allows rapid double-click activation to wait for current machine detail", () => {
