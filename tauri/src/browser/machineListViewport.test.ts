@@ -29,12 +29,7 @@ describe("machine list viewport", () => {
     const scrollIntoView = vi.fn();
     const row = { getBoundingClientRect: rect(200, 240), scrollIntoView };
     const viewport = { getBoundingClientRect: rect(100, 600) };
-    const didScroll = scrollSelectedMachineIntoView(
-      [selected],
-      selected,
-      [row],
-      viewport,
-    );
+    const didScroll = scrollSelectedMachineIntoView([selected], selected, [row], viewport);
     expect(didScroll).toBe(false);
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
@@ -44,12 +39,7 @@ describe("machine list viewport", () => {
     const scrollIntoView = vi.fn();
     const row = { getBoundingClientRect: rect(50, 90), scrollIntoView };
     const viewport = { getBoundingClientRect: rect(100, 600) };
-    const didScroll = scrollSelectedMachineIntoView(
-      [selected],
-      selected,
-      [row],
-      viewport,
-    );
+    const didScroll = scrollSelectedMachineIntoView([selected], selected, [row], viewport);
     expect(didScroll).toBe(true);
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
