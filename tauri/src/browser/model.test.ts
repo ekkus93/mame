@@ -7,6 +7,7 @@ import {
   filterRequiresValue,
   nextBrowserIndex,
   reconcileMachineSelection,
+  viewportBrowserIndex,
 } from "./model";
 
 function machine(shortName: string, description: string): MachineListItem {
@@ -35,9 +36,7 @@ describe("MAME browser model", () => {
       limit: 100,
       offset: 10,
     });
-    expect(buildMameBrowserRequest("notWorking", "", "")).toMatchObject({
-      filter: "notWorking",
-    });
+    expect(buildMameBrowserRequest("notWorking", "", "")).toMatchObject({ filter: "notWorking" });
     expect(buildMameBrowserRequest("manufacturer", "", " Namco ")).toMatchObject({
       filter: "manufacturer",
       filterValue: "Namco",
@@ -46,9 +45,7 @@ describe("MAME browser model", () => {
       filter: "chdRequired",
       preferredMachine: "area51",
     });
-    expect(buildMameBrowserRequest("noChdRequired", "", "")).toMatchObject({
-      filter: "noChdRequired",
-    });
+    expect(buildMameBrowserRequest("noChdRequired", "", "")).toMatchObject({ filter: "noChdRequired" });
   });
 
   it("identifies canonical filters that require a bounded value", () => {
@@ -68,9 +65,7 @@ describe("MAME browser model", () => {
   it("falls back deterministically when a selected machine disappears", () => {
     const first = machine("galaga", "Galaga");
     const preferred = machine("pacman", "Pac-Man");
-    expect(
-      reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman"),
-    ).toBe(preferred);
+    expect(reconcileMachineSelection([first, preferred], machine("missing", "Missing"), "pacman")).toBe(preferred);
     expect(reconcileMachineSelection([first], machine("missing", "Missing"), null)).toBe(first);
     expect(reconcileMachineSelection([], machine("missing", "Missing"), null)).toBeNull();
   });
@@ -90,5 +85,12 @@ describe("MAME browser model", () => {
     expect(nextBrowserIndex("PageDown", 4, 30, 11)).toBe(15);
     expect(nextBrowserIndex("PageUp", 4, 30, 11)).toBe(0);
     expect(nextBrowserIndex("x", 4, 30)).toBeNull();
+  });
+
+  it("integrates viewport measurements into PageUp/PageDown navigation", () => {
+    expect(viewportBrowserIndex("PageDown", 4, 30, 360, 30)).toBe(15);
+    expect(viewportBrowserIndex("PageUp", 20, 30, 360, 30)).toBe(9);
+    expect(viewportBrowserIndex("PageDown", 25, 30, 360, 30)).toBe(29);
+    expect(viewportBrowserIndex("PageUp", 3, 30, 95, 30)).toBe(1);
   });
 });

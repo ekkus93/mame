@@ -3,6 +3,7 @@ import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "rea
 import type { MachineListItem, MachinePage } from "../backend/types";
 import { machineAvailabilityLabel, machineStatusLabel } from "../library/libraryQuery";
 import { scrollSelectedMachineIntoView } from "./machineListVisibility";
+import { viewportBrowserIndex } from "./model";
 
 export function MachineList({
   page,
@@ -39,6 +40,32 @@ export function MachineList({
     );
   }, [page.items, selected]);
 
+  function handleNavigation(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key !== "PageUp" && event.key !== "PageDown") {
+      onNavigate(event, index);
+      return;
+    }
+
+    const viewport = listRef.current?.parentElement;
+    const row = rowRefs.current[index];
+    const viewportHeight = viewport?.clientHeight ?? 0;
+    const rowHeight = row?.getBoundingClientRect().height ?? 0;
+    const nextIndex = viewportBrowserIndex(
+      event.key,
+      index,
+      page.items.length,
+      viewportHeight,
+      rowHeight,
+    );
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const next = page.items[nextIndex];
+    if (!next) return;
+    onSelect(next);
+    rowRefs.current[nextIndex]?.focus();
+  }
+
   return (
     <ul ref={listRef} className="mame-machine-list" role="listbox" aria-label="MAME machines">
       {page.items.map((machine, index) => {
@@ -67,7 +94,7 @@ export function MachineList({
               onFocus={() => onSelect(machine)}
               onClick={() => onSelect(machine)}
               onDoubleClick={() => onActivate(machine)}
-              onKeyDown={(event) => onNavigate(event, index)}
+              onKeyDown={(event) => handleNavigation(event, index)}
             >
               <span className="mame-machine-title">{machine.description}</span>
               <span className="mame-machine-short">{machine.shortName}</span>
