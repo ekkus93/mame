@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { MachineListItem } from "../backend/types";
+import { scrollSelectedMachineIntoView } from "./machineListVisibility";
 import { reconcileMachineSelection } from "./model";
-import { scrollSelectedMachineIntoView } from "./MachineList";
 
 function machine(index: number): MachineListItem {
   return {

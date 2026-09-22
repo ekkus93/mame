@@ -2,21 +2,7 @@ import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "rea
 
 import type { MachineListItem, MachinePage } from "../backend/types";
 import { machineAvailabilityLabel, machineStatusLabel } from "../library/libraryQuery";
-
-type ScrollableMachineRow = Pick<HTMLElement, "scrollIntoView">;
-
-export function scrollSelectedMachineIntoView(
-  items: MachineListItem[],
-  selected: MachineListItem | null,
-  rows: Array<ScrollableMachineRow | null>,
-): boolean {
-  if (!selected) return false;
-  const index = items.findIndex((machine) => machine.shortName === selected.shortName);
-  const row = index >= 0 ? rows[index] : null;
-  if (!row) return false;
-  row.scrollIntoView({ block: "nearest" });
-  return true;
-}
+import { scrollSelectedMachineIntoView } from "./machineListVisibility";
 
 export function MachineList({
   page,
