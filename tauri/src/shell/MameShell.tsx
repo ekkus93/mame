@@ -107,6 +107,11 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
       .catch(() => undefined);
   };
 
+  const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
+  const activeSessionLabel = session
+    ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
+    : "Session";
+
   return (
     <main className="mame-shell">
       <section className="mame-shell-workspace" aria-label="MAME machine browser">
@@ -122,6 +127,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             onOpenDiagnostics={() => setView("diagnostics")}
             onOpenHistory={() => setView("history")}
             onOpenSession={() => setView("session")}
+            sessionLabel={activeSessionLabel}
             onSessionStarted={observeSession}
           />
         )}
