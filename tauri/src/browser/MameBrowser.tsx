@@ -128,6 +128,7 @@ export function MameBrowser({
   onOpenDiagnostics,
   onOpenHistory,
   onOpenSession,
+  sessionLabel,
   onSessionStarted,
 }: {
   availabilityRevision: number;
@@ -140,6 +141,7 @@ export function MameBrowser({
   onOpenDiagnostics: () => void;
   onOpenHistory: () => void;
   onOpenSession: () => void;
+  sessionLabel: string;
   onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -697,7 +699,7 @@ export function MameBrowser({
           <summary>More</summary>
           <div className="mame-utility-menu-items" aria-label="Secondary MAME tools">
             <button type="button" onClick={onOpenSession}>
-              Session
+              {sessionLabel}
             </button>
             <button type="button" onClick={onConfigureOptions}>
               Configure Options
