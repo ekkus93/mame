@@ -27,9 +27,11 @@ def forbid(text: str, token: str, label: str) -> None:
 
 def main() -> int:
     app = read("tauri/src/App.tsx")
+    app_css = read("tauri/src/App.css")
     shell = read("tauri/src/shell/MameShell.tsx")
     shell_base_css = read("tauri/src/shell/MameShell.css")
     shell_css = read("tauri/src/shell/ContextualSurfaces.css")
+    software_css = read("tauri/src/browser/SoftwareBrowser.css")
     browser = read("tauri/src/browser/MameBrowser.tsx")
     filters = read("tauri/src/browser/MachineFilterPanel.tsx")
     machine_list = read("tauri/src/browser/MachineList.tsx")
@@ -163,6 +165,27 @@ def main() -> int:
     require(shell_css, ":focus-visible", "visible keyboard focus")
     require(shell_css, ".mame-browser-grid.show-details .mame-right-panel", "narrow details strategy")
     require(shell_css, "prefers-reduced-motion", "reduced-motion qualification")
+
+    parity_styles = {
+        "App.css": app_css,
+        "MameShell.css": shell_base_css,
+        "ContextualSurfaces.css": shell_css,
+        "SoftwareBrowser.css": software_css,
+    }
+    for name, stylesheet in parity_styles.items():
+        for disallowed in ("Canvas", "CanvasText", "currentColor"):
+            forbid(stylesheet, disallowed, f"{name} host-system product styling")
+    for token in (
+        "var(--mame-bg)",
+        "var(--mame-text)",
+        "var(--mame-border)",
+        "var(--mame-selected)",
+        "var(--mame-selected-text)",
+        "var(--mame-focus)",
+        "var(--mame-disabled)",
+    ):
+        require(software_css, token, "explicit Software Browser MAME palette")
+    require(app_css, ".startup-shell", "explicit startup palette surface")
 
     require(
         frontend_mame_ui,
