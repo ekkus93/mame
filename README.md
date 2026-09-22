@@ -49,12 +49,23 @@ The canonical visual contract is `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15
 
 ## Current project status
 
-The main engineering phase and post-closeout hardening phase are complete. The original-MAME visual/interaction parity pass is tracked by:
+The main engineering phase and post-closeout hardening phase are complete. The original-MAME visual/interaction parity pass remains historically tracked by:
 
-- `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` — current parity specification;
-- `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` — canonical parity backlog and evidence ledger;
+- `docs/MAME_TAURI_UI_PARITY_SPEC_2026-09-15.md` — parity specification;
+- `docs/MAME_TAURI_UI_PARITY_TODO_2026-09-15.md` — original parity backlog and evidence ledger;
 - `docs/MAME_TAURI_UI_PARITY_REFERENCE_2026-09-15.md` — visual reference contract and manual checklist;
+- `docs/MAME_TAURI_UI_PARITY_FINAL_REPORT_2026-09-21.md` — original closure report and historical evidence;
 - `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md` — Linux desktop compatibility boundary and manual checks.
+
+A 2026-09-21 post-closure review reopened a bounded remediation track for parity claims that required stronger behavioral, visual, and documentation evidence. The current reopened remediation track is:
+
+- `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_SPEC_2026-09-21.md` — post-closure remediation specification;
+- `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_TODO_2026-09-21.md` — canonical MTR remediation ledger and evidence record;
+- `docs/MAME_TAURI_MTR_012_TEST_EVIDENCE_INVENTORY_2026-09-22.md` — static/source versus behavioral/component/platform evidence inventory;
+- `docs/MAME_TAURI_MTR_013_RENDERED_VISUAL_REVIEW_2026-09-22.md` — textual rendered visual re-qualification with Tauri/WebView smoke evidence and screenshot-artifact limitations;
+- `docs/MAME_TAURI_MTR_014_DOCUMENTATION_RECONCILIATION_2026-09-22.md` — documentation reconciliation, traceability, and final semantics record.
+
+The original MTP TODO and final report are preserved as historical evidence. Do not treat their closure language as the current status while the reopened MTR remediation ledger remains open; current closure status is governed by `docs/MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_TODO_2026-09-21.md` until MTR-015 is promoted.
 
 Earlier reproduction and engineering closure records remain useful historical evidence:
 
@@ -92,7 +103,7 @@ Implemented browser capabilities include:
 - application-managed save-state listing/save/load/delete/compatibility checks;
 - secondary Collections, Recent History, bulk Audit, global Settings, and Diagnostics surfaces.
 
-Deliberate MAME-parity gaps are documented in the parity TODO and historical closure record. They are not silently represented as implemented features.
+Deliberate MAME-parity gaps and remediation status are documented in the parity TODO, the reopened remediation ledger, and the historical closure record. They are not silently represented as implemented features.
 
 ## Repository layout
 
