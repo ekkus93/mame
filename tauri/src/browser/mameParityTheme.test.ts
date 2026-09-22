@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import appSource from "../App.tsx?raw";
 import mainSource from "../main.tsx?raw";
 import browserSource from "./MameBrowser.tsx?raw";
 import driverStatusSource from "./MachineDriverStatus.tsx?raw";
@@ -57,9 +58,13 @@ describe("MAME visual parity tripwires", () => {
     expect(shellCss).not.toContain("color: CanvasText");
   });
 
-  it("removes generic Tauri branding from the default machine browser", () => {
-    expect(shellCss).not.toContain("MAME Tauri Frontend");
+  it("removes generic Tauri branding from default-visible startup and browser surfaces", () => {
+    for (const source of [appSource, shellSource, shellCss, browserSource]) {
+      expect(source).not.toContain("MAME Tauri Frontend");
+      expect(source).not.toContain("MAME Tauri");
+    }
     expect(shellCss).not.toContain(".mame-browser::before");
+    expect(appSource).toContain("<h1>MAME</h1>");
   });
 
   it("removes the generic dashboard tab row from the default shell", () => {
