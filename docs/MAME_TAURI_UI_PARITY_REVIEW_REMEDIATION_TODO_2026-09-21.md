@@ -99,25 +99,25 @@
 
 ## MTR-004 — Make green driver/status region the true bottom region
 
-- [ ] Remove the permanent project/global utility footer from below MachineDriverStatus in the default browser composition.
-- [ ] Ensure MachineDriverStatus is the bottom-most persistent region in default machine-browser mode.
-- [ ] Preserve Configure Options access without restoring a generic dashboard/tab row.
-- [ ] Preserve Audit access.
-- [ ] Preserve History access.
-- [ ] Preserve Collections access.
-- [ ] Preserve Diagnostics access.
-- [ ] Preserve Session or session-status access where required.
-- [ ] Move secondary/global tools behind an original-compatible secondary affordance, compact menu, command flow, or non-default surface.
-- [ ] Keep backend/global diagnostics out of the permanent green machine driver/status region.
-- [ ] Preserve selected-machine metadata in the green region.
-- [ ] Preserve useful no-selection/loading/error status in the green region.
-- [ ] Add a component structure test proving no persistent footer exists below the green driver/status region.
-- [ ] Add a test proving History/Collections/Diagnostics are not permanently visible in default browser chrome.
-- [ ] Add tests proving required secondary surfaces remain reachable.
+- [x] Remove the permanent project/global utility footer from below MachineDriverStatus in the default browser composition.
+- [x] Ensure MachineDriverStatus is the bottom-most persistent region in default machine-browser mode.
+- [x] Preserve Configure Options access without restoring a generic dashboard/tab row.
+- [x] Preserve Audit access.
+- [x] Preserve History access.
+- [x] Preserve Collections access.
+- [x] Preserve Diagnostics access.
+- [x] Preserve Session or session-status access where required.
+- [x] Move secondary/global tools behind an original-compatible secondary affordance, compact menu, command flow, or non-default surface.
+- [x] Keep backend/global diagnostics out of the permanent green machine driver/status region.
+- [x] Preserve selected-machine metadata in the green region.
+- [x] Preserve useful no-selection/loading/error status in the green region.
+- [x] Add a component structure test proving no persistent footer exists below the green driver/status region.
+- [x] Add a test proving History/Collections/Diagnostics are not permanently visible in default browser chrome.
+- [x] Add tests proving required secondary surfaces remain reachable.
 - [ ] Perform rendered inspection of the full-height default shell.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** implementation promoted to master as squash commit `2d8fbf30d45a597d7646624fbf0321d05109c449` via PR #60. The default footer was removed; `MachineDriverStatus` is now the final persistent browser region; Configure Options, Audit, History, Collections, Diagnostics, and Session/session status remain reachable through the compact `More` utility menu; regression tripwires cover shell composition and utility reachability. Exact candidate head `4252e1f3b640318275bee73a4fb7a6c25a2167ea` passed PR-triggered Tauri project run 35674026992, Windows packaging 35674027017, macOS packaging 35674026990, Linux packaging 35674027023, and Tauri security 35674026976. Rendered full-height inspection remains intentionally unchecked until actual rendered evidence is recorded under MTR-013; source/CI evidence is not substituted for that requirement.
 
 ---
 
