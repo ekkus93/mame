@@ -32,13 +32,13 @@ export default function App() {
     <main className="app-shell startup-shell">
       {state.status === "error" ? (
         <section className="fatal-error" role="alert">
-          <h1>MAME Tauri</h1>
+          <h1>MAME</h1>
           <h2>Backend unavailable</h2>
           <p>{state.message}</p>
         </section>
       ) : (
         <section className="status-card" aria-live="polite">
-          <h1>MAME Tauri</h1>
+          <h1>MAME</h1>
           <h2>Starting application</h2>
           <p>Connecting to the trusted Rust backend…</p>
         </section>
