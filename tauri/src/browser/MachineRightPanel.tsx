@@ -21,6 +21,7 @@ import { machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
 
 export type MachineRightView = "images" | "info" | "audit" | "settings";
+type PrimaryRightView = Extract<MachineRightView, "images" | "info">;
 
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
@@ -43,6 +44,15 @@ const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   icon: "Icon",
   systemImage: "System image",
 };
+
+export function nextPrimaryRightView(
+  current: PrimaryRightView,
+  key: string,
+): PrimaryRightView | null {
+  if (key === "ArrowRight") return current === "images" ? "info" : "info";
+  if (key === "ArrowLeft") return current === "info" ? "images" : null;
+  return current;
+}
 
 function panelDataView(view: MachineRightView): string {
   switch (view) {
@@ -114,6 +124,7 @@ export function MachineRightPanel({
   firstTabRef,
   onNavigateToMachines,
   onSettingsClose,
+  gameplayInputOwned,
 }: {
   detail: MachineDetail;
   view: MachineRightView;
@@ -126,10 +137,27 @@ export function MachineRightPanel({
   firstTabRef: RefObject<HTMLButtonElement | null>;
   onNavigateToMachines: () => void;
   onSettingsClose: () => void;
+  gameplayInputOwned: boolean;
 }) {
-  const handleRegionKey = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
+  const infoTabRef = useRef<HTMLButtonElement | null>(null);
+
+  const selectPrimaryTab = (next: PrimaryRightView) => {
+    onViewChange(next);
+    if (next === "images") firstTabRef.current?.focus();
+    else infoTabRef.current?.focus();
+  };
+
+  const handlePrimaryTabKey = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    current: PrimaryRightView,
+  ) => {
+    if (gameplayInputOwned) return;
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const next = nextPrimaryRightView(current, event.key);
+    if (next) {
+      selectPrimaryTab(next);
+    } else {
       onNavigateToMachines();
     }
   };
@@ -146,19 +174,22 @@ export function MachineRightPanel({
           type="button"
           role="tab"
           aria-selected={view === "images"}
+          tabIndex={view === "images" ? 0 : -1}
           className={view === "images" ? "is-selected" : ""}
           onClick={() => onViewChange("images")}
-          onKeyDown={handleRegionKey}
+          onKeyDown={(event) => handlePrimaryTabKey(event, "images")}
         >
           Images
         </button>
         <button
+          ref={infoTabRef}
           type="button"
           role="tab"
           aria-selected={view === "info"}
+          tabIndex={view === "info" ? 0 : -1}
           className={view === "info" ? "is-selected" : ""}
           onClick={() => onViewChange("info")}
-          onKeyDown={handleRegionKey}
+          onKeyDown={(event) => handlePrimaryTabKey(event, "info")}
         >
           Infos
         </button>
