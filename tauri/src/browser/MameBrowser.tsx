@@ -124,6 +124,11 @@ export function MameBrowser({
   onAuditResultsChanged,
   onConfigureOptions,
   onOpenAudit,
+  onOpenCollections,
+  onOpenDiagnostics,
+  onOpenHistory,
+  onOpenSession,
+  sessionLabel,
   onSessionStarted,
 }: {
   availabilityRevision: number;
@@ -132,6 +137,11 @@ export function MameBrowser({
   onAuditResultsChanged: () => void;
   onConfigureOptions: () => void;
   onOpenAudit: () => void;
+  onOpenCollections: () => void;
+  onOpenDiagnostics: () => void;
+  onOpenHistory: () => void;
+  onOpenSession: () => void;
+  sessionLabel: string;
   onSessionStarted: (session: SessionSnapshot) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -685,6 +695,29 @@ export function MameBrowser({
         >
           {showNarrowDetails ? "Hide details" : "Details"}
         </button>
+        <details className="mame-utility-menu">
+          <summary>More</summary>
+          <div className="mame-utility-menu-items" aria-label="Secondary MAME tools">
+            <button type="button" onClick={onOpenSession}>
+              {sessionLabel}
+            </button>
+            <button type="button" onClick={onConfigureOptions}>
+              Configure Options
+            </button>
+            <button type="button" onClick={onOpenAudit}>
+              Audit
+            </button>
+            <button type="button" onClick={onOpenHistory}>
+              History
+            </button>
+            <button type="button" onClick={onOpenCollections}>
+              Collections
+            </button>
+            <button type="button" onClick={onOpenDiagnostics}>
+              Diagnostics
+            </button>
+          </div>
+        </details>
         {detail && (
           <div className="mame-context-actions" aria-label="Selected machine actions">
             <button

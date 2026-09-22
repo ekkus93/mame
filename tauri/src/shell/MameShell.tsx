@@ -8,12 +8,7 @@ import {
   SESSION_FAILED_EVENT,
   SESSION_STARTED_EVENT,
 } from "../backend/events";
-import type {
-  AppInfoResponse,
-  MameVersionReport,
-  SessionLifecycleEventV1,
-  SessionSnapshot,
-} from "../backend/types";
+import type { AppInfoResponse, SessionLifecycleEventV1, SessionSnapshot } from "../backend/types";
 import { MameBrowser } from "../browser/MameBrowser";
 import { BulkAuditPanel } from "../library/BulkAuditPanel";
 import { CollectionManager } from "../library/CollectionManager";
@@ -27,17 +22,6 @@ import "./ContextualSurfaces.css";
 
 type ShellView =
   "library" | "session" | "settings" | "audit" | "history" | "collections" | "diagnostics";
-
-function mameVersionLabel(report: MameVersionReport): string {
-  switch (report.status) {
-    case "notConfigured":
-      return "MAME not configured";
-    case "available":
-      return report.identity.rawVersionLine;
-    case "unavailable":
-      return `MAME unavailable: ${report.errorMessage}`;
-  }
-}
 
 function activeSession(session: SessionSnapshot | null): SessionSnapshot | null {
   return session && isGameplaySessionState(session.state) ? session : null;
@@ -116,7 +100,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const activeSessionSoftware = session?.software ? ` · ${session.software}` : "";
   const activeSessionLabel = session
     ? `Session: ${session.machine}${activeSessionSoftware} · ${session.state}`
-    : "No active MAME session";
+    : "Session";
 
   return (
     <main className="mame-shell">
@@ -129,6 +113,11 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             onAuditResultsChanged={bumpAvailabilityRevision}
             onConfigureOptions={() => setView("settings")}
             onOpenAudit={() => setView("audit")}
+            onOpenCollections={() => setView("collections")}
+            onOpenDiagnostics={() => setView("diagnostics")}
+            onOpenHistory={() => setView("history")}
+            onOpenSession={() => setView("session")}
+            sessionLabel={activeSessionLabel}
             onSessionStarted={observeSession}
           />
         )}
@@ -150,27 +139,6 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
           </section>
         )}
       </section>
-      <footer className="mame-status-bar" aria-label="MAME utility actions">
-        <button type="button" className="mame-session-status" onClick={() => setView("session")}>
-          {activeSessionLabel}
-        </button>
-        <button type="button" onClick={() => setView("settings")}>
-          Configure Options
-        </button>
-        <button type="button" onClick={() => setView("audit")}>
-          Audit
-        </button>
-        <button type="button" onClick={() => setView("history")}>
-          History
-        </button>
-        <button type="button" onClick={() => setView("collections")}>
-          Collections
-        </button>
-        <button type="button" onClick={() => setView("diagnostics")}>
-          Diagnostics
-        </button>
-        <span>{mameVersionLabel(mameReport)}</span>
-      </footer>
     </main>
   );
 }
