@@ -31,8 +31,8 @@ describe("machine-list selection visibility", () => {
     const rowRefs = rows(items.length);
 
     expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(true);
-    expect(rowRefs[2].scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
-    expect(rowRefs[99].scrollIntoView).not.toHaveBeenCalled();
+    expect(rowRefs[2]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    expect(rowRefs[99]!.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it("reveals an asynchronously selected result near the end without forcing an edge alignment", () => {
@@ -41,7 +41,7 @@ describe("machine-list selection visibility", () => {
     const rowRefs = rows(items.length);
 
     expect(scrollSelectedMachineIntoView(items, selected, rowRefs)).toBe(true);
-    expect(rowRefs[97].scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    expect(rowRefs[97]!.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
   it("does not scroll and clears selection when replacement results are empty", () => {
