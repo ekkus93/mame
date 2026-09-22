@@ -1,7 +1,7 @@
 .mame-software-browser {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  min-height: calc(100vh - 5.2rem);
+  min-height: 100vh;
   background: var(--mame-bg);
   color: var(--mame-text);
 }
@@ -9,10 +9,10 @@
 .mame-software-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  min-height: 2.65rem;
-  padding: 0.35rem 0.55rem;
-  border-bottom: 1px solid var(--mame-border);
+  gap: 0.5rem;
+  min-height: 2.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--mame-border);
   background: var(--mame-toolbar);
   color: var(--mame-text);
 }
@@ -22,21 +22,25 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--mame-text);
   font-size: 0.82rem;
+  font-weight: 750;
 }
 
 .mame-software-grid {
   display: grid;
   grid-template-columns: 11rem minmax(24rem, 1fr) minmax(18rem, 30%);
   min-height: 0;
+  border-right: 1px solid var(--mame-border);
+  border-left: 1px solid var(--mame-border);
   background: var(--mame-bg);
 }
 
 .mame-software-filter-value,
 .mame-software-part-selector {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.65rem;
+  gap: 0.25rem;
+  padding: 0.5rem;
   color: var(--mame-text);
   font-size: 0.72rem;
 }
@@ -44,7 +48,8 @@
 .mame-software-filter-value input,
 .mame-software-part-selector select {
   min-width: 0;
-  padding: 0.4rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.45rem;
   border: 1px solid var(--mame-border-muted);
   border-radius: 0;
   color: var(--mame-text);
@@ -53,7 +58,7 @@
 
 .mame-software-listbox {
   margin: 0;
-  padding: 0;
+  padding: 0.35rem 0.65rem;
   list-style: none;
   background: var(--mame-bg);
 }
@@ -66,16 +71,16 @@
   display: grid;
   grid-template-columns: minmax(12rem, 2fr) 7rem 4rem minmax(8rem, 1fr) 6rem;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   width: 100%;
-  min-height: 1.75rem;
-  padding: 0.15rem 0.45rem;
+  min-height: 1.45rem;
+  padding: 0.04rem 0.4rem;
   border: 0;
   border-radius: 0;
   color: var(--mame-text);
   background: var(--mame-bg);
   text-align: left;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
 .mame-software-row:hover {
@@ -87,6 +92,11 @@
   background: linear-gradient(180deg, var(--mame-selected-edge), var(--mame-selected));
 }
 
+.mame-software-row.is-selected .mame-software-title {
+  color: var(--mame-selected-text);
+  font-weight: 750;
+}
+
 .mame-software-row:focus-visible,
 .mame-software-filter-value input:focus-visible,
 .mame-software-part-selector select:focus-visible {
@@ -94,13 +104,15 @@
   outline-offset: -2px;
 }
 
-.mame-software-row:disabled {
+.mame-software-row:disabled,
+.mame-software-row[aria-disabled="true"] {
   color: var(--mame-disabled);
   background: var(--mame-surface);
 }
 
 .mame-software-title,
-.mame-software-publisher {
+.mame-software-publisher,
+.mame-software-row > :last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -108,6 +120,15 @@
 
 .mame-software-title {
   font-weight: 650;
+}
+
+.mame-software-row > :last-child {
+  color: var(--mame-muted);
+  text-transform: uppercase;
+}
+
+.mame-software-row.is-selected > :last-child {
+  color: var(--mame-selected-text);
 }
 
 .mame-software-part-note {
@@ -156,22 +177,17 @@
 
 .mame-software-toolbar .secondary-button,
 .mame-software-toolbar .mame-start-button {
-  min-height: 1.85rem;
-  padding-block: 0.2rem;
+  min-height: 1.75rem;
+  padding-block: 0.15rem;
 }
 
 .mame-software-toolbar input,
 .mame-software-toolbar select {
-  min-height: 1.85rem;
+  min-height: 1.75rem;
 }
 
 .mame-software-grid > .mame-filter-panel,
 .mame-software-grid > .mame-list-region,
 .mame-software-grid > .mame-right-panel {
   border-color: var(--mame-border-muted);
-}
-
-.mame-software-row[aria-disabled="true"] {
-  color: var(--mame-disabled);
-  background: var(--mame-surface);
 }
