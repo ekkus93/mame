@@ -101,7 +101,11 @@ export function softwareRowClassName({
   isSelected: boolean;
   supported: MameSoftwareItem["supported"];
 }): string {
-  return ["mame-software-row", isSelected ? "is-selected" : "", softwareSupportClassName(supported)]
+  return [
+    "mame-software-row",
+    isSelected ? "is-selected" : "",
+    softwareSupportClassName(supported),
+  ]
     .filter(Boolean)
     .join(" ");
 }
@@ -115,11 +119,7 @@ export function softwareStartButtonDisabled({
   selectedPart: string | null;
   launchStatus: string;
 }): boolean {
-  return (
-    !selected ||
-    (selected.parts.length > 1 && !selectedPart) ||
-    launchStatus === "launching"
-  );
+  return !selected || (selected.parts.length > 1 && !selectedPart) || launchStatus === "launching";
 }
 
 export function canBeginSoftwareLaunch({

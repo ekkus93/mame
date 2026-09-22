@@ -160,7 +160,12 @@ describe("MAME software browser model", () => {
       { name: "flop", interface: "floppy" },
     ]);
     expect(
-      canBeginSoftwareLaunch({ listName: "list", launchInFlight: false, item, softwarePart: null }),
+      canBeginSoftwareLaunch({
+        listName: "list",
+        launchInFlight: false,
+        item,
+        softwarePart: null,
+      }),
     ).toBe(false);
     expect(
       canBeginSoftwareLaunch({
@@ -179,16 +184,32 @@ describe("MAME software browser model", () => {
       { name: "flop", interface: "floppy" },
     ]);
     expect(
-      softwareStartButtonDisabled({ selected: null, selectedPart: null, launchStatus: "idle" }),
+      softwareStartButtonDisabled({
+        selected: null,
+        selectedPart: null,
+        launchStatus: "idle",
+      }),
     ).toBe(true);
     expect(
-      softwareStartButtonDisabled({ selected: multiPart, selectedPart: null, launchStatus: "idle" }),
+      softwareStartButtonDisabled({
+        selected: multiPart,
+        selectedPart: null,
+        launchStatus: "idle",
+      }),
     ).toBe(true);
     expect(
-      softwareStartButtonDisabled({ selected: singlePart, selectedPart: "cart", launchStatus: "launching" }),
+      softwareStartButtonDisabled({
+        selected: singlePart,
+        selectedPart: "cart",
+        launchStatus: "launching",
+      }),
     ).toBe(true);
     expect(
-      softwareStartButtonDisabled({ selected: singlePart, selectedPart: "cart", launchStatus: "idle" }),
+      softwareStartButtonDisabled({
+        selected: singlePart,
+        selectedPart: "cart",
+        launchStatus: "idle",
+      }),
     ).toBe(false);
   });
 });
