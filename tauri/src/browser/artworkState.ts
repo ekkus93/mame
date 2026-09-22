@@ -14,3 +14,8 @@ export function artworkAssetError(
 ): ArtworkAssetState<never> {
   return { status: "error", message: format(reason) };
 }
+
+
+export function isCurrentArtworkRequest(currentRequestId: number, responseRequestId: number): boolean {
+  return currentRequestId === responseRequestId;
+}
