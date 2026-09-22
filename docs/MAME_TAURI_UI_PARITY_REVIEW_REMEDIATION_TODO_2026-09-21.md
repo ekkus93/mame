@@ -85,15 +85,15 @@
 
 ## MTR-003 — Remove generic Tauri branding from default UI
 
-- [ ] Remove the default-visible MAME Tauri Frontend pseudo-title from MameShell.css or equivalent.
-- [ ] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
-- [ ] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
-- [ ] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
-- [ ] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
-- [ ] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
-- [ ] Run applicable frontend tests on exact head.
+- [x] Remove the default-visible MAME Tauri Frontend pseudo-title from MameShell.css or equivalent.
+- [x] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
+- [x] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
+- [x] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
+- [x] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
+- [x] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
+- [x] Run applicable frontend tests on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-003 implementation was promoted through PR #80 as master `8b558daff71baa089b89b8a73c6a62b45fb2d3cd`, then reinforced by PR #81 as master `2c373015e32744896f74278b9d4f7df478d863de`. `tauri/src/App.tsx` no longer renders the default-visible startup/error heading `MAME Tauri`; it now renders `MAME`, removing generic Tauri rewrite branding from the startup path. `tauri/src/shell/MameShell.css` already lacked the prior `MAME Tauri Frontend` pseudo-title and `.mame-browser::before` pseudo-title row, while `tauri/src/browser/MameBrowser.tsx` keeps the compact toolbar/search treatment with `mame-browser-toolbar` and `Search systems...` instead of adding a title row. The audit covered startup, browser, and shell surfaces: `tauri/src/shell/mameShellComposition.source.test.ts` now rejects the prohibited `MAME Tauri Frontend` branding in `MameShell.tsx`, `MameBrowser.tsx`, and `MameShell.css`, while `App.tsx` no longer contains `MAME Tauri` on default startup/error surfaces. The PR-triggered Tauri project run for exact candidate `011358521b68e994ea9fa3575e2b653f0f1aea69` included the Tauri development-window smoke check, which is the strongest available automated rendered check for this slice; final manual/rendered visual inspection remains tracked under MTR-013 and is not claimed as final closure here. Exact candidate head `011358521b68e994ea9fa3575e2b653f0f1aea69` passed all five PR workflows: Tauri project `35749431945`, Windows packaging `35749431937`, macOS packaging `35749432036`, Linux packaging `35749431943`, and Tauri security `35749431963`; the same head also passed all five push workflows: Tauri project `35749308625`, Windows packaging `35749308693`, macOS packaging `35749308609`, Linux packaging `35749308626`, and Tauri security `35749308612`.
 
 ---
 
