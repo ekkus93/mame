@@ -16,6 +16,9 @@ export function artworkAssetError(
 }
 
 
-export function isCurrentArtworkRequest(currentRequestId: number, responseRequestId: number): boolean {
+export function isCurrentArtworkRequest(
+  currentRequestId: number,
+  responseRequestId: number,
+): boolean {
   return currentRequestId === responseRequestId;
 }

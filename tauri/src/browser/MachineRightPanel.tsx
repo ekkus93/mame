@@ -402,3 +402,5 @@ function InfoPane({ detail }: { detail: MachineDetail }) {
         </div>
       )}
     </div>
+  );
+}
