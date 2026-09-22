@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import browserSource from "../browser/MameBrowser.tsx?raw";
+import shellCssSource from "./MameShell.css?raw";
 import shellSource from "./MameShell.tsx?raw";
 
 describe("default MAME shell composition", () => {
@@ -9,6 +10,13 @@ describe("default MAME shell composition", () => {
     expect(browserSource.lastIndexOf("<MachineDriverStatus")).toBeGreaterThan(
       browserSource.lastIndexOf("mame-browser-grid"),
     );
+  });
+
+  it("keeps generic Tauri rewrite branding out of the default browser surface", () => {
+    const prohibitedBranding = "MAME Tauri Frontend";
+    expect(shellSource).not.toContain(prohibitedBranding);
+    expect(browserSource).not.toContain(prohibitedBranding);
+    expect(shellCssSource).not.toContain(prohibitedBranding);
   });
 
   it("keeps secondary tools reachable without permanent footer chrome", () => {
