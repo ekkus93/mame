@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import shellSource from "../shell/MameShell.tsx?raw";
 import browserSource from "./MameBrowser.tsx?raw";
 import filterSource from "./MachineFilterPanel.tsx?raw";
 import rightPanelSource from "./MachineRightPanel.tsx?raw";
@@ -8,7 +7,7 @@ import { nextBrowserIndex } from "./model";
 
 describe("MAME command and interaction parity tripwires", () => {
   it("keeps original-like command labels in the default browser flow", () => {
-    expect(shellSource).toContain("Configure Options");
+    expect(browserSource).toContain("Configure Options");
     expect(browserSource).toContain("Configure Machine");
     expect(browserSource).toContain("Software List");
     expect(browserSource).toContain("Start Empty");
