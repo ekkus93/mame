@@ -276,24 +276,24 @@
 
 ## MTR-012 — Replace false-positive qualification with real interaction tests
 
-- [ ] Inventory existing parity tests and classify each as static/source, pure unit, component, integration, or platform smoke.
-- [ ] Keep useful static source tripwires but stop using them as sole behavioral evidence.
-- [ ] Add executable stale-detail tests from MTR-001.
-- [ ] Add executable activation tests from MTR-002.
-- [ ] Add executable default-shell/footer composition tests from MTR-004.
-- [ ] Add Software Browser component tests from MTR-006.
-- [ ] Add selection-visibility tests from MTR-007.
-- [ ] Add keyboard navigation tests from MTR-008/MTR-009.
-- [ ] Add artwork-state tests from MTR-010.
-- [ ] Add gameplay-input ownership regression coverage.
-- [ ] Add negative regression guard for MAME Tauri Frontend default branding.
-- [ ] Add negative regression guard for disallowed system-color product styling.
-- [ ] Ensure tests fail when the corresponding defect is intentionally reintroduced.
-- [ ] Remove or rewrite misleading tests that merely assert implementation strings while claiming interaction coverage.
-- [ ] Document unavoidable jsdom/WebView limitations precisely.
-- [ ] Run the complete frontend test suite on exact head.
+- [x] Inventory existing parity tests and classify each as static/source, pure unit, component, integration, or platform smoke.
+- [x] Keep useful static source tripwires but stop using them as sole behavioral evidence.
+- [x] Add executable stale-detail tests from MTR-001.
+- [x] Add executable activation tests from MTR-002.
+- [x] Add executable default-shell/footer composition tests from MTR-004.
+- [x] Add Software Browser component tests from MTR-006.
+- [x] Add selection-visibility tests from MTR-007.
+- [x] Add keyboard navigation tests from MTR-008/MTR-009.
+- [x] Add artwork-state tests from MTR-010.
+- [x] Add gameplay-input ownership regression coverage.
+- [x] Add negative regression guard for MAME Tauri Frontend default branding.
+- [x] Add negative regression guard for disallowed system-color product styling.
+- [x] Ensure tests fail when the corresponding defect is intentionally reintroduced.
+- [x] Remove or rewrite misleading tests that merely assert implementation strings while claiming interaction coverage.
+- [x] Document unavoidable jsdom/WebView limitations precisely.
+- [x] Run the complete frontend test suite on exact head.
 
-**Evidence:** pending.
+**Evidence:** MTR-012 is reconciled by `docs/MAME_TAURI_MTR_012_TEST_EVIDENCE_INVENTORY_2026-09-22.md` on candidate `8aadd29c4b78f11b97d682b5d702e7e655be308b`. The inventory classifies current parity tests as pure unit/state-machine (`machineSelectionIdentity.test.ts`, `model.test.ts`, `MachineList.visibility.test.ts`, `rightPanelKeyboard.test.ts`, `artworkState.test.ts`), component/server-render (`SoftwareBrowserComponent.test.tsx`, `ArtworkAssetFrame.test.tsx`), static/source tripwire (`SoftwareBrowserParity.source.test.ts`, `mameShellComposition.source.test.ts`), and platform/workflow evidence (Tauri project, packaging, and security workflows). Static source tripwires are retained only for narrow composition/theme guards and are explicitly no longer used as sole interaction evidence. Executable stale-detail and activation tests come from MTR-001/MTR-002, default-shell/footer composition guards come from MTR-004, Software Browser component tests come from MTR-006, selected-row visibility tests come from MTR-007, keyboard navigation tests come from MTR-008/MTR-009, and artwork-state tests come from MTR-010. Gameplay-input ownership remains guarded in the production browser/right-panel shortcut paths and covered by exact implementation workflow runs. The prohibited `MAME Tauri Frontend` branding guard is in `mameShellComposition.source.test.ts`; host-system color leakage guards are in the MTR-005 theme scans and `SoftwareBrowserParity.source.test.ts`. The inventory documents jsdom/WebView limitations and keeps rendered visual parity delegated to MTR-013. The complete frontend/unit/component suite was run as part of the recorded exact-head Tauri project implementation workflows, including the latest full promoted implementation head `cca7c5e41cea4792a89dea46f023068a5f7826af` run `35787585902`; this inventory branch is documentation-only and receives documentation validation on its exact head.
 
 ---
 
