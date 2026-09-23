@@ -55,25 +55,25 @@
 
 ## P1 — roadmap/feature branch review
 
-- [ ] Review branch `ralph/mame-ui-parity-mtp000-004`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-ui-parity-mtp007-008`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-ui-parity-mtp009-010`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-ui-parity-mtp011`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-ui-post-closure-remediation-docs`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-000-foundations`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-100-closure`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-100-scaffold`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-1404-native-tiny`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-2200-engineering-closure`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-410-docs-stage`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-501-docs-stage`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-502-formatgen`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-502-lockgen`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-701-characterize-mame-control`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-800-local-artwork`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtp-011-startup-metadata-parity`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtp-013-linux-compatibility`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtp-014-documentation`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
+- [x] Review branch `ralph/mame-ui-parity-mtp000-004`. Decision: `DELETE_SUPERSEDED`. Rationale: old initial UI parity slice changes are superseded by the promoted MTP/MTR parity work and final MTR remediation closure on current `master`. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-ui-parity-mtp007-008`. Decision: `DELETE_SUPERSEDED`. Rationale: old driver/status and shell parity slice is superseded by current master’s completed bottom-region, right-panel, and rendered MTR closure evidence. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-ui-parity-mtp009-010`. Decision: `DELETE_SUPERSEDED`. Rationale: old browser interaction source-test slice is superseded by later executable MTR interaction tests and final parity remediation. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-ui-parity-mtp011`. Decision: `DELETE_SUPERSEDED`. Rationale: old catalog-state UI slice is represented by current master’s catalog-state implementation and later startup/metadata parity closure. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-ui-post-closure-remediation-docs`. Decision: `DELETE_SUPERSEDED`. Rationale: old post-closure remediation docs/workflow branch is superseded by the final `MAME_TAURI_UI_PARITY_REVIEW_REMEDIATION_TODO_2026-09-21.md` closure and associated MTR evidence documents on master. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-000-foundations`. Decision: `DELETE_DUPLICATE`. Rationale: foundation documents such as `docs/MAME_TAURI_DEVELOPMENT_POLICY_2026-09-08.md` are already present on master with matching blob evidence. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-100-closure`. Decision: `DELETE_SUPERSEDED`. Rationale: old scaffold-closure branch is hundreds of commits behind and only contains early scaffold docs/lockfiles/workflow state that has since evolved on master. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-100-scaffold`. Decision: `DELETE_ABANDONED`. Rationale: old scaffold branch broadly mutates upstream workflows and predates the current Tauri workflow structure; it should not be merged or ported as part of branch cleanup. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-1404-native-tiny`. Decision: `DELETE_ABANDONED`. Rationale: branch adds a standalone 90-minute native `mametiny` workflow and listxml capture helper from an old CI experiment; it is not part of the active cleanup objective and should be recreated fresh if native tiny CI becomes desired. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-2200-engineering-closure`. Decision: `DELETE_DUPLICATE`. Rationale: engineering closure documentation is already present on master, including `docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md`. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-410-docs-stage`. Decision: `DELETE_DUPLICATE`. Rationale: MT-410 qualification documentation is already present on master with matching content lineage; branch only stages old documentation/TODO reconciliation. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-501-docs-stage`. Decision: `DELETE_SUPERSEDED`. Rationale: path configuration model documentation is already present on master and later path-configuration work supersedes this small docs-stage branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-502-formatgen`. Decision: `DELETE_SUPERSEDED`. Rationale: old path-configuration UI/formatgen slice is represented by current master’s `path_configuration.rs` and later settings/backend work; direct merge would reintroduce stale workflow and lockfile state. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-502-lockgen`. Decision: `DELETE_SUPERSEDED`. Rationale: old lockfile-generation workflow branch only carries stale dependency/workflow changes relative to current path-configuration implementation. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-701-characterize-mame-control`. Decision: `DELETE_ABANDONED`. Rationale: branch diff contains only a probe file `docs/_probe_should_not_exist.md`; there is no useful work to merge. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-800-local-artwork`. Decision: `DELETE_SUPERSEDED`. Rationale: old local-artwork branch is superseded by current master’s larger and later `tauri/src-tauri/src/artwork.rs` implementation. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtp-011-startup-metadata-parity`. Decision: `DELETE_SUPERSEDED`. Rationale: startup metadata/catalog-state parity work is represented on current master by `mameCatalogState.ts` and the final MTP/MTR parity closure; old branch should not be merged directly. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtp-013-linux-compatibility`. Decision: `DELETE_DUPLICATE`. Rationale: Linux desktop compatibility documentation already exists on current master as `docs/MAME_TAURI_LINUX_DESKTOP_COMPATIBILITY_2026-09-21.md`, and related UI compatibility constraints are covered by the final parity closure. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtp-014-documentation`. Decision: `DELETE_SUPERSEDED`. Rationale: old README/parity documentation branch is superseded by current README and MTR-014 documentation reconciliation on master. Follow-up: include in final reviewed delete script.
 
 ## P2 — parity/remediation supersession review
 
