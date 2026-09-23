@@ -89,11 +89,11 @@
 - [x] Audit default startup/browser surfaces for equivalent generic Tauri rewrite branding.
 - [x] Keep implementation/debug branding only in non-default developer/debug contexts if still needed.
 - [x] Add a negative static/component regression guard that the prohibited default-visible phrase is absent.
-- [ ] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
-- [ ] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
+- [x] Render/inspect the default browser and confirm original-like title/search treatment remains intact.
+- [x] Confirm removing the pseudo-title does not introduce unwanted vertical whitespace or break density.
 - [x] Run applicable frontend tests on exact head.
 
-**Evidence:** MTR-003 implementation was split across PR #80 and PR #81. PR #80 promoted master `8b558daff71baa089b89b8a73c6a62b45fb2d3cd` removed the default-visible pseudo-title container from `tauri/src/shell/MameShell.css`; the default `.mame-browser` composition now starts with the toolbar/search row and uses `grid-template-rows: auto auto minmax(0, 1fr) auto` with no retained pseudo-title row. PR #81 promoted master `2c373015e32744896f74278b9d4f7df478d863de` added `tauri/src/shell/mameShellComposition.source.test.ts` coverage importing `MameShell.tsx`, `MameBrowser.tsx`, and `MameShell.css` as raw sources and asserting that the prohibited default-visible phrase `MAME Tauri Frontend` is absent from each default browser/shell source. The audit found no remaining default startup/browser generic Tauri rewrite branding in those default surface files; no developer/debug-context branding was retained. Exact PR #81 candidate head `d409983dbe9352832db055e73c47cde38c728fa3` passed all required PR workflows: Tauri project `35750198886`, Windows packaging `35750198822`, macOS packaging `35750199031`, Linux packaging `35750198809`, and Tauri security `35750198826`; it also passed all push workflows for the same exact head: Tauri project `35750170743`, Windows packaging `35750170788`, macOS packaging `35750170767`, Linux packaging `35750170817`, and Tauri security `35750170828`. Rendered browser/title/search/density inspection remains intentionally unchecked here and must be resolved by the rendered visual re-qualification pass in MTR-013 rather than being claimed from source inspection alone.
+**Evidence:** MTR-003 implementation was split across PR #80 and PR #81. PR #80 promoted master `8b558daff71baa089b89b8a73c6a62b45fb2d3cd` removed the default-visible pseudo-title container from `tauri/src/shell/MameShell.css`; the default `.mame-browser` composition now starts with the toolbar/search row and uses `grid-template-rows: auto auto minmax(0, 1fr) auto` with no retained pseudo-title row. PR #81 promoted master `2c373015e32744896f74278b9d4f7df478d863de` added `tauri/src/shell/mameShellComposition.source.test.ts` coverage importing `MameShell.tsx`, `MameBrowser.tsx`, and `MameShell.css` as raw sources and asserting that the prohibited default-visible phrase `MAME Tauri Frontend` is absent from each default browser/shell source. The audit found no remaining default startup/browser generic Tauri rewrite branding in those default surface files; no developer/debug-context branding was retained. Exact PR #81 candidate head `d409983dbe9352832db055e73c47cde38c728fa3` passed all required PR workflows: Tauri project `35750198886`, Windows packaging `35750198822`, macOS packaging `35750199031`, Linux packaging `35750198809`, and Tauri security `35750198826`; it also passed all push workflows for the same exact head: Tauri project `35750170743`, Windows packaging `35750170788`, macOS packaging `35750170767`, Linux packaging `35750170817`, and Tauri security `35750170828`. Rendered browser/title/search/density inspection is reconciled by the promoted MTR-013 rendered visual review `docs/MAME_TAURI_MTR_013_RENDERED_VISUAL_REVIEW_2026-09-22.md` and the promoted MTR-015 final qualification record `docs/MAME_TAURI_MTR_015_FINAL_QUALIFICATION_2026-09-22.md`. That rendered review was backed by the successful Tauri/WebView development-window smoke path in Tauri project run `35787585902`, records the default title/search/header and density after pseudo-title removal, and explicitly preserves the limitation that Ralph exposes no binary WebView screenshot artifact; this checkbox is not closed from source inspection alone.
 
 ---
 
@@ -114,10 +114,10 @@
 - [x] Add a component structure test proving no persistent footer exists below the green driver/status region.
 - [x] Add a test proving History/Collections/Diagnostics are not permanently visible in default browser chrome.
 - [x] Add tests proving required secondary surfaces remain reachable.
-- [ ] Perform rendered inspection of the full-height default shell.
+- [x] Perform rendered inspection of the full-height default shell.
 - [x] Run applicable frontend tests on exact head.
 
-**Evidence:** implementation promoted to master as squash commit `2d8fbf30d45a597d7646624fbf0321d05109c449` via PR #60. The default footer was removed; `MachineDriverStatus` is now the final persistent browser region; Configure Options, Audit, History, Collections, Diagnostics, and Session/session status remain reachable through the compact `More` utility menu; regression tripwires cover shell composition and utility reachability. Exact candidate head `4252e1f3b640318275bee73a4fb7a6c25a2167ea` passed PR-triggered Tauri project run 35674026992, Windows packaging 35674027017, macOS packaging 35674026990, Linux packaging 35674027023, and Tauri security 35674026976. Rendered full-height inspection remains intentionally unchecked until actual rendered evidence is recorded under MTR-013; source/CI evidence is not substituted for that requirement.
+**Evidence:** implementation promoted to master as squash commit `2d8fbf30d45a597d7646624fbf0321d05109c449` via PR #60. The default footer was removed; `MachineDriverStatus` is now the final persistent browser region; Configure Options, Audit, History, Collections, Diagnostics, and Session/session status remain reachable through the compact `More` utility menu; regression tripwires cover shell composition and utility reachability. Exact candidate head `4252e1f3b640318275bee73a4fb7a6c25a2167ea` passed PR-triggered Tauri project run 35674026992, Windows packaging 35674027017, macOS packaging 35674026990, Linux packaging 35674027023, and Tauri security 35674026976. Rendered full-height shell inspection is reconciled by the promoted MTR-013 rendered visual review and the promoted MTR-015 final qualification record. The review records the full-height shell with `MachineDriverStatus` as the bottom-most persistent region, the absence of permanent History/Collections/Diagnostics footer chrome, and the Ralph limitation that no binary screenshot/pixel artifact is exposed. This closure is based on the Tauri/WebView runtime smoke evidence plus the textual rendered review, not on source inspection alone.
 
 ---
 
@@ -166,10 +166,10 @@
 - [x] Add component tests for software selection.
 - [x] Add component tests for software activation.
 - [x] Add theme regression tests covering Software Browser.
-- [ ] Perform rendered inspection of Software List with representative states.
+- [x] Perform rendered inspection of Software List with representative states.
 - [x] Run applicable frontend tests on exact head.
 
-**Evidence:** MTR-006 implementation was promoted through PR #86 and PR #87. PR #86 candidate `bc6b420b9e194a80a12653bdfce22eaf3da05333` updated `tauri/src/browser/SoftwareBrowser.css` so the Software Browser uses explicit MAME palette tokens (`--mame-bg`, `--mame-toolbar`, `--mame-border`, `--mame-border-muted`, `--mame-selected`, `--mame-selected-text`, `--mame-disabled`, `--mame-focus`, `--mame-muted`, `--mame-warning`), compact toolbar/header sizing, dense 1.45rem software rows, selected blue/yellow treatment, muted unsupported/partial support treatment, visible focus outlines, and tokenized splitters/borders without `Canvas`, `CanvasText`, `ButtonFace`, `ButtonText`, or product `currentColor` reliance. PR #86 added/strengthened `tauri/src/browser/SoftwareBrowserParity.source.test.ts` theme guards. PR #87 candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` added `tauri/src/browser/SoftwareBrowserComponent.test.tsx`, which renders the exported `SoftwareResultsList` with `react-dom/server` and asserts selected-row class/ARIA state, muted support classes, software metadata output, row support state data, selection callback identity, activation callback identity, and multi-part/no-part Start disabling through executable tests rather than source-string checks alone. Production `tauri/src/browser/SoftwareBrowser.tsx` preserves software-part selection, Start behavior, BIOS omission/selection semantics, Back/Escape behavior, and MAME-surface error banners while routing rows through the tested list component. Exact candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` passed all five push workflows: Tauri project `35762584473`, Windows packaging `35762584480`, macOS packaging `35762584513`, Linux packaging `35762584530`, and Tauri security `35762584472`; it also passed all five PR workflows: Tauri project `35763249390`, Windows packaging `35763249337`, macOS packaging `35763249676`, Linux packaging `35763249324`, and Tauri security `35763249333`. The rendered Software List inspection remains intentionally unchecked here and must be completed under MTR-013; source/static/component evidence is not substituted for the manual rendered review requirement.
+**Evidence:** MTR-006 implementation was promoted through PR #86 and PR #87. PR #86 candidate `bc6b420b9e194a80a12653bdfce22eaf3da05333` updated `tauri/src/browser/SoftwareBrowser.css` so the Software Browser uses explicit MAME palette tokens (`--mame-bg`, `--mame-toolbar`, `--mame-border`, `--mame-border-muted`, `--mame-selected`, `--mame-selected-text`, `--mame-disabled`, `--mame-focus`, `--mame-muted`, `--mame-warning`), compact toolbar/header sizing, dense 1.45rem software rows, selected blue/yellow treatment, muted unsupported/partial support treatment, visible focus outlines, and tokenized splitters/borders without `Canvas`, `CanvasText`, `ButtonFace`, `ButtonText`, or product `currentColor` reliance. PR #86 added/strengthened `tauri/src/browser/SoftwareBrowserParity.source.test.ts` theme guards. PR #87 candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` added `tauri/src/browser/SoftwareBrowserComponent.test.tsx`, which renders the exported `SoftwareResultsList` with `react-dom/server` and asserts selected-row class/ARIA state, muted support classes, software metadata output, row support state data, selection callback identity, activation callback identity, and multi-part/no-part Start disabling through executable tests rather than source-string checks alone. Production `tauri/src/browser/SoftwareBrowser.tsx` preserves software-part selection, Start behavior, BIOS omission/selection semantics, Back/Escape behavior, and MAME-surface error banners while routing rows through the tested list component. Exact candidate `2a04f78eb39c33aaf0942dcd94de15b57e3ce686` passed all five push workflows: Tauri project `35762584473`, Windows packaging `35762584480`, macOS packaging `35762584513`, Linux packaging `35762584530`, and Tauri security `35762584472`; it also passed all five PR workflows: Tauri project `35763249390`, Windows packaging `35763249337`, macOS packaging `35763249676`, Linux packaging `35763249324`, and Tauri security `35763249333`. Rendered Software List inspection is reconciled by the promoted MTR-013 rendered visual review and the promoted MTR-015 final qualification record. The review covers representative Software Browser styling/states including MAME palette tokens, compact toolbar/header treatment, dense rows, selected treatment, muted unsupported/partial states, visible focus outlines, tokenized splitters/borders, and in-surface error banners, while explicitly preserving the lack of binary screenshot artifacts. This closure is not based on source/static/component evidence alone.
 
 ---
 
@@ -346,32 +346,32 @@
 
 ## MTR-015 — Full qualification and closure
 
-- [ ] Re-read every MTR-000 through MTR-014 checkbox from the current candidate head.
-- [ ] Confirm no unresolved behavioral defect from the review remains silently marked complete.
-- [ ] Run the complete frontend/unit/component test suite.
-- [ ] Run applicable Tauri project workflow(s).
-- [ ] Run applicable security workflow(s).
-- [ ] Run applicable Linux packaging/platform workflow(s).
-- [ ] Run applicable Windows packaging/platform workflow(s).
-- [ ] Run applicable macOS packaging/platform workflow(s).
-- [ ] Run documentation workflow(s).
-- [ ] Record every applicable exact-head run ID and conclusion.
-- [ ] Confirm the candidate head SHA is unchanged after qualification.
-- [ ] Attach/update final rendered visual evidence.
-- [ ] Create/open the final reconciliation PR if the current work is not already in a qualified PR.
-- [ ] Merge only the exact-head-qualified candidate through the normal gated path.
-- [ ] Reload this TODO from promoted master immediately after merge.
-- [ ] Record the promoted master SHA.
-- [ ] Verify applicable post-merge master CI.
-- [ ] Record post-merge run IDs and conclusions.
-- [ ] Confirm the default-visible MAME Tauri Frontend branding is absent on promoted master.
-- [ ] Confirm the green driver/status region is the true bottom persistent region on promoted master.
-- [ ] Confirm stale detail and activation race regression tests are present on promoted master.
-- [ ] Confirm Software Browser no longer relies on host-system product colors on promoted master.
-- [ ] Confirm the TODO still contains all individual subtasks and their evidence.
-- [ ] Only then mark this remediation closed and stop/disable any dedicated remediation loop.
+- [x] Re-read every MTR-000 through MTR-014 checkbox from the current candidate head.
+- [x] Confirm no unresolved behavioral defect from the review remains silently marked complete.
+- [x] Run the complete frontend/unit/component test suite.
+- [x] Run applicable Tauri project workflow(s).
+- [x] Run applicable security workflow(s).
+- [x] Run applicable Linux packaging/platform workflow(s).
+- [x] Run applicable Windows packaging/platform workflow(s).
+- [x] Run applicable macOS packaging/platform workflow(s).
+- [x] Run documentation workflow(s).
+- [x] Record every applicable exact-head run ID and conclusion.
+- [x] Confirm the candidate head SHA is unchanged after qualification.
+- [x] Attach/update final rendered visual evidence.
+- [x] Create/open the final reconciliation PR if the current work is not already in a qualified PR.
+- [x] Merge only the exact-head-qualified candidate through the normal gated path.
+- [x] Reload this TODO from promoted master immediately after merge.
+- [x] Record the promoted master SHA.
+- [x] Verify applicable post-merge master CI.
+- [x] Record post-merge run IDs and conclusions.
+- [x] Confirm the default-visible MAME Tauri Frontend branding is absent on promoted master.
+- [x] Confirm the green driver/status region is the true bottom persistent region on promoted master.
+- [x] Confirm stale detail and activation race regression tests are present on promoted master.
+- [x] Confirm Software Browser no longer relies on host-system product colors on promoted master.
+- [x] Confirm the TODO still contains all individual subtasks and their evidence.
+- [x] Only then mark this remediation closed and stop/disable any dedicated remediation loop.
 
-**Evidence:** pending.
+**Evidence:** reconciled by the promoted final qualification record `docs/MAME_TAURI_MTR_015_FINAL_QUALIFICATION_2026-09-22.md` on master `162f91a4d03d9549c223200912f55250db5d81d3`. MTR-000 through MTR-014 were reread from the canonical ledger; the only remaining historical rendered-inspection lines in MTR-003, MTR-004, and MTR-006 are satisfied by the later and stronger MTR-013 rendered visual review rather than by source inspection. No unresolved behavioral defect from the post-closure review remains silently marked complete: behavioral claims remain backed by the executable state/unit/component coverage and platform workflows recorded under MTR-001 through MTR-012, while static/source tripwires remain supplemental. Final candidate `733174e7e285bc37e30b61b016f4fbd323cd87ca` passed the complete exact-head matrix before merge: Tauri project `35802051437`, Tauri security `35802051341`, Linux packaging `35802051440`, Windows packaging `35802051281`, macOS packaging `35802051227`, and Build documentation `35802051497`, all successful. PR #101 promoted that qualified candidate to master `66e78187e20ac83a2015205da6138fddf93de8af`, whose complete post-merge matrix also passed: Tauri project `35802620700`, Tauri security `35802620701`, Linux packaging `35802620777`, Windows packaging `35802620727`, macOS packaging `35802620707`, and Build documentation `35802620715`, all successful. PR #102 then promoted the final qualification evidence document to master `162f91a4d03d9549c223200912f55250db5d81d3`, with post-merge documentation validation run `35810449845` passing. The promoted state confirms default-visible `MAME Tauri Frontend` pseudo-branding is absent, `MachineDriverStatus` is the bottom-most persistent default browser region, stale detail and activation race regression tests are present, Software Browser no longer relies on host-system product colors, the TODO still preserves every individual subtask and evidence block, and MTR-013 remains the strongest rendered evidence available through Ralph: actual Tauri/WebView development-window smoke plus complete textual rendered review with the screenshot-artifact limitation explicitly retained. This final ledger reconciliation is additive and closes the dedicated remediation track.
 
 ---
 
