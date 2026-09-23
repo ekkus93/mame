@@ -11,7 +11,7 @@
 - Do **not** merge stale branches directly into `master` unless a branch is proven current, narrow, conflict-free, and exactly desired. Prefer porting useful work onto a fresh branch from current `master`.
 - Do **not** trust `ahead`/`behind` alone. Many Ralph branches were squash-merged; topology can report unique commits even when content is already represented on `master`.
 - For each branch, inspect content against current `master`, decide whether anything is still valuable, and record the decision in this file.
-- If useful work exists, create a fresh `ralph/salvage-...` branch from current `master`, port only the useful hunks/files, run exact-head CI, open a PR, merge normally, reload this TODO, and continue.
+- If useful work exists, create a fresh `ralph/salvage-...` branch from current `master`, port only useful changes, run exact-head CI, open a PR, merge normally, reload this TODO, and continue.
 - If the branch is superseded, duplicate, abandoned, or no longer desirable, mark it delete-ready and include a short rationale.
 - Preserve every branch checkbox until it has an explicit decision and evidence.
 
@@ -43,15 +43,15 @@
 
 ## P0 — high-priority salvage review
 
-- [ ] Review branch `ralph/fix-tauri-event-names`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mt-1900-upstream-sync-rehearsal`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/post-closeout-hardening-v4`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/refactor-control-split`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/refactor-large-tauri-files`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/theme-color-restoration`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/vs1-stop-control`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/vs1-stop-flow`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/vs1-stop-idle`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
+- [x] Review branch `ralph/fix-tauri-event-names`. Decision: `DELETE_DUPLICATE`. Rationale: central event-name contract files are already represented on current `master`; `tauri/src-tauri/src/event_names.rs` and `tauri/src/backend/events.ts` have identical blob hashes on this branch and master. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mt-1900-upstream-sync-rehearsal`. Decision: `DELETE_ABANDONED`. Rationale: branch is explicitly a non-production upstream-sync rehearsal merging old upstream `5346408d5efb5054b84f0015ed18c4e59db99a1c` into old project head `6abd8f57cff3905a574dee3c2b0635646eea2fff`; it diverges broadly across upstream/third-party files and should not be merged into current master. Follow-up: if upstream sync is still desired, create a fresh upstream-sync rehearsal from current `master` and current upstream instead of preserving this stale rehearsal branch.
+- [x] Review branch `ralph/post-closeout-hardening-v4`. Decision: `DELETE_SUPERSEDED`. Rationale: post-closeout hardening docs are already present on master with matching spec content, and master has a later, broader `scripts/tauri/test-post-closeout-hardening.py` that includes additional current checks beyond the branch version. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/refactor-control-split`. Decision: `DELETE_DUPLICATE`. Rationale: the control split work is already represented on current master; sampled split files such as `tauri/src-tauri/src/sessions/control_protocol.rs` and `control_registry.rs` have matching blob hashes between branch and master. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/refactor-large-tauri-files`. Decision: `DELETE_SUPERSEDED`. Rationale: current master already contains the same extracted large-file structure for catalog/save-state/supervisor areas, but with later edits; sampled `catalog_import.rs` shows matching structure with a newer master blob, so the stale branch should not be merged directly. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/theme-color-restoration`. Decision: `DELETE_SUPERSEDED`. Rationale: branch adds a standalone global `tauri/src/theme.css` and import, but current master completed color restoration through the later MTR-005 explicit MAME palette/token migration and rendered parity closure; reintroducing the old global theme branch would conflict with that closed path. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/vs1-stop-control`. Decision: `DELETE_SUPERSEDED`. Rationale: branch predates the current session-control implementation and uses obsolete/older paths such as `tauri/src/library/SessionControlPanel.tsx`; current master has the later `tauri/src/session/SessionControlPanel.tsx` and backend/session-control work. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/vs1-stop-flow`. Decision: `DELETE_SUPERSEDED`. Rationale: branch is an older VS-1 stop-flow qualification/implementation slice; current master has a newer session-control panel and backend command/event contracts, so direct merge would regress or duplicate stale work. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/vs1-stop-idle`. Decision: `DELETE_SUPERSEDED`. Rationale: branch is an older active-session-panel/stop-idle slice that predates the current consolidated session-control implementation on master. Follow-up: include in final reviewed delete script.
 
 ## P1 — roadmap/feature branch review
 
