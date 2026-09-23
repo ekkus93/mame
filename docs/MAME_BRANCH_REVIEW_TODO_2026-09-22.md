@@ -35,10 +35,10 @@
 
 ## Progress summary
 
-- [ ] Review all 84 remaining branches.
-- [ ] Create a delete script for all branches marked `DELETE_*`.
-- [ ] Create fresh salvage PRs for every branch marked `SALVAGE_PORT`.
-- [ ] Merge all accepted salvage PRs through exact-head CI.
+- [x] Review all 84 remaining branches.
+- [x] Create a delete script for all branches marked `DELETE_*`.
+- [x] Create fresh salvage PRs for every branch marked `SALVAGE_PORT`.
+- [x] Merge all accepted salvage PRs through exact-head CI.
 - [ ] Re-run branch inventory after deletion/salvage to confirm only `origin/master` and intentional active branches remain.
 
 ## P0 — high-priority salvage review
@@ -77,69 +77,73 @@
 
 ## P2 — parity/remediation supersession review
 
-- [ ] Review branch `ralph/mame-parity-mtr000-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr002-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr002-ledger-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr003-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr003-ledger-2-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr003-ledger-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr003-reconcile-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr003-startup-branding-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr004-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr005-006-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr005-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr006-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr007-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr008-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr008-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr009-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr009-component-tests-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr010-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr010-tests-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr012-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-mtr012-ready-2026-09-22`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-remediation-branding-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mame-parity-remediation-state-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-004-bottom-region-2026-09-21`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-006-software-browser-component-tests`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-006-software-browser-parity`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-007-ledger-reconcile`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-007-selected-row-visibility`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-008-keyboard-page-semantics`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-011-state-coupling-review`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-012-test-evidence-inventory`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-012-test-inventory-reconcile`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-013-014-ledger-checkboxes`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-013-ledger-reconcile`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-014-doc-reconciliation`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mtr-015-final-closure-20260922`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-001-002-behavior`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-001-002-launch-semantics`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-001-003-core-hardening`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-003-app-focus-shim`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-003-reconcile`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-003-remove-focus-shim`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-004-migrate-legacy-browser`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-004-retire-legacy-browser`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/muh-005-006-closure`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-002-006-browser-shell`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-002-007-browser-shell`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-003-015-parity-completion`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-003-015-parity-state`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-008-software-parity`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-009-014-contextual-surfaces`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-015-020-final-closure`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/mui-post-closure-remediation`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/post-closeout-hardening`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/post-closeout-hardening-v2`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
-- [ ] Review branch `ralph/post-closeout-hardening-v3`. Decision: `PENDING`. Rationale: _pending_. Follow-up: _pending_.
+All P2 branches are reviewed as stale parity/remediation history. They are superseded by the promoted final MTR remediation ledger, rendered review, documentation reconciliation, and closure evidence on current master.
+
+- [x] Review branch `ralph/mame-parity-mtr000-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR ledger closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr002-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR implementation/tests supersede this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr002-ledger-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR ledger closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr003-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR branding/rendered closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr003-ledger-2-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR ledger closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr003-ledger-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR ledger closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr003-reconcile-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR ledger closure supersedes this intermediate branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr003-startup-branding-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-003/MTR-013 closure supersedes this startup-branding branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr004-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-004/MTR-013 closure supersedes this bottom-region branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr005-006-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-005/MTR-006/MTR-013 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr005-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-005 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr006-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-006 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr007-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-007 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr008-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-008 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr008-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-008 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr009-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-009 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr009-component-tests-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-009 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr010-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-010 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr010-tests-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-010 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr012-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-012/MTR-015 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-mtr012-ready-2026-09-22`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-012/MTR-015 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-remediation-branding-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-003 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mame-parity-remediation-state-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-001/MTR-002 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-004-bottom-region-2026-09-21`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-004/MTR-013 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-006-software-browser-component-tests`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-006 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-006-software-browser-parity`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-006/MTR-013 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-007-ledger-reconcile`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-007 ledger closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-007-selected-row-visibility`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-007 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-008-keyboard-page-semantics`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-008 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-011-state-coupling-review`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-011/MTR-015 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-012-test-evidence-inventory`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-012 evidence inventory supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-012-test-inventory-reconcile`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-012/MTR-015 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-013-014-ledger-checkboxes`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-013/MTR-014 ledger closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-013-ledger-reconcile`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-013 rendered-review reconciliation supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-014-doc-reconciliation`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-014 documentation reconciliation supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mtr-015-final-closure-20260922`. Decision: `DELETE_SUPERSEDED`. Rationale: final promoted MTR-015 closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-001-002-behavior`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR behavior closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-001-002-launch-semantics`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR activation/launch semantics supersede this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-001-003-core-hardening`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR hardening closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-003-app-focus-shim`. Decision: `DELETE_SUPERSEDED`. Rationale: current master’s final UI behavior supersedes this focus-shim branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-003-reconcile`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR/MUH reconciliation supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-003-remove-focus-shim`. Decision: `DELETE_SUPERSEDED`. Rationale: current master’s final UI behavior supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-004-migrate-legacy-browser`. Decision: `DELETE_SUPERSEDED`. Rationale: current MameBrowser/Tauri architecture supersedes this old migration branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-004-retire-legacy-browser`. Decision: `DELETE_SUPERSEDED`. Rationale: current master supersedes this old legacy-browser retirement branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/muh-005-006-closure`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR/MUI closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-002-006-browser-shell`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR browser/shell closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-002-007-browser-shell`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR browser/shell closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-003-015-parity-completion`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR parity completion supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-003-015-parity-state`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR parity state/closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-008-software-parity`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR-006 software parity supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-009-014-contextual-surfaces`. Decision: `DELETE_SUPERSEDED`. Rationale: final shell/contextual-surface closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-015-020-final-closure`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR/MTP closure supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/mui-post-closure-remediation`. Decision: `DELETE_SUPERSEDED`. Rationale: final MTR post-closure remediation supersedes this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/post-closeout-hardening`. Decision: `DELETE_SUPERSEDED`. Rationale: later hardening and final closure supersede this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/post-closeout-hardening-v2`. Decision: `DELETE_SUPERSEDED`. Rationale: later hardening and final closure supersede this branch. Follow-up: include in final reviewed delete script.
+- [x] Review branch `ralph/post-closeout-hardening-v3`. Decision: `DELETE_SUPERSEDED`. Rationale: later hardening and final closure supersede this branch. Follow-up: include in final reviewed delete script.
 
 ## Final cleanup checklist
 
-- [ ] Every branch above has a non-`PENDING` decision.
-- [ ] Every `SALVAGE_PORT` item has either a merged PR or a follow-up blocker recorded.
-- [ ] Every `KEEP_TEMPORARILY` item has an owner/reason and an expiration condition.
-- [ ] Branches marked `DELETE_*` are written to a final reviewed delete script.
+- [x] Every branch above has a non-`PENDING` decision.
+- [x] Every `SALVAGE_PORT` item has either a merged PR or a follow-up blocker recorded.
+- [x] Every `KEEP_TEMPORARILY` item has an owner/reason and an expiration condition.
+- [x] Branches marked `DELETE_*` are written to a final reviewed delete script.
 - [ ] Final delete script is inspected before execution.
 - [ ] Final delete script is executed.
 - [ ] Fresh branch inventory confirms cleanup result.
+
+**Current blocker:** Ralph Bridge does not expose a remote branch delete operation. The reviewed delete script `docs/MAME_BRANCH_DELETE_REVIEWED_2026-09-22.sh` must be inspected and run from a local checkout with push rights, then a fresh branch inventory should be generated and committed/reconciled.
