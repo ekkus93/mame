@@ -1,0 +1,13 @@
+# MAME branch inventory
+
+Generated: 2026-09-23T00:08:33-07:00
+Repository: git@github.com:ekkus93/mame.git
+Current HEAD: 5fd52147fd0a6a5bd8e71a8a423f4a5a7a6f3c77
+
+## Remote branches
+origin/master
+origin/ralph/branch-review-inspection-20260922
+origin/ralph/branch-review-p0-decisions-20260922
+origin/ralph/branch-review-p1-decisions-20260922
+origin/ralph/branch-review-p2-delete-script-20260922
+origin/ralph/branch-review-todo-20260922
