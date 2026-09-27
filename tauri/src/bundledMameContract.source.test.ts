@@ -23,7 +23,9 @@ describe("bundled MAME product contract", () => {
   });
 
   it("automatically bootstraps missing or stale metadata", () => {
-    expect(browserSource).toContain("Fresh installs and bundled-runtime upgrades bootstrap metadata");
+    expect(browserSource).toContain(
+      "Fresh installs and bundled-runtime upgrades bootstrap metadata",
+    );
     expect(browserSource).toContain('setCatalogState({ status: "importing" })');
   });
 

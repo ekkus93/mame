@@ -209,7 +209,9 @@ export function GeneralSettingsPanel({
                 aria-expanded={advancedRuntimeOpen}
                 onClick={() => setAdvancedRuntimeOpen((current) => !current)}
               >
-                {advancedRuntimeOpen ? "Hide advanced runtime override" : "Advanced runtime override"}
+                {advancedRuntimeOpen
+                  ? "Hide advanced runtime override"
+                  : "Advanced runtime override"}
               </button>
               {externalOverrideActive && (
                 <button type="button" disabled={busy} onClick={() => void useBundledMame()}>
@@ -245,7 +247,11 @@ export function GeneralSettingsPanel({
                     >
                       Browse…
                     </button>
-                    <button type="button" disabled={busy} onClick={() => void saveExternalOverride()}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void saveExternalOverride()}
+                    >
                       Use custom MAME
                     </button>
                     <button

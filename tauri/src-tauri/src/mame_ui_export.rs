@@ -14,6 +14,7 @@ use tempfile::Builder;
 
 use crate::{
     config::settings_path,
+    effective_runtime::effective_mame_source,
     errors::{AppError, AppResult},
     mame_ui::{validated_query, MameUiMachineFilterRequest, MameUiMachineSearchRequest},
     metadata::{CatalogRepository, MachineAvailability},
@@ -75,9 +76,16 @@ pub async fn export_mame_ui_displayed_list(
         })?;
         let catalog_path = storage::catalog_path(&app)?;
         let settings_path = settings_path(&app)?;
+        let source = effective_mame_source(&app)?;
 
         tauri::async_runtime::spawn_blocking(move || {
-            export_displayed_list_to_path(request, &catalog_path, &settings_path, &destination)
+            export_displayed_list_to_path(
+                request,
+                &catalog_path,
+                &settings_path,
+                source,
+                &destination,
+            )
         })
         .await
         .map_err(|error| {
@@ -103,9 +111,15 @@ fn export_displayed_list_to_path(
     request: ExportMameUiDisplayedListRequest,
     catalog_path: &Path,
     settings_path: &Path,
+    source: crate::mame::MameExecutableSource,
     destination: &Path,
 ) -> AppResult<ExportMameUiDisplayedListResult> {
-    let mut query = validated_query(export_search_request(request), catalog_path, settings_path)?;
+    let mut query = validated_query(
+        export_search_request(request),
+        catalog_path,
+        settings_path,
+        source,
+    )?;
     let repository = CatalogRepository::open(catalog_path)?;
     let parent = destination.parent().ok_or_else(|| {
         AppError::new(

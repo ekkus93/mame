@@ -186,7 +186,7 @@ fn normalize_optional(
 fn availability_provenance_unavailable(error: &AppError) -> bool {
     matches!(
         error.code.as_str(),
-"MAME_METADATA_STALE"
+        "MAME_METADATA_STALE"
             | "MAME_EXECUTABLE_PATH_EMPTY"
             | "MAME_EXECUTABLE_NOT_FOUND"
             | "MAME_EXECUTABLE_PATH_INVALID"

@@ -429,6 +429,21 @@ mod tests {
     };
     use crate::metadata::AvailabilityFilter;
 
+    fn base_request() -> MachineSearchRequest {
+        MachineSearchRequest {
+            text: None,
+            manufacturer: None,
+            year: None,
+            driver_status: None,
+            availability: None,
+            clone_filter: CloneFilterRequest::All,
+            sort: MachineSortRequest::DescriptionAsc,
+            include_devices: false,
+            limit: DEFAULT_PAGE_SIZE,
+            offset: 0,
+        }
+    }
+
     #[test]
     fn query_defaults_are_bounded_and_parent_policy_is_explicit() {
         let query = validated_query(base_request()).expect("default query");

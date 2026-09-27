@@ -7,7 +7,7 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        get_machine_bios_choices, get_software_list_xml, inspect_executable,
+        get_machine_bios_choices, get_software_list_xml,
         validate_bios_identifier, validate_bios_selection, validate_short_identifier,
         validate_software_identifier, validate_software_list_identifier, BiosChoice,
     },
