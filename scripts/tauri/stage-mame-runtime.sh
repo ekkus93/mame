@@ -46,7 +46,7 @@ fail() {
 version_line=
 if [[ "$qualification" == "real" ]]; then
   [[ -n "${MAME_SOURCE_SHA:-}" ]] || fail "MAME_SOURCE_SHA is required for real-runtime staging"
-  "$script_dir/validate-real-mame-runtime.sh" "$mame_executable"
+  bash "$script_dir/validate-real-mame-runtime.sh" "$mame_executable"
   version_line=$("$mame_executable" -noreadconfig -version 2>&1 | head -n 1)
 elif [[ "$qualification" != "structural" ]]; then
   fail "Unsupported MAME_RUNTIME_QUALIFICATION: $qualification"

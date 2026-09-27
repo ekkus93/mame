@@ -112,7 +112,7 @@ if [[ "$RUNTIME_MODE" == "real" ]]; then
   [[ ! -w "$runtime_root" ]] || { echo "installed package runtime root is unexpectedly user-writable" >&2; exit 1; }
   (
     cd "$smoke_tmp"
-    "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$runtime_bin"
+    bash "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$runtime_bin"
   )
 fi
 
@@ -198,7 +198,7 @@ if [[ "$RUNTIME_MODE" == "real" ]]; then
   [[ -s "$app_runtime_root/provenance.json" ]] || { echo "AppImage runtime provenance is missing" >&2; exit 1; }
   (
     cd "$smoke_tmp"
-    "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$app_runtime_bin"
+    bash "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$app_runtime_bin"
   )
 fi
 app_desktop=$(find "$app_root" -name '*.desktop' -type f -print -quit)
