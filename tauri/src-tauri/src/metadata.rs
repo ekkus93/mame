@@ -27,7 +27,6 @@ use crate::{
     effective_runtime::effective_mame_source,
     errors::{AppError, AppResult},
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
-    sessions::{MameExecutableRequest, MameExecutableSelectionKind},
     storage,
 };
 
@@ -53,24 +52,19 @@ pub(crate) use software::{parse_software_item, parse_software_list_page};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct RefreshMameMetadataRequest {
-    #[serde(default)]
-    pub executable: Option<MameExecutableRequest>,
-}
+pub struct RefreshMameMetadataRequest {}
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct MetadataStatusRequest {
-    #[serde(default)]
-    pub executable: Option<MameExecutableRequest>,
-}
+pub struct MetadataStatusRequest {}
 
 #[tauri::command]
 pub async fn refresh_mame_metadata(
     request: RefreshMameMetadataRequest,
     app: AppHandle,
 ) -> AppResult<MetadataRefreshResult> {
-    let source = executable_source(request.executable.as_ref(), &app)?;
+    let _ = request;
+    let source = effective_mame_source(&app)?;
     let catalog_path = storage::catalog_path(&app)?;
     diagnostics::record(
         "info",
@@ -98,27 +92,13 @@ pub async fn get_mame_metadata_status(
     request: MetadataStatusRequest,
     app: AppHandle,
 ) -> AppResult<MetadataStatus> {
-    let source = executable_source(request.executable.as_ref(), &app)?;
+    let _ = request;
+    let source = effective_mame_source(&app)?;
     let catalog_path = storage::catalog_path(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || generator::metadata_status(source, &catalog_path))
         .await
         .map_err(metadata_worker_error)?
-}
-
-fn executable_source(
-    request: Option<&MameExecutableRequest>,
-    app: &AppHandle,
-) -> AppResult<MameExecutableSource> {
-    match request {
-        None => effective_mame_source(app),
-        Some(request) => Ok(match request.source {
-            MameExecutableSelectionKind::External => MameExecutableSource::external(&request.path),
-            MameExecutableSelectionKind::DevelopmentTree => {
-                MameExecutableSource::development_tree(&request.path)
-            }
-        }),
-    }
 }
 
 pub(crate) fn effective_source_for_generation(

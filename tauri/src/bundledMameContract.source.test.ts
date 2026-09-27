@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import appBackendSource from "../src-tauri/src/app.rs?raw";
 import effectiveRuntimeSource from "../src-tauri/src/effective_runtime.rs?raw";
 import metadataBackendSource from "../src-tauri/src/metadata.rs?raw";
+import sessionsBackendSource from "../src-tauri/src/sessions.rs?raw";
 import browserSource from "./browser/MameBrowser.tsx?raw";
 import settingsSource from "./settings/GeneralSettingsPanel.tsx?raw";
 
@@ -29,8 +30,10 @@ describe("bundled MAME product contract", () => {
     expect(appBackendSource).not.toContain("let Some(path) = settings.mame_executable");
   });
 
-  it("keeps metadata source resolution in Rust and supports the effective bundled runtime", () => {
-    expect(metadataBackendSource).toContain("effective_mame_source(app)");
+  it("keeps metadata and generic launch authority on the effective runtime", () => {
+    expect(metadataBackendSource).toContain("effective_mame_source(&app)");
+    expect(metadataBackendSource).not.toContain("MameExecutableSelectionKind");
+    expect(sessionsBackendSource).toContain("let source = effective_mame_source(&app)?");
     expect(browserSource).toContain("getMameMetadataStatus({})");
     expect(browserSource).toContain("refreshMameMetadata({})");
   });

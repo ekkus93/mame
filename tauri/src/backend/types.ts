@@ -90,13 +90,9 @@ export type MetadataRefreshResult = {
   generation: MetadataGenerationSummary;
 };
 
-export type RefreshMameMetadataRequest = {
-  executable?: MameExecutableRequest | null;
-};
+export type RefreshMameMetadataRequest = Record<string, never>;
 
-export type MetadataStatusRequest = {
-  executable?: MameExecutableRequest | null;
-};
+export type MetadataStatusRequest = Record<string, never>;
 
 export type CloneFilter = "all" | "parentsOnly" | "clonesOnly";
 
