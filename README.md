@@ -156,7 +156,7 @@ Install:
 - npm matching the checked-in `tauri/package-lock.json` workflow;
 - Rust stable with `cargo`, `rustfmt`, and `clippy`;
 - the normal Tauri 2 platform toolchain;
-- a MAME executable for real interactive use.
+- for source-tree development only, either stage a locally built MAME runtime or deliberately configure the advanced custom-MAME override. Installed release packages include their own MAME runtime.
 
 The JavaScript dependency graph is locked by `tauri/package-lock.json`; the Rust graph is locked by `tauri/src-tauri/Cargo.lock`.
 
@@ -187,6 +187,37 @@ The application does not directly call the affected `VariantStrIter` API. Do **n
 ### macOS and Windows
 
 Use the normal Tauri 2 platform prerequisites plus Node.js and Rust stable. CI validates macOS app/DMG mechanics and Windows NSIS install/payload/uninstall behavior. Public release signing/notarization requires real platform credentials outside this repository.
+
+## Debian and Ubuntu installation
+
+The supported Linux release artifact is a single `.deb` containing the Tauri application **and MAME itself**. End users do not install a separate distro `mame` package, locate a MAME executable, or browse to an executable path.
+
+Normal installation is:
+
+```bash
+sudo apt install ./mame-tauri_*.deb
+```
+
+Then launch the installed MAME application from the desktop menu or its installed executable. On first launch, the backend resolves the package-owned MAME runtime automatically and initializes the machine metadata catalog. A package upgrade that changes the bundled MAME identity automatically makes the old catalog stale and refreshes it before catalog-backed launch.
+
+ROMs, CHDs, software images, and non-redistributable firmware remain user-supplied. Configure those content paths in Settings after installation.
+
+A custom MAME executable remains available under the **Advanced runtime override** control for development/expert use. **Use bundled MAME** removes that override and immediately restores the package-owned runtime as the effective source.
+
+The Linux package contains MAME `hash` software-list resources, BGFX resources, legal files, and runtime provenance. Release qualification is distinct from the fast synthetic package-layout fixture: a release-grade package must pass the real-MAME `-version` and bounded `-listxml` checks in `scripts/tauri/validate-real-mame-runtime.sh`.
+
+## Building the bundled MAME runtime
+
+Production Linux packaging builds MAME from the same checked-out repository revision, then stages it with:
+
+```bash
+MAME_RUNTIME_QUALIFICATION=real \
+MAME_SOURCE_SHA="$(git rev-parse HEAD)" \
+./scripts/tauri/stage-mame-runtime.sh \
+  . ./mame tauri/src-tauri/bundle-resources/mame-runtime
+```
+
+`MAME_RUNTIME_QUALIFICATION=structural` is reserved for fast CI tests that prove package layout with a synthetic fixture. Structural fixtures are never release qualification evidence.
 
 ## Initial setup and development
 
@@ -227,7 +258,7 @@ npm run tauri -- build
 
 ## Visual parity verification
 
-For a local visual/interaction check, start from a configured MAME executable and metadata catalog, then run:
+For a local visual/interaction check, start from a staged bundled MAME runtime (or an explicit advanced custom-runtime override) and metadata catalog, then run:
 
 ```bash
 cd tauri

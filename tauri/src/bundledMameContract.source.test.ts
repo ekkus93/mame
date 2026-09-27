@@ -1,5 +1,7 @@
 /// <reference types="node" />
 
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import appBackendSource from "../src-tauri/src/app.rs?raw";
@@ -8,7 +10,17 @@ import metadataBackendSource from "../src-tauri/src/metadata.rs?raw";
 import browserSource from "./browser/MameBrowser.tsx?raw";
 import settingsSource from "./settings/GeneralSettingsPanel.tsx?raw";
 
+const bundledRuntimeTodo = readFileSync(
+  new URL("../../docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md", import.meta.url),
+  "utf8",
+);
+
 describe("bundled MAME product contract", () => {
+  it("keeps the canonical BMR completion ledger visible to project qualification", () => {
+    expect(bundledRuntimeTodo).toContain("## BMR-000");
+    expect(bundledRuntimeTodo).toContain("## BMR-015");
+    expect(bundledRuntimeTodo).toContain("Synthetic package fixtures alone are never sufficient");
+  });
   it("defaults runtime authority to package-owned MAME rather than an absent override", () => {
     expect(effectiveRuntimeSource).toContain("BundledRuntimeLayout::from_resource_dir");
     expect(effectiveRuntimeSource).toContain("configured_external_source(external_override)");
