@@ -60,6 +60,16 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./scripts/tauri/test-stage-mame-runtime.sh
 
+      - name: BMR Linux packaging script syntax
+        working-directory: ${{ github.workspace }}
+        run: >-
+          bash -n
+          scripts/tauri/stage-mame-runtime.sh
+          scripts/tauri/test-stage-mame-runtime.sh
+          scripts/tauri/test-linux-packages.sh
+          scripts/tauri/validate-real-mame-runtime.sh
+          scripts/tauri/augment-deb-runtime-deps.sh
+
       - name: MT-1407 exact-head CI evidence helper regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-report-ci-evidence.py

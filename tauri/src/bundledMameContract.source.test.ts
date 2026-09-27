@@ -38,6 +38,22 @@ describe("bundled MAME product contract", () => {
     expect(browserSource).toContain("refreshMameMetadata({})");
   });
 
+  it("keeps bundled runtime resources immutable and mutable MAME state user-scoped", () => {
+    expect(sessionsBackendSource).toContain("bundled_layout_for_source(&source)");
+    expect(sessionsBackendSource).toContain("storage::mame_user_directories(&app)");
+    for (const option of [
+      '"hashpath"',
+      '"bgfx_path"',
+      '"cfg_directory"',
+      '"nvram_directory"',
+      '"state_directory"',
+      '"snapshot_directory"',
+      '"diff_directory"',
+    ]) {
+      expect(sessionsBackendSource).toContain(option);
+    }
+  });
+
   it("automatically bootstraps missing or stale metadata", () => {
     expect(browserSource).toContain(
       "Fresh installs and bundled-runtime upgrades bootstrap metadata",
