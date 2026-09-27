@@ -206,7 +206,7 @@ real_bootstrap_smoke() {
           IFS="|" read -r source trust count <<<"$row"
           if [[ "$source" == "bundled" && "$trust" == "qualifiedBundled" && "$count" =~ ^[0-9]+$ && "$count" -gt 1000 ]]; then
             settings=$(find "$config_home" -type f -name settings.json -print -quit 2>/dev/null || true)
-            if [[ -n "$settings" ]] && grep -Eq ""mameExecutable"[[:space:]]*:[[:space:]]*"" "$settings"; then
+            if [[ -n "$settings" ]] && grep -Eq "\"mameExecutable\"[[:space:]]*:[[:space:]]*\"" "$settings"; then
               echo "fresh installed startup unexpectedly persisted an external MAME executable" >&2
               cat "$settings" >&2
               exit 1
@@ -238,6 +238,50 @@ if [[ "$RUNTIME_MODE" == "real" ]]; then
   real_bootstrap_smoke "$smoke_tmp/deb-launch.log"
 else
   x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+fi
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  data_home="$smoke_tmp/xdg-data"
+  config_home="$smoke_tmp/xdg-config"
+  catalog=$(find "$data_home" -type f -name catalog.sqlite3 -print -quit)
+  [[ -n "$catalog" ]] || { echo "real bootstrap catalog missing before upgrade smoke" >&2; exit 1; }
+
+  sentinel="$data_home/bmr-upgrade-user-data-sentinel"
+  printf 'preserve user data across package upgrade\n' >"$sentinel"
+  config_dir="$config_home/io.github.ekkus93.mame-tauri"
+  mkdir -p "$config_dir"
+  settings_file="$config_dir/settings.json"
+  cat >"$settings_file" <<'JSON'
+{
+  "schemaVersion": 2,
+  "mameExecutable": "/opt/preserved/custom-mame",
+  "contentPaths": {
+    "romPaths": ["/games/roms"],
+    "softwarePaths": ["/games/software"],
+    "chdPaths": ["/games/chd"]
+  },
+  "launchPreferences": {
+    "windowMode": "windowed",
+    "renderer": "bgfx",
+    "audio": "auto"
+  }
+}
+JSON
+
+  catalog_sha_before=$(sha256sum "$catalog" | awk '{print $1}')
+  settings_sha_before=$(sha256sum "$settings_file" | awk '{print $1}')
+  runtime_sha_before=$(sha256sum "$runtime_bin" | awk '{print $1}')
+  sudo apt-get install --reinstall -y "$DEB"
+
+  [[ -x "$runtime_bin" ]] || { echo "bundled runtime missing after package reinstall/upgrade" >&2; exit 1; }
+  [[ -f "$sentinel" ]] || { echo "user data sentinel was removed by package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$catalog" | awk '{print $1}')" == "$catalog_sha_before" ]] \
+    || { echo "user catalog changed during package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$settings_file" | awk '{print $1}')" == "$settings_sha_before" ]] \
+    || { echo "runtime override/content/launch settings changed during package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$runtime_bin" | awk '{print $1}')" == "$runtime_sha_before" ]] \
+    || { echo "reinstalled bundled runtime does not match qualified package payload" >&2; exit 1; }
+  printf 'BMR package reinstall/upgrade preservation smoke passed\n'
 fi
 
 sudo apt-get remove -y "$package"

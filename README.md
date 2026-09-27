@@ -327,9 +327,14 @@ Use exact-head CI evidence for release or closure claims. A green ancestor or un
 
 ## Packaging and release notes
 
-Packaging CI uses synthetic staged MAME runtime payloads to validate installer topology and bundled-resource mechanics. It does not certify a public redistributable MAME binary bundle.
+Linux packaging has two deliberately different qualification tiers:
 
-A public bundled-MAME release must separately qualify the real runtime binary/resources/licenses for each target platform. Public macOS signing/notarization likewise requires real Apple credentials.
+- the fast structural package job stages a synthetic runtime fixture and validates installer/resource topology only;
+- the release-grade `real-mame-deb-qualification` job runs on pull requests, `master`, and manual dispatch. It builds real MAME from the same repository revision, rejects synthetic payloads, records runtime provenance, builds the Tauri `.deb`/AppImage, augments Debian shared-library dependencies for the bundled MAME binary, installs the `.deb` on Ubuntu, launches the installed Tauri application from a fresh configuration, waits for automatic bundled metadata bootstrap to reach an active catalog, verifies package reinstall preserves user data/settings, qualifies the real runtime from an arbitrary working directory, and verifies Debian Bookworm can install and execute the bundled MAME runtime without a distro `mame` package.
+
+Only the real-runtime job is release evidence for the bundled-MAME Linux product. The structural fixture is intentionally insufficient for release closure. The release artifact includes `provenance.json` with the MAME source revision, version line, build target/profile/host, and executable SHA-256.
+
+Public macOS signing/notarization still requires real Apple credentials outside this repository. ROMs, CHDs, game software, and non-redistributable firmware are never included in the bundled runtime.
 
 ## Upstream MAME
 
