@@ -20,6 +20,7 @@ use tauri::{AppHandle, State};
 
 use crate::{
     config::settings_path,
+    effective_runtime::effective_mame_source,
     errors::{AppError, AppResult},
     library::audit::{resolve_bulk_audit_context, run_machine_audit_with_context, AuditContext},
     metadata::{CatalogRepository, CloneFilter, MachineQuery, MachineSort},
@@ -176,11 +177,19 @@ pub fn start_library_bulk_audit(
     let max_parallelism = validate_parallelism(request.max_parallelism)?;
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let source = effective_mame_source(&app)?;
     let (status, cancel) = supervisor.start(max_parallelism)?;
     let initial = clone_status(&status)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        run_bulk_audit_job(catalog_path, settings_path, max_parallelism, status, cancel);
+        run_bulk_audit_job(
+            catalog_path,
+            settings_path,
+            source,
+            max_parallelism,
+            status,
+            cancel,
+        );
     });
 
     Ok(initial)
@@ -196,11 +205,12 @@ pub fn cancel_library_bulk_audit(
 fn run_bulk_audit_job(
     catalog_path: PathBuf,
     settings_path: PathBuf,
+    source: crate::mame::MameExecutableSource,
     max_parallelism: u8,
     status: Arc<Mutex<BulkAuditStatus>>,
     cancel: Arc<AtomicBool>,
 ) {
-    let context = match resolve_bulk_audit_context(&catalog_path, &settings_path) {
+    let context = match resolve_bulk_audit_context(&catalog_path, &settings_path, source) {
         Ok(context) => context,
         Err(error) => {
             finish_with_error(&status, error);

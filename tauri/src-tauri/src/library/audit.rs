@@ -5,6 +5,7 @@ use tauri::AppHandle;
 
 use crate::{
     config::{load_settings, settings_path, ContentPathsV1},
+    effective_runtime::effective_mame_source,
     errors::{AppError, AppResult},
     mame::{
         audit_machine, inspect_executable, load_current_machine_audit_result,
@@ -15,10 +16,8 @@ use crate::{
     storage,
 };
 
-use super::{
-    ensure_generation_matches_executable, launch_source_from_generation, now_epoch_ms,
-    validate_machine_short_name,
-};
+use super::{now_epoch_ms, validate_machine_short_name};
+use crate::metadata::ensure_generation_matches_identity;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -50,9 +49,10 @@ pub async fn run_library_machine_audit(
     let short_name = validate_machine_short_name(request.short_name)?;
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let source = effective_mame_source(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        run_machine_audit(&catalog_path, &settings_path, short_name)
+        run_machine_audit(&catalog_path, &settings_path, source, short_name)
     })
     .await
     .map_err(audit_worker_error)?
@@ -66,9 +66,10 @@ pub async fn get_library_machine_audit(
     let short_name = validate_machine_short_name(request.short_name)?;
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let source = effective_mame_source(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        load_machine_audit(&catalog_path, &settings_path, short_name)
+        load_machine_audit(&catalog_path, &settings_path, source, short_name)
     })
     .await
     .map_err(audit_worker_error)?
@@ -77,9 +78,10 @@ pub async fn get_library_machine_audit(
 fn run_machine_audit(
     catalog_path: &Path,
     settings_path: &Path,
+    source: MameExecutableSource,
     short_name: String,
 ) -> AppResult<MachineAuditResponse> {
-    let context = resolve_audit_context(catalog_path, settings_path, &short_name)?;
+    let context = resolve_audit_context(catalog_path, settings_path, source, &short_name)?;
     run_machine_audit_with_context(catalog_path, short_name, &context)
 }
 
@@ -111,9 +113,10 @@ pub(crate) fn run_machine_audit_with_context(
 fn load_machine_audit(
     catalog_path: &Path,
     settings_path: &Path,
+    source: MameExecutableSource,
     short_name: String,
 ) -> AppResult<Option<MachineAuditResponse>> {
-    let context = resolve_audit_context(catalog_path, settings_path, &short_name)?;
+    let context = resolve_audit_context(catalog_path, settings_path, source, &short_name)?;
     load_current_machine_audit_result(
         catalog_path,
         &short_name,
@@ -126,9 +129,10 @@ fn load_machine_audit(
 fn resolve_audit_context(
     catalog_path: &Path,
     settings_path: &Path,
+    source: MameExecutableSource,
     short_name: &str,
 ) -> AppResult<AuditContext> {
-    let context = resolve_bulk_audit_context(catalog_path, settings_path)?;
+    let context = resolve_bulk_audit_context(catalog_path, settings_path, source)?;
 
     // Keep the command scoped to a machine in the active generation. A syntactically
     // valid arbitrary frontend string must not become an unconstrained MAME target.
@@ -139,6 +143,7 @@ fn resolve_audit_context(
 pub(crate) fn resolve_bulk_audit_context(
     catalog_path: &Path,
     settings_path: &Path,
+    source: MameExecutableSource,
 ) -> AppResult<AuditContext> {
     let repository = CatalogRepository::open(catalog_path)?;
     let generation = repository.active_generation()?.ok_or_else(|| {
@@ -148,9 +153,8 @@ pub(crate) fn resolve_bulk_audit_context(
         )
     })?;
 
-    let source = launch_source_from_generation(&generation)?;
     let identity = inspect_executable(source.clone())?;
-    ensure_generation_matches_executable(&generation, &identity)?;
+    ensure_generation_matches_identity(&generation, &identity)?;
     let content_paths = load_settings(settings_path)?.content_paths;
 
     Ok(AuditContext {

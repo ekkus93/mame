@@ -12,11 +12,11 @@ use tauri::{AppHandle, State};
 use crate::{
     config::{settings_path, LaunchPreferencesV1},
     errors::{AppError, AppResult},
-    mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
+    mame::MameExecutableSource,
     metadata::{
-        AvailabilityFilter, CatalogRepository, CloneFilter, FavoritePage, FavoriteState,
-        MachineAvailabilityQuery, MachineDetail, MachinePage, MachineQuery, MachineSort,
-        MetadataGenerationSummary,
+        effective_source_for_generation, AvailabilityFilter, CatalogRepository, CloneFilter,
+        FavoritePage, FavoriteState, MachineAvailabilityQuery, MachineDetail, MachinePage,
+        MachineQuery, MachineSort,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -121,10 +121,15 @@ pub async fn query_mame_library(
     let query = validated_query(request)?;
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let source = crate::effective_runtime::effective_mame_source(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        let availability =
-            current_machine_availability_query(&catalog_path, &settings_path, availability_filter)?;
+        let availability = current_machine_availability_query(
+            &catalog_path,
+            &settings_path,
+            source,
+            availability_filter,
+        )?;
         CatalogRepository::open(&catalog_path)?
             .query_machines_with_availability(&query, &availability)
     })
@@ -216,9 +221,7 @@ pub fn launch_library_machine(
             )
         })?;
 
-    let source = launch_source_from_generation(&generation)?;
-    let current_identity = inspect_executable(source.clone())?;
-    ensure_generation_matches_executable(&generation, &current_identity)?;
+    let source = effective_source_for_generation(&app, &generation)?;
 
     sessions::launch_mame_with_source(
         source,
@@ -229,57 +232,6 @@ pub fn launch_library_machine(
         supervisor,
         app,
     )
-}
-
-fn launch_source_from_generation(
-    generation: &MetadataGenerationSummary,
-) -> AppResult<MameExecutableSource> {
-    match (generation.source_kind.as_str(), generation.trust.as_str()) {
-        ("external", "userConfigured") => {
-            Ok(MameExecutableSource::external(&generation.executable_path))
-        }
-        ("developmentTree", "development") => Ok(MameExecutableSource::development_tree(
-            &generation.executable_path,
-        )),
-        ("bundled", "qualifiedBundled") => Err(AppError::new(
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
-            "Bundled MAME launch requires package-owned executable resolution.",
-        )),
-        (source_kind, trust) => Err(AppError::new(
-            "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
-            "The active catalog has an invalid executable source/trust pairing.",
-        )
-        .with_details(serde_json::json!({
-            "sourceKind": source_kind,
-            "trust": trust
-        }))),
-    }
-}
-
-fn ensure_generation_matches_executable(
-    generation: &MetadataGenerationSummary,
-    identity: &MameExecutableIdentity,
-) -> AppResult<()> {
-    if generation.executable_path == identity.path
-        && generation.mame_version == identity.version
-        && generation.mame_build == identity.build
-        && generation.raw_version_line == identity.raw_version_line
-    {
-        return Ok(());
-    }
-
-    Err(AppError::new(
-        "MAME_METADATA_STALE",
-        "The selected MAME executable no longer matches the active metadata generation.",
-    )
-    .with_details(serde_json::json!({
-        "catalogPath": generation.executable_path,
-        "catalogVersion": generation.mame_version,
-        "catalogBuild": generation.mame_build,
-        "currentPath": identity.path,
-        "currentVersion": identity.version,
-        "currentBuild": identity.build
-    })))
 }
 
 fn availability_filter(request: Option<AvailabilityFilterRequest>) -> AvailabilityFilter {
@@ -294,9 +246,10 @@ fn availability_filter(request: Option<AvailabilityFilterRequest>) -> Availabili
 fn current_machine_availability_query(
     catalog_path: &std::path::Path,
     settings_path: &std::path::Path,
+    source: MameExecutableSource,
     filter: AvailabilityFilter,
 ) -> AppResult<MachineAvailabilityQuery> {
-    let context = match audit::resolve_bulk_audit_context(catalog_path, settings_path) {
+    let context = match audit::resolve_bulk_audit_context(catalog_path, settings_path, source) {
         Ok(context) => context,
         // Keep browsing available when the current executable cannot establish trustworthy
         // audit provenance. Do not swallow storage, settings, database, or malformed-catalog
@@ -470,90 +423,11 @@ const fn default_page_size() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        availability_filter, availability_provenance_unavailable,
-        ensure_generation_matches_executable, launch_source_from_generation,
-        validate_machine_short_name, validated_query, AvailabilityFilterRequest,
+        availability_filter, availability_provenance_unavailable, validate_machine_short_name,
+        validated_query, AvailabilityFilterRequest,
         CloneFilterRequest, MachineSearchRequest, MachineSortRequest, DEFAULT_PAGE_SIZE,
     };
-    use crate::{
-        mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
-        metadata::{AvailabilityFilter, MetadataGenerationSummary},
-    };
-
-    fn generation(source_kind: &str, trust: &str) -> MetadataGenerationSummary {
-        MetadataGenerationSummary {
-            generation_id: 1,
-            source_kind: source_kind.to_owned(),
-            trust: trust.to_owned(),
-            executable_path: "/opt/mame/mame".to_owned(),
-            mame_version: "0.288".to_owned(),
-            mame_build: Some("test-fixture".to_owned()),
-            raw_version_line: "0.288 test-fixture".to_owned(),
-            listxml_build: Some("0.288 test-fixture".to_owned()),
-            mame_config: Some("10".to_owned()),
-            generated_at_epoch_ms: 100,
-            imported_at_epoch_ms: 200,
-            machine_count: 4,
-        }
-    }
-
-    fn identity() -> MameExecutableIdentity {
-        MameExecutableIdentity {
-            source: MameExecutableSourceKind::External,
-            trust: MameExecutableTrust::UserConfigured,
-            path: "/opt/mame/mame".to_owned(),
-            version: "0.288".to_owned(),
-            build: Some("test-fixture".to_owned()),
-            raw_version_line: "0.288 test-fixture".to_owned(),
-        }
-    }
-
-    fn base_request() -> MachineSearchRequest {
-        MachineSearchRequest {
-            text: None,
-            manufacturer: None,
-            year: None,
-            driver_status: None,
-            availability: None,
-            clone_filter: CloneFilterRequest::All,
-            sort: MachineSortRequest::DescriptionAsc,
-            include_devices: false,
-            limit: DEFAULT_PAGE_SIZE,
-            offset: 0,
-        }
-    }
-
-    #[test]
-    fn persisted_catalog_cannot_self_assert_bundled_trust() {
-        let error = launch_source_from_generation(&generation("bundled", "qualifiedBundled"))
-            .expect_err("bundled launch must require package-owned resolution");
-        assert_eq!(error.code, "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED");
-    }
-
-    #[test]
-    fn persisted_source_and_trust_pair_must_match() {
-        let error = launch_source_from_generation(&generation("external", "qualifiedBundled"))
-            .expect_err("mismatched persisted provenance must fail");
-        assert_eq!(error.code, "CATALOG_EXECUTABLE_PROVENANCE_INVALID");
-
-        let source = launch_source_from_generation(&generation("external", "userConfigured"))
-            .expect("valid external provenance");
-        assert_eq!(source.kind(), MameExecutableSourceKind::External);
-        assert_eq!(source.trust(), MameExecutableTrust::UserConfigured);
-    }
-
-    #[test]
-    fn launch_requires_catalog_identity_to_match_current_executable() {
-        let generation = generation("external", "userConfigured");
-        ensure_generation_matches_executable(&generation, &identity())
-            .expect("matching identity must pass");
-
-        let mut changed = identity();
-        changed.version = "0.289".to_owned();
-        let error = ensure_generation_matches_executable(&generation, &changed)
-            .expect_err("changed executable must make catalog stale");
-        assert_eq!(error.code, "MAME_METADATA_STALE");
-    }
+    use crate::metadata::AvailabilityFilter;
 
     #[test]
     fn query_defaults_are_bounded_and_parent_policy_is_explicit() {
@@ -568,7 +442,6 @@ mod tests {
             "MAME_EXECUTABLE_NOT_FOUND",
             "MAME_VERSION_PROBE_TIMEOUT",
             "MAME_METADATA_STALE",
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
         ] {
             assert!(availability_provenance_unavailable(
                 &crate::errors::AppError::new(code, "test",)

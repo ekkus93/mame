@@ -2,10 +2,11 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Runtime};
 
 use crate::{
-    config::{load_settings, settings_path, SETTINGS_SCHEMA_VERSION},
+    config::SETTINGS_SCHEMA_VERSION,
+    effective_runtime::effective_mame_identity,
     errors::{AppError, AppResult},
     event_names::APP_READY_EVENT,
-    mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
+    mame::MameExecutableIdentity,
     sessions::query_state::RUNTIME_CONTROL_PROTOCOL_VERSION,
     storage::CATALOG_SCHEMA_VERSION,
 };
@@ -115,21 +116,9 @@ fn unavailable_mame(path: Option<String>, error: AppError) -> MameVersionReport 
 }
 
 fn resolve_mame_version<R: Runtime>(app: &AppHandle<R>) -> MameVersionReport {
-    let path = match settings_path(app) {
-        Ok(path) => path,
-        Err(error) => return unavailable_mame(None, error),
-    };
-    let settings = match load_settings(&path) {
-        Ok(settings) => settings,
-        Err(error) => return unavailable_mame(None, error),
-    };
-    let Some(path) = settings.mame_executable else {
-        return MameVersionReport::NotConfigured;
-    };
-
-    match inspect_executable(MameExecutableSource::external(&path)) {
+    match effective_mame_identity(app) {
         Ok(identity) => MameVersionReport::Available { identity },
-        Err(error) => unavailable_mame(Some(path), error),
+        Err(error) => unavailable_mame(None, error),
     }
 }
 
