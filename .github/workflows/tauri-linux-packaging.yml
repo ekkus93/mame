@@ -241,7 +241,9 @@ jobs:
 
       - name: Validate bundled runtime containment
         working-directory: tauri/src-tauri
-        run: cargo test --locked bundled_runtime effective_runtime
+        run: |
+          cargo test --locked bundled_runtime
+          cargo test --locked effective_runtime
 
       - name: Build real-runtime Debian package and AppImage
         working-directory: tauri
