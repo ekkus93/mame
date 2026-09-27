@@ -5,7 +5,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::errors::{AppError, AppResult};
+use crate::{
+    effective_runtime::bundled_layout_for_source,
+    errors::{AppError, AppResult},
+};
 
 use super::{validate_executable_path, validate_software_list_identifier, MameExecutableSource};
 
@@ -20,8 +23,12 @@ pub(crate) fn get_software_list_xml(
     validate_software_list_identifier(software_list)?;
     let path = validate_executable_path(source.path())?;
     let mut command = Command::new(&path);
+    command.arg("-noreadconfig");
+    if let Some(layout) = bundled_layout_for_source(source)? {
+        command.arg("-hashpath").arg(layout.hash_dir);
+    }
     command
-        .args(["-noreadconfig", "-getsoftlist", software_list])
+        .args(["-getsoftlist", software_list])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

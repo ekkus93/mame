@@ -20,6 +20,61 @@ pub use migrations::CATALOG_SCHEMA_VERSION;
 
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MameUserDirectories {
+    pub root: PathBuf,
+    pub cfg: PathBuf,
+    pub nvram: PathBuf,
+    pub state: PathBuf,
+    pub snapshot: PathBuf,
+    pub diff: PathBuf,
+}
+
+pub fn mame_user_directories<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> AppResult<MameUserDirectories> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| {
+            AppError::new(
+                "MAME_USER_DATA_ROOT_UNAVAILABLE",
+                "The platform application data directory for MAME state is unavailable.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        })?
+        .join("mame");
+
+    let directories = MameUserDirectories {
+        cfg: root.join("cfg"),
+        nvram: root.join("nvram"),
+        state: root.join("state"),
+        snapshot: root.join("snap"),
+        diff: root.join("diff"),
+        root,
+    };
+    for path in [
+        &directories.root,
+        &directories.cfg,
+        &directories.nvram,
+        &directories.state,
+        &directories.snapshot,
+        &directories.diff,
+    ] {
+        fs::create_dir_all(path).map_err(|error| {
+            AppError::new(
+                "MAME_USER_DATA_DIRECTORY_CREATE_FAILED",
+                "A user-writable MAME data directory could not be created.",
+            )
+            .with_details(serde_json::json!({
+                "path": path,
+                "cause": error.to_string()
+            }))
+        })?;
+    }
+    Ok(directories)
+}
+
 pub fn catalog_path<R: Runtime>(app: &tauri::AppHandle<R>) -> AppResult<PathBuf> {
     app.path()
         .app_data_dir()

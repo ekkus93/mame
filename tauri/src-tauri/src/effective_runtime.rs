@@ -4,7 +4,7 @@
 //! external executable is an explicit advanced override. Frontend callers never
 //! get to self-assert bundled trust for an arbitrary path.
 
-use std::path::Path;
+use std::{fs, path::{Path, PathBuf}};
 
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -58,6 +58,57 @@ pub fn effective_mame_identity<R: Runtime>(
     app: &AppHandle<R>,
 ) -> AppResult<MameExecutableIdentity> {
     inspect_executable(effective_mame_source(app)?)
+}
+
+pub fn bundled_layout_for_source(
+    source: &MameExecutableSource,
+) -> AppResult<Option<BundledRuntimeLayout>> {
+    use crate::mame::MameExecutableSourceKind;
+
+    if source.kind() != MameExecutableSourceKind::Bundled {
+        return Ok(None);
+    }
+
+    let executable = fs::canonicalize(source.path()).map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_EXECUTABLE_MISSING",
+            "The bundled MAME executable can no longer be resolved.",
+        )
+        .with_details(serde_json::json!({
+            "path": source.path(),
+            "cause": error.to_string()
+        }))
+    })?;
+    let root = executable
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(|| AppError::new(
+            "MAME_BUNDLED_RUNTIME_LAYOUT_INVALID",
+            "The bundled MAME executable is not inside the expected runtime layout.",
+        ))?;
+    let resource_dir: PathBuf = root
+        .parent()
+        .ok_or_else(|| AppError::new(
+            "MAME_BUNDLED_RUNTIME_LAYOUT_INVALID",
+            "The bundled MAME runtime has no package resource parent.",
+        ))?
+        .to_path_buf();
+    let layout = BundledRuntimeLayout::from_resource_dir(resource_dir);
+    layout.validate()?;
+    let expected = fs::canonicalize(&layout.executable).map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_EXECUTABLE_MISSING",
+            "The packaged MAME executable cannot be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    if executable != expected {
+        return Err(AppError::new(
+            "MAME_BUNDLED_RUNTIME_PATH_ESCAPE",
+            "The bundled MAME executable does not match the package-owned runtime layout.",
+        ));
+    }
+    Ok(Some(layout))
 }
 
 #[cfg(test)]
