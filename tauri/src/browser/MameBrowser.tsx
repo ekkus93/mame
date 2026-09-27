@@ -262,7 +262,7 @@ export function MameBrowser({
             machineCount: result.generation.machineCount,
           });
           setOffset(0);
-          setPreferredMachine(rememberedMachine);
+          setPreferredMachine(selectedRef.current?.shortName ?? null);
         });
       })
       .catch((reason: unknown) => {
@@ -273,7 +273,7 @@ export function MameBrowser({
           });
         }
       });
-  }, [mame, rememberedMachine, selectMachine]);
+  }, [mame, selectMachine]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 160);
@@ -342,7 +342,7 @@ export function MameBrowser({
           machineCount: result.generation.machineCount,
         });
         setOffset(0);
-        setPreferredMachine(rememberedMachine);
+        setPreferredMachine(selectedRef.current?.shortName ?? null);
       })
       .catch((reason: unknown) => {
         if (catalogSequence.current === sequence) {
@@ -352,7 +352,7 @@ export function MameBrowser({
           });
         }
       });
-  }, [catalogState.status, rememberedMachine, selectMachine]);
+  }, [catalogState.status, selectMachine]);
 
   const valueRequired = filterRequiresValue(filter);
   const request = useMemo(
