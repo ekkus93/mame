@@ -24,7 +24,8 @@ describe("bundled MAME product contract", () => {
   it("defaults runtime authority to package-owned MAME rather than an absent override", () => {
     expect(effectiveRuntimeSource).toContain("BundledRuntimeLayout::from_resource_dir");
     expect(effectiveRuntimeSource).toContain("configured_external_source(external_override)");
-    expect(appBackendSource).toContain("effective_mame_identity(app)");
+    expect(appBackendSource).toContain("effective_mame_source(app)");
+    expect(appBackendSource).toContain("inspect_executable(source)");
     expect(appBackendSource).not.toContain("let Some(path) = settings.mame_executable");
   });
 
