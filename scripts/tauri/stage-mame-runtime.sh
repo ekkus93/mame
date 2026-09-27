@@ -80,18 +80,38 @@ cp -p "$source_root/COPYING" "$staging/licenses/COPYING"
 cp -R "$source_root/docs/legal" "$staging/licenses/legal"
 
 if [[ "$qualification" == "real" ]]; then
-  python3 - "$staging/provenance.json" "$MAME_SOURCE_SHA" "$version_line" <<'PY'
+  binary_sha256=$(sha256sum "$mame_executable" | awk '{print $1}')
+  python3 - \
+    "$staging/provenance.json" \
+    "$MAME_SOURCE_SHA" \
+    "$version_line" \
+    "${MAME_BUILD_TARGET:-mame}" \
+    "${MAME_BUILD_PROFILE:-release}" \
+    "$binary_sha256" \
+    "$(uname -sm)" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-path, source_sha, version_line = sys.argv[1:]
+(
+    path,
+    source_sha,
+    version_line,
+    build_target,
+    build_profile,
+    binary_sha256,
+    build_host,
+) = sys.argv[1:]
 Path(path).write_text(
     json.dumps(
         {
             "schemaVersion": 1,
             "sourceRevision": source_sha,
             "versionLine": version_line,
+            "buildTarget": build_target,
+            "buildProfile": build_profile,
+            "binarySha256": binary_sha256,
+            "buildHost": build_host,
             "qualification": "real",
         },
         indent=2,

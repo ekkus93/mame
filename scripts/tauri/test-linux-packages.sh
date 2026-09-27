@@ -110,6 +110,15 @@ find "$runtime_root/licenses/legal" -type f -print -quit | grep -q . \
 if [[ "$RUNTIME_MODE" == "real" ]]; then
   [[ -s "$runtime_root/provenance.json" ]] || { echo "installed runtime provenance is missing" >&2; exit 1; }
   [[ ! -w "$runtime_root" ]] || { echo "installed package runtime root is unexpectedly user-writable" >&2; exit 1; }
+  if grep -Eq '(^|, )[[:space:]]*mame([[:space:](,]|$)' <<<"$depends"; then
+    echo "Debian package must not depend on the distro mame package: $depends" >&2
+    exit 1
+  fi
+  if ldd "$runtime_bin" | grep -q 'not found'; then
+    echo "installed bundled MAME has unresolved shared-library dependencies" >&2
+    ldd "$runtime_bin" >&2
+    exit 1
+  fi
   (
     cd "$smoke_tmp"
     bash "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$runtime_bin"
@@ -166,7 +175,70 @@ x11_smoke() {
   ' bash "$log_path" "$@"
 }
 
-x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+real_bootstrap_smoke() {
+  local log_path=$1
+  local data_home="$smoke_tmp/xdg-data"
+  local config_home="$smoke_tmp/xdg-config"
+  mkdir -p "$data_home" "$config_home"
+
+  xvfb-run -a bash -c '
+    set -euo pipefail
+    log_path=$1
+    data_home=$2
+    config_home=$3
+    binary=$4
+
+    XDG_DATA_HOME="$data_home" XDG_CONFIG_HOME="$config_home" "$binary" >"$log_path" 2>&1 &
+    pid=$!
+    trap "kill $pid 2>/dev/null || true" EXIT
+    window_seen=0
+
+    for _ in $(seq 1 1000); do
+      if [[ "$window_seen" -eq 0 ]]; then
+        window_id=$(xdotool search --name "^MAME Tauri Frontend$" 2>/dev/null | head -n 1 || true)
+        [[ -n "$window_id" ]] && window_seen=1
+      fi
+
+      catalog=$(find "$data_home" -type f -name catalog.sqlite3 -print -quit 2>/dev/null || true)
+      if [[ "$window_seen" -eq 1 && -n "$catalog" ]]; then
+        row=$(sqlite3 "$catalog"           "SELECT source_kind || '|' || trust || '|' || machine_count FROM metadata_generation WHERE active = 1 LIMIT 1;"           2>/dev/null || true)
+        if [[ -n "$row" ]]; then
+          IFS="|" read -r source trust count <<<"$row"
+          if [[ "$source" == "bundled" && "$trust" == "qualifiedBundled" && "$count" =~ ^[0-9]+$ && "$count" -gt 1000 ]]; then
+            settings=$(find "$config_home" -type f -name settings.json -print -quit 2>/dev/null || true)
+            if [[ -n "$settings" ]] && grep -Eq ""mameExecutable"[[:space:]]*:[[:space:]]*"" "$settings"; then
+              echo "fresh installed startup unexpectedly persisted an external MAME executable" >&2
+              cat "$settings" >&2
+              exit 1
+            fi
+            printf "BMR real-package bootstrap ready: source=%s trust=%s machines=%s catalog=%s\n"               "$source" "$trust" "$count" "$catalog"
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            exit 0
+          fi
+        fi
+      fi
+
+      if ! kill -0 "$pid" 2>/dev/null; then
+        echo "application exited before bundled metadata bootstrap reached ready state" >&2
+        cat "$log_path" >&2
+        exit 1
+      fi
+      sleep 0.25
+    done
+
+    echo "bundled metadata bootstrap did not reach a ready catalog before timeout" >&2
+    echo "--- application log ---" >&2
+    cat "$log_path" >&2
+    exit 1
+  ' bash "$log_path" "$data_home" "$config_home" "$binary"
+}
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  real_bootstrap_smoke "$smoke_tmp/deb-launch.log"
+else
+  x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+fi
 
 sudo apt-get remove -y "$package"
 [[ ! -e "$binary" ]] || { echo "frontend executable remains after Debian uninstall: $binary" >&2; exit 1; }
