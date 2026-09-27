@@ -91,11 +91,11 @@ export type MetadataRefreshResult = {
 };
 
 export type RefreshMameMetadataRequest = {
-  executable: MameExecutableRequest;
+  executable?: MameExecutableRequest | null;
 };
 
 export type MetadataStatusRequest = {
-  executable: MameExecutableRequest;
+  executable?: MameExecutableRequest | null;
 };
 
 export type CloneFilter = "all" | "parentsOnly" | "clonesOnly";
