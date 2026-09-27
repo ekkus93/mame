@@ -117,7 +117,7 @@ export function GeneralSettingsPanel({
     }
   }
 
-  async function useBundledMame() {
+  async function restoreBundledMame() {
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -214,7 +214,7 @@ export function GeneralSettingsPanel({
                   : "Advanced runtime override"}
               </button>
               {externalOverrideActive && (
-                <button type="button" disabled={busy} onClick={() => void useBundledMame()}>
+                <button type="button" disabled={busy} onClick={() => void restoreBundledMame()}>
                   Use bundled MAME
                 </button>
               )}
@@ -258,7 +258,7 @@ export function GeneralSettingsPanel({
                       type="button"
                       className="secondary-button"
                       disabled={busy || !externalOverrideActive}
-                      onClick={() => void useBundledMame()}
+                      onClick={() => void restoreBundledMame()}
                     >
                       Use bundled MAME
                     </button>
