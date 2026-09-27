@@ -4,7 +4,10 @@
 //! external executable is an explicit advanced override. Frontend callers never
 //! get to self-assert bundled trust for an arbitrary path.
 
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -79,19 +82,20 @@ pub fn bundled_layout_for_source(
             "cause": error.to_string()
         }))
     })?;
-    let root = executable
-        .parent()
-        .and_then(Path::parent)
-        .ok_or_else(|| AppError::new(
+    let root = executable.parent().and_then(Path::parent).ok_or_else(|| {
+        AppError::new(
             "MAME_BUNDLED_RUNTIME_LAYOUT_INVALID",
             "The bundled MAME executable is not inside the expected runtime layout.",
-        ))?;
+        )
+    })?;
     let resource_dir: PathBuf = root
         .parent()
-        .ok_or_else(|| AppError::new(
-            "MAME_BUNDLED_RUNTIME_LAYOUT_INVALID",
-            "The bundled MAME runtime has no package resource parent.",
-        ))?
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_BUNDLED_RUNTIME_LAYOUT_INVALID",
+                "The bundled MAME runtime has no package resource parent.",
+            )
+        })?
         .to_path_buf();
     let layout = BundledRuntimeLayout::from_resource_dir(resource_dir);
     layout.validate()?;
