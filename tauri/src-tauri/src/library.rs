@@ -424,8 +424,8 @@ const fn default_page_size() -> u32 {
 mod tests {
     use super::{
         availability_filter, availability_provenance_unavailable, validate_machine_short_name,
-        validated_query, AvailabilityFilterRequest,
-        CloneFilterRequest, MachineSearchRequest, MachineSortRequest, DEFAULT_PAGE_SIZE,
+        validated_query, AvailabilityFilterRequest, CloneFilterRequest, MachineSearchRequest,
+        MachineSortRequest, DEFAULT_PAGE_SIZE,
     };
     use crate::metadata::AvailabilityFilter;
 

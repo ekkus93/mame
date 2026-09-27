@@ -41,9 +41,7 @@ pub fn source_from_preference(
         })
 }
 
-pub fn effective_mame_source<R: Runtime>(
-    app: &AppHandle<R>,
-) -> AppResult<MameExecutableSource> {
+pub fn effective_mame_source<R: Runtime>(app: &AppHandle<R>) -> AppResult<MameExecutableSource> {
     let settings = load_settings(&settings_path(app)?)?;
     let resource_dir = app.path().resource_dir().map_err(|error| {
         AppError::new(
@@ -81,7 +79,11 @@ mod tests {
         fs::create_dir_all(runtime.join("hash")).expect("hash");
         fs::create_dir_all(runtime.join("bgfx")).expect("bgfx");
         fs::create_dir_all(runtime.join("licenses/legal")).expect("legal");
-        fs::write(runtime.join("bin").join(BUNDLED_MAME_EXECUTABLE), b"fixture").expect("mame");
+        fs::write(
+            runtime.join("bin").join(BUNDLED_MAME_EXECUTABLE),
+            b"fixture",
+        )
+        .expect("mame");
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -109,8 +111,8 @@ mod tests {
     #[test]
     fn explicit_external_override_wins_without_needing_bundled_layout() {
         let temp = tempdir().expect("tempdir");
-        let source = source_from_preference(Some("/opt/custom/mame"), temp.path())
-            .expect("external source");
+        let source =
+            source_from_preference(Some("/opt/custom/mame"), temp.path()).expect("external source");
         assert_eq!(source.kind(), MameExecutableSourceKind::External);
         assert_eq!(source.trust(), MameExecutableTrust::UserConfigured);
     }
