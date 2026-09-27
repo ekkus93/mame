@@ -19,6 +19,8 @@ fi
 source_root=$1
 mame_executable=$2
 destination=$3
+qualification=${MAME_RUNTIME_QUALIFICATION:-structural}
+script_dir=$(cd "$(dirname "$0")" && pwd)
 
 fail() {
   printf 'stage-mame-runtime: %s\n' "$*" >&2
@@ -40,6 +42,15 @@ fail() {
 
 [[ -n "$destination" && "$destination" != "/" ]] \
   || fail "Refusing unsafe destination: $destination"
+
+version_line=
+if [[ "$qualification" == "real" ]]; then
+  [[ -n "${MAME_SOURCE_SHA:-}" ]] || fail "MAME_SOURCE_SHA is required for real-runtime staging"
+  "$script_dir/validate-real-mame-runtime.sh" "$mame_executable"
+  version_line=$("$mame_executable" -noreadconfig -version 2>&1 | head -n 1)
+elif [[ "$qualification" != "structural" ]]; then
+  fail "Unsupported MAME_RUNTIME_QUALIFICATION: $qualification"
+fi
 
 case "$(basename "$mame_executable")" in
   *.exe|*.EXE)
@@ -67,6 +78,30 @@ cp -R "$source_root/hash" "$staging/hash"
 cp -R "$source_root/bgfx" "$staging/bgfx"
 cp -p "$source_root/COPYING" "$staging/licenses/COPYING"
 cp -R "$source_root/docs/legal" "$staging/licenses/legal"
+
+if [[ "$qualification" == "real" ]]; then
+  python3 - "$staging/provenance.json" "$MAME_SOURCE_SHA" "$version_line" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path, source_sha, version_line = sys.argv[1:]
+Path(path).write_text(
+    json.dumps(
+        {
+            "schemaVersion": 1,
+            "sourceRevision": source_sha,
+            "versionLine": version_line,
+            "qualification": "real",
+        },
+        indent=2,
+        sort_keys=True,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+fi
 
 [[ -f "$staging/bin/$executable_name" ]] || fail "Staged executable is missing"
 [[ -n "$(find "$staging/hash" -maxdepth 1 -type f -name '*.xml' -print -quit)" ]] \

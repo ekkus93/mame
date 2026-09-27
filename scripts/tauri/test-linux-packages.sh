@@ -8,6 +8,13 @@ fi
 
 DEB=$(realpath "$1")
 APPIMAGE=$(realpath "$2")
+RUNTIME_MODE=${MAME_PACKAGE_RUNTIME_MODE:-structural}
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+
+case "$RUNTIME_MODE" in
+  structural|real) ;;
+  *) echo "unsupported MAME_PACKAGE_RUNTIME_MODE: $RUNTIME_MODE" >&2; exit 64 ;;
+esac
 
 [[ -f "$DEB" ]] || { echo "missing Debian package: $DEB" >&2; exit 1; }
 [[ -f "$APPIMAGE" ]] || { echo "missing AppImage: $APPIMAGE" >&2; exit 1; }
@@ -54,17 +61,24 @@ runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME exec
 desktop_rel=$(require_payload_match '^(\./)?usr/share/applications/.*\.desktop$' 'desktop entry')
 runtime_root_rel=${runtime_rel%/bin/mame}
 
-for required in \
-  "$runtime_root_rel/hash/fixture.xml" \
-  "$runtime_root_rel/bgfx/chains/fixture.json" \
-  "$runtime_root_rel/licenses/COPYING" \
-  "$runtime_root_rel/licenses/legal/GPL-2.0"; do
-  if ! grep -Fxq "$required" "$payload"; then
-    echo "Debian package is missing packaged runtime resource: $required" >&2
+for requirement in \
+  "$runtime_root_rel/hash/.*\\.xml$|software-list XML" \
+  "$runtime_root_rel/bgfx/.+|BGFX runtime resources" \
+  "$runtime_root_rel/licenses/COPYING$|COPYING" \
+  "$runtime_root_rel/licenses/legal/.+|legal resources"; do
+  pattern=${requirement%%|*}
+  description=${requirement#*|}
+  if ! grep -Eq "$pattern" "$payload"; then
+    echo "Debian package is missing $description" >&2
     dump_payload
     exit 1
   fi
 done
+if [[ "$RUNTIME_MODE" == "real" ]] && ! grep -Fxq "$runtime_root_rel/provenance.json" "$payload"; then
+  echo "Debian package is missing real-runtime provenance.json" >&2
+  dump_payload
+  exit 1
+fi
 
 printf 'MT-1305 Debian payload root: %s\n' "${runtime_root_rel#./}"
 printf 'MT-1305 Debian package dependencies: %s\n' "$depends"
@@ -85,13 +99,22 @@ frontend_name=$(basename "$binary")
 grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry does not launch $frontend_name:" >&2; cat "$desktop_file" >&2; exit 1; }
 
 runtime_root=${runtime_bin%/bin/mame}
-for required in \
-  "$runtime_root/hash/fixture.xml" \
-  "$runtime_root/bgfx/chains/fixture.json" \
-  "$runtime_root/licenses/COPYING" \
-  "$runtime_root/licenses/legal/GPL-2.0"; do
-  [[ -f "$required" ]] || { echo "installed runtime resource is missing: $required" >&2; exit 1; }
-done
+find "$runtime_root/hash" -maxdepth 1 -type f -name '*.xml' -print -quit | grep -q . \
+  || { echo "installed runtime has no software-list XML" >&2; exit 1; }
+find "$runtime_root/bgfx" -type f -print -quit | grep -q . \
+  || { echo "installed runtime has no BGFX resources" >&2; exit 1; }
+[[ -s "$runtime_root/licenses/COPYING" ]] || { echo "installed COPYING is missing" >&2; exit 1; }
+find "$runtime_root/licenses/legal" -type f -print -quit | grep -q . \
+  || { echo "installed legal resources are missing" >&2; exit 1; }
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  [[ -s "$runtime_root/provenance.json" ]] || { echo "installed runtime provenance is missing" >&2; exit 1; }
+  [[ ! -w "$runtime_root" ]] || { echo "installed package runtime root is unexpectedly user-writable" >&2; exit 1; }
+  (
+    cd "$smoke_tmp"
+    "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$runtime_bin"
+  )
+fi
 
 x11_smoke() {
   local log_path=$1
@@ -164,13 +187,20 @@ app_root="$extract_dir/squashfs-root"
 app_runtime_bin=$(find "$app_root" -path '*/mame-runtime/bin/mame' -type f -print -quit)
 [[ -n "$app_runtime_bin" && -x "$app_runtime_bin" ]] || { echo "AppImage bundled MAME executable is missing or non-executable" >&2; find "$app_root" -maxdepth 5 -type f -print >&2; exit 1; }
 app_runtime_root=${app_runtime_bin%/bin/mame}
-for required in \
-  "$app_runtime_root/hash/fixture.xml" \
-  "$app_runtime_root/bgfx/chains/fixture.json" \
-  "$app_runtime_root/licenses/COPYING" \
-  "$app_runtime_root/licenses/legal/GPL-2.0"; do
-  [[ -f "$required" ]] || { echo "AppImage runtime resource is missing: $required" >&2; exit 1; }
-done
+find "$app_runtime_root/hash" -maxdepth 1 -type f -name '*.xml' -print -quit | grep -q . \
+  || { echo "AppImage runtime has no software-list XML" >&2; exit 1; }
+find "$app_runtime_root/bgfx" -type f -print -quit | grep -q . \
+  || { echo "AppImage runtime has no BGFX resources" >&2; exit 1; }
+[[ -s "$app_runtime_root/licenses/COPYING" ]] || { echo "AppImage COPYING is missing" >&2; exit 1; }
+find "$app_runtime_root/licenses/legal" -type f -print -quit | grep -q . \
+  || { echo "AppImage legal resources are missing" >&2; exit 1; }
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  [[ -s "$app_runtime_root/provenance.json" ]] || { echo "AppImage runtime provenance is missing" >&2; exit 1; }
+  (
+    cd "$smoke_tmp"
+    "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$app_runtime_bin"
+  )
+fi
 app_desktop=$(find "$app_root" -name '*.desktop' -type f -print -quit)
 [[ -n "$app_desktop" ]] || { echo "AppImage desktop entry is missing" >&2; exit 1; }
 grep -Fq 'Name=MAME Tauri Frontend' "$app_desktop" || { echo "AppImage desktop entry has unexpected Name:" >&2; cat "$app_desktop" >&2; exit 1; }
