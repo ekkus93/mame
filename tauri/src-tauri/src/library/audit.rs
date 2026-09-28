@@ -143,13 +143,6 @@ fn resolve_audit_context(
     Ok(context)
 }
 
-pub(crate) fn resolve_bulk_audit_context(
-    catalog_path: &Path,
-    settings_path: &Path,
-) -> AppResult<AuditContext> {
-    resolve_bulk_audit_context_with_effective_source(catalog_path, settings_path, None)
-}
-
 pub(crate) fn resolve_bulk_audit_context_with_resource_dir(
     catalog_path: &Path,
     settings_path: &Path,
