@@ -10,6 +10,7 @@ on:
       - "scripts/tauri/**"
       - "tests/tauri/**"
       - "docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_TODO_2026-09-14.md"
+      - "docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md"
   pull_request:
     paths:
       - ".gitattributes"
@@ -19,6 +20,7 @@ on:
       - "scripts/tauri/**"
       - "tests/tauri/**"
       - "docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_TODO_2026-09-14.md"
+      - "docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md"
   workflow_dispatch:
 
 permissions:
@@ -48,6 +50,7 @@ jobs:
             /docs/MAME_TAURI_MAME_UI_ACCESSIBILITY_QUALIFICATION_2026-09-15.md
             /docs/MAME_TAURI_MAME_UI_REPRODUCTION_CLOSURE_2026-09-15.md
             /docs/MAME_TAURI_UI_POST_CLOSURE_REMEDIATION_TODO_2026-09-14.md
+            /docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md
             /.github/workflows/tauri-project.yml
             /.github/workflows/tauri-linux-real-runtime-qualification.yml
             /tauri/
@@ -64,6 +67,10 @@ jobs:
       - name: BMR real-runtime build automation regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-build-linux-bundled-mame-runtime.py
+
+      - name: BMR bundled runtime TODO wiring regression tests
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/tauri/test-bmr-bundled-runtime-todo-wiring.py
 
       - name: MT-1407 exact-head CI evidence helper regression tests
         working-directory: ${{ github.workspace }}
