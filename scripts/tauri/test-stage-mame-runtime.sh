@@ -6,6 +6,7 @@ stager="$repo_root/scripts/tauri/stage-mame-runtime.sh"
 
 temp=$(mktemp -d)
 cleanup() {
+  chmod -R u+w "$temp" 2>/dev/null || true
   rm -rf "$temp"
 }
 trap cleanup EXIT
@@ -20,7 +21,14 @@ printf '<softwarelist name="fixture"/>\n' > "$source_root/hash/fixture.xml"
 printf 'shader fixture\n' > "$source_root/bgfx/chains/fixture.json"
 printf 'MAME copying fixture\n' > "$source_root/COPYING"
 printf 'GPL fixture\n' > "$source_root/docs/legal/GPL-2.0"
-printf '#!/usr/bin/env sh\nexit 0\n' > "$temp/mame"
+cat > "$temp/mame" <<'EOF'
+#!/usr/bin/env sh
+if [ "${1:-}" = "-noreadconfig" ] && [ "${2:-}" = "-version" ]; then
+  echo "0.288 structural runtime fixture"
+  exit 0
+fi
+exit 0
+EOF
 chmod 0755 "$temp/mame"
 
 "$stager" "$source_root" "$temp/mame" "$destination"
@@ -30,6 +38,15 @@ test -f "$destination/hash/fixture.xml"
 test -f "$destination/bgfx/chains/fixture.json"
 test -s "$destination/licenses/COPYING"
 test -f "$destination/licenses/legal/GPL-2.0"
+
+chmod -R a-w "$destination"
+arbitrary_cwd="$temp/arbitrary-cwd"
+mkdir -p "$arbitrary_cwd"
+(
+  cd "$arbitrary_cwd"
+  "$destination/bin/mame" -noreadconfig -version
+) | grep -Fxq '0.288 structural runtime fixture'
+chmod -R u+w "$destination"
 
 printf 'preserve me\n' > "$destination/sentinel"
 invalid_source="$temp/invalid-source"
