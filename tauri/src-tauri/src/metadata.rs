@@ -135,7 +135,9 @@ fn executable_source(
             })?;
             resolve_effective_mame_source(&settings, &resource_dir)
         }
-        MetadataExecutableSelectionKind::External => Ok(MameExecutableSource::external(&request.path)),
+        MetadataExecutableSelectionKind::External => {
+            Ok(MameExecutableSource::external(&request.path))
+        }
         MetadataExecutableSelectionKind::DevelopmentTree => {
             Ok(MameExecutableSource::development_tree(&request.path))
         }
