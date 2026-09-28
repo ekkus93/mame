@@ -8,7 +8,7 @@ This is the canonical implementation and completion ledger for making the Debian
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.
 
-**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, explicit machine-audit runtime consistency, and synthetic-vs-real runtime staging guards are implemented on promoted `master` `08abf3e3e26359990ab73fd2cbaf6594b9a90016`. Exact-head CI passed: Tauri project run `36391858629`, Tauri Linux packaging run `36391858658`, Tauri macOS packaging run `36391858761`, Tauri Windows packaging run `36391858796`, and Tauri security run `36391858814`. Real production MAME build/staging and real-runtime `.deb` qualification remain open and are intentionally not claimed complete by synthetic fixture evidence.
+**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master` `65774a9470e3eceb1e3212cc515e592393f52f33`. Exact-head CI passed: Tauri project run `36396444809`, Tauri Linux packaging run `36396444762`, Tauri macOS packaging run `36396444805`, Tauri Windows packaging run `36396444807`, and Tauri security run `36396444836`. Real production MAME build/staging and real-runtime `.deb` qualification remain open and are intentionally not claimed complete by synthetic fixture evidence.
 
 ---
 
@@ -57,7 +57,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [x] Update `get_app_info`/runtime identity resolution to inspect the effective bundled/external source.
 - [x] Ensure the frontend receives source kind, trust, path/version/build information needed to explain which runtime is active.
 - [x] Preserve fail-closed reporting when the selected effective source cannot be validated.
-- [ ] Ensure diagnostics distinguish broken bundled package/runtime from broken external override.
+- [x] Ensure diagnostics distinguish broken bundled package/runtime from broken external override.
 - [x] Add tests proving bundled identity on default install and external identity only after explicit override.
 
 **Acceptance:** normal installed startup reports bundled MAME version/source without reading a user-provided path.
@@ -94,8 +94,8 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-006 — Keep metadata/audit/launch on one effective runtime identity
 
-- [ ] Audit all metadata, BIOS, software-list, machine audit, Start, Start Empty, and software launch paths for runtime-source consistency.
-- [ ] Ensure every operation resolves/reuses the same effective runtime contract.
+- [x] Audit all metadata, BIOS, software-list, machine audit, Start, Start Empty, and software launch paths for runtime-source consistency.
+- [x] Ensure every operation resolves/reuses the same effective runtime contract.
 - [x] Ensure switching bundled ↔ external marks incompatible catalog generations stale before catalog-backed launch.
 - [x] Preserve Rust-side revalidation of machine/software/BIOS/launch values.
 - [x] Add regression tests proving catalog/runtime mismatch cannot silently launch against the wrong MAME executable.
@@ -106,9 +106,9 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-007 — Build and stage a real production MAME runtime
 
-- [ ] Define the production MAME build input/revision used for the Tauri package.
-- [ ] Prefer building MAME from the same qualified repository source/revision unless a different pinned/reproducible source is explicitly justified.
-- [ ] Add or update build automation that produces a real MAME executable for the Linux release package.
+- [x] Define the production MAME build input/revision used for the Tauri package.
+- [x] Prefer building MAME from the same qualified repository source/revision unless a different pinned/reproducible source is explicitly justified.
+- [x] Add or update build automation that produces a real MAME executable for the Linux release package.
 - [ ] Stage the real binary with `hash`, `bgfx`, COPYING, and required legal/runtime resources via the package staging path.
 - [x] Record bundled MAME version/source provenance in build/release evidence.
 - [ ] Ensure the staged executable has correct permissions and is runnable on the target Linux environment.
@@ -137,7 +137,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 ## BMR-009 — Replace synthetic-only package qualification with real-runtime release qualification
 
 - [x] Keep the existing synthetic MT-1305-style package test clearly labeled as structural/fixture validation if it remains useful.
-- [ ] Add a release-grade workflow/job that stages a real MAME runtime.
+- [x] Add a release-grade workflow/job that stages a real MAME runtime.
 - [ ] Install the resulting `.deb` into a clean qualification environment.
 - [ ] Verify the installed bundled MAME binary executes `-version`.
 - [ ] Verify a bounded real metadata/list invocation succeeds.
@@ -186,7 +186,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [ ] Verify required MAME COPYING/license/legal resources are included in production packages.
 - [x] Record source/build provenance for the bundled runtime in release evidence.
 - [x] Explicitly document that ROMs/CHDs/game software/undistributable firmware are not included.
-- [ ] Ensure diagnostics expose useful runtime provenance without leaking unrelated filesystem data.
+- [x] Ensure diagnostics expose useful runtime provenance without leaking unrelated filesystem data.
 
 **Acceptance:** making bundled MAME the default does not weaken the existing process/filesystem security boundary or redistribution compliance.
 
@@ -194,14 +194,14 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-013 — Documentation and user-facing installation contract
 
-- [ ] Update README/product documentation to say the Debian/Ubuntu `.deb` includes MAME.
+- [x] Update README/product documentation to say the Debian/Ubuntu `.deb` includes MAME.
 - [ ] Remove documentation that says normal end users need to supply a MAME executable.
-- [ ] Document the one-package install/launch flow.
-- [ ] Document that ROM/content paths remain user supplied.
-- [ ] Document first-run metadata initialization and expected progress/failure behavior.
-- [ ] Document the external MAME executable as an advanced override only.
-- [ ] Document how developers build/stage the real bundled runtime.
-- [ ] Document which CI jobs use synthetic fixtures and which qualify a real release runtime.
+- [x] Document the one-package install/launch flow.
+- [x] Document that ROM/content paths remain user supplied.
+- [x] Document first-run metadata initialization and expected progress/failure behavior.
+- [x] Document the external MAME executable as an advanced override only.
+- [x] Document how developers build/stage the real bundled runtime.
+- [x] Document which CI jobs use synthetic fixtures and which qualify a real release runtime.
 
 **Acceptance:** documentation describes the product users will actually receive, not the obsolete external-runtime-first workflow.
 
