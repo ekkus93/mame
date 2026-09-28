@@ -35,7 +35,7 @@ def main() -> None:
     require("MAME_TAURI_ALLOW_SYNTHETIC_RUNTIME" in prepare, "synthetic opt-in must remain isolated in the preparer")
     require("validate-real-mame-runtime.sh" in prepare, "real preparer must run the bounded runtime validator")
 
-    require("-listxml pacman" in validator, "real runtime validator must prove bounded metadata generation")
+    require("-listxml" in validator and "MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE" in validator, "real runtime validator must prove configurable bounded metadata generation")
     require("synthetic|fixture payload|MT-1305" in validator, "real runtime validator must reject synthetic payloads")
     require("ldd" in deb_deps, "Debian dependency augmenter must inspect bundled MAME shared libraries")
     require("dpkg-query -S" in deb_deps, "Debian dependency augmenter must map runtime libraries to packages")
