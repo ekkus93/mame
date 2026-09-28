@@ -533,7 +533,10 @@ mod tests {
             error_code: "CONFIG_READ_FAILED".to_owned(),
             error_message: "settings unreadable".to_owned(),
         });
-        assert_eq!(configuration.failure_domain.as_deref(), Some("configuration"));
+        assert_eq!(
+            configuration.failure_domain.as_deref(),
+            Some("configuration")
+        );
     }
 
     #[test]
