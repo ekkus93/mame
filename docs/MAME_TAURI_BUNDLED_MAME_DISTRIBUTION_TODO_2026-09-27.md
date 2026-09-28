@@ -8,14 +8,16 @@ This is the canonical implementation and completion ledger for making the Debian
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.
 
+**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, explicit machine-audit runtime consistency, and synthetic-vs-real runtime staging guards are implemented on promoted `master` `08abf3e3e26359990ab73fd2cbaf6594b9a90016`. Exact-head CI passed: Tauri project run `36391858629`, Tauri Linux packaging run `36391858658`, Tauri macOS packaging run `36391858761`, Tauri Windows packaging run `36391858796`, and Tauri security run `36391858814`. Real production MAME build/staging and real-runtime `.deb` qualification remain open and are intentionally not claimed complete by synthetic fixture evidence.
+
 ---
 
 ## BMR-000 — Baseline and invariants
 
 - [ ] Record the current bundled-runtime, settings, startup, metadata, launch, and Linux packaging paths relevant to this work.
 - [ ] Confirm the current failure mode: no `settings.mameExecutable` yields `MameVersionReport::NotConfigured` even when a package-owned runtime is present.
-- [ ] Preserve the invariant that Rust owns runtime resolution, validation, and process launch.
-- [ ] Preserve the invariant that ROM/CHD/software content is not bundled as part of this work.
+- [x] Preserve the invariant that Rust owns runtime resolution, validation, and process launch.
+- [x] Preserve the invariant that ROM/CHD/software content is not bundled as part of this work.
 - [ ] Add a regression guard that the canonical bundled-runtime TODO remains wired into applicable CI/documentation checks.
 
 **Required evidence:** source inventory plus regression/static test for the core product invariant.
@@ -24,13 +26,13 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-001 — Make bundled MAME the default runtime source
 
-- [ ] Change effective-runtime resolution so a valid package-owned bundled runtime is used whenever no explicit external override is active.
-- [ ] Stop interpreting “no external executable path configured” as “MAME not configured” in a production package with a valid bundled runtime.
-- [ ] Reuse `BundledRuntimeLayout` and existing `MameExecutableSource` source/trust types rather than creating a parallel untyped path.
-- [ ] Resolve bundled resources from Tauri’s package resource directory, independent of current working directory and `PATH`.
-- [ ] Canonicalize and containment-check the bundled runtime root/executable before use.
-- [ ] Define a clear backend error/report when a production package is missing or has a corrupt bundled runtime.
-- [ ] Add Rust tests for bundled-default resolution, missing/corrupt bundled runtime, and package-root containment.
+- [x] Change effective-runtime resolution so a valid package-owned bundled runtime is used whenever no explicit external override is active.
+- [x] Stop interpreting “no external executable path configured” as “MAME not configured” in a production package with a valid bundled runtime.
+- [x] Reuse `BundledRuntimeLayout` and existing `MameExecutableSource` source/trust types rather than creating a parallel untyped path.
+- [x] Resolve bundled resources from Tauri’s package resource directory, independent of current working directory and `PATH`.
+- [x] Canonicalize and containment-check the bundled runtime root/executable before use.
+- [x] Define a clear backend error/report when a production package is missing or has a corrupt bundled runtime.
+- [x] Add Rust tests for bundled-default resolution, missing/corrupt bundled runtime, and package-root containment.
 
 **Acceptance:** fresh installed app + no user settings resolves a `bundled` MAME identity, not `notConfigured`.
 
@@ -38,13 +40,13 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-002 — Redefine persisted runtime preference and migrate settings
 
-- [ ] Replace “optional MAME executable means runtime existence” semantics with “bundled/default vs explicit external override” semantics.
-- [ ] Update settings schema/types as required while retaining deterministic migration.
-- [ ] Migrate legacy `mameExecutable: null` to bundled/default.
-- [ ] Preserve an existing valid legacy external MAME path as an explicit external override.
-- [ ] Define behavior for an invalid legacy external path, including a one-action recovery to bundled runtime.
-- [ ] Ensure clearing/resetting an external override restores bundled/default rather than disabling MAME.
-- [ ] Add migration/round-trip tests covering old and new schemas.
+- [x] Replace “optional MAME executable means runtime existence” semantics with “bundled/default vs explicit external override” semantics.
+- [x] Update settings schema/types as required while retaining deterministic migration.
+- [x] Migrate legacy `mameExecutable: null` to bundled/default.
+- [x] Preserve an existing valid legacy external MAME path as an explicit external override.
+- [x] Define behavior for an invalid legacy external path, including a one-action recovery to bundled runtime.
+- [x] Ensure clearing/resetting an external override restores bundled/default rather than disabling MAME.
+- [x] Add migration/round-trip tests covering old and new schemas.
 
 **Acceptance:** settings persistence cannot represent “normal package install but MAME absent” merely because no override path is stored.
 
@@ -52,11 +54,11 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-003 — Make application/runtime identity report the effective source
 
-- [ ] Update `get_app_info`/runtime identity resolution to inspect the effective bundled/external source.
-- [ ] Ensure the frontend receives source kind, trust, path/version/build information needed to explain which runtime is active.
-- [ ] Preserve fail-closed reporting when the selected effective source cannot be validated.
+- [x] Update `get_app_info`/runtime identity resolution to inspect the effective bundled/external source.
+- [x] Ensure the frontend receives source kind, trust, path/version/build information needed to explain which runtime is active.
+- [x] Preserve fail-closed reporting when the selected effective source cannot be validated.
 - [ ] Ensure diagnostics distinguish broken bundled package/runtime from broken external override.
-- [ ] Add tests proving bundled identity on default install and external identity only after explicit override.
+- [x] Add tests proving bundled identity on default install and external identity only after explicit override.
 
 **Acceptance:** normal installed startup reports bundled MAME version/source without reading a user-provided path.
 
@@ -64,13 +66,13 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-004 — Remove required executable selection from normal Settings UX
 
-- [ ] Remove the prominent editable “MAME executable” path/Browse/Save/Clear group from the normal General Settings path.
-- [ ] Replace it with a read-only runtime-status presentation for bundled MAME, including version/source information.
-- [ ] Put external executable selection behind an explicit advanced/developer override affordance.
-- [ ] Rename copy so the external path is consistently described as an override.
-- [ ] Provide a visible “Use bundled MAME”/equivalent action when an external override is active or invalid.
-- [ ] Ensure clearing the override immediately returns the application to bundled runtime semantics.
-- [ ] Add component/source tests proving normal users are not told to locate MAME.
+- [x] Remove the prominent editable “MAME executable” path/Browse/Save/Clear group from the normal General Settings path.
+- [x] Replace it with a read-only runtime-status presentation for bundled MAME, including version/source information.
+- [x] Put external executable selection behind an explicit advanced/developer override affordance.
+- [x] Rename copy so the external path is consistently described as an override.
+- [x] Provide a visible “Use bundled MAME”/equivalent action when an external override is active or invalid.
+- [x] Ensure clearing the override immediately returns the application to bundled runtime semantics.
+- [x] Add component/source tests proving normal users are not told to locate MAME.
 
 **Acceptance:** the screen shown in the 2026-09-27 report cannot appear as the required first-run/normal configuration experience.
 
@@ -78,13 +80,13 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-005 — Automatic first-run and upgrade metadata bootstrap
 
-- [ ] On a clean install with valid bundled MAME and no metadata generation, automatically start metadata generation/import.
-- [ ] On application upgrade where bundled MAME identity changes, automatically detect stale metadata and refresh it.
-- [ ] Do not require a normal user to click “Import Metadata” after fresh install or routine bundled-runtime upgrade.
-- [ ] Preserve clear in-shell progress while metadata generation is running.
-- [ ] Preserve actionable Retry/diagnostic behavior on metadata generation failure.
-- [ ] Ensure a successful bootstrap transitions directly into the normal machine query path.
-- [ ] Add tests covering first-run empty metadata, stale metadata after bundled-version change, success, and failure/retry.
+- [x] On a clean install with valid bundled MAME and no metadata generation, automatically start metadata generation/import.
+- [x] On application upgrade where bundled MAME identity changes, automatically detect stale metadata and refresh it.
+- [x] Do not require a normal user to click “Import Metadata” after fresh install or routine bundled-runtime upgrade.
+- [x] Preserve clear in-shell progress while metadata generation is running.
+- [x] Preserve actionable Retry/diagnostic behavior on metadata generation failure.
+- [x] Ensure a successful bootstrap transitions directly into the normal machine query path.
+- [x] Add tests covering first-run empty metadata, stale metadata after bundled-version change, success, and failure/retry.
 
 **Acceptance:** clean first launch progresses from initialization to machine browser without executable selection or manual metadata import.
 
@@ -94,9 +96,9 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 - [ ] Audit all metadata, BIOS, software-list, machine audit, Start, Start Empty, and software launch paths for runtime-source consistency.
 - [ ] Ensure every operation resolves/reuses the same effective runtime contract.
-- [ ] Ensure switching bundled ↔ external marks incompatible catalog generations stale before catalog-backed launch.
-- [ ] Preserve Rust-side revalidation of machine/software/BIOS/launch values.
-- [ ] Add regression tests proving catalog/runtime mismatch cannot silently launch against the wrong MAME executable.
+- [x] Ensure switching bundled ↔ external marks incompatible catalog generations stale before catalog-backed launch.
+- [x] Preserve Rust-side revalidation of machine/software/BIOS/launch values.
+- [x] Add regression tests proving catalog/runtime mismatch cannot silently launch against the wrong MAME executable.
 
 **Acceptance:** metadata generation and launch cannot accidentally use different runtimes after the bundled-default change.
 
@@ -108,10 +110,10 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [ ] Prefer building MAME from the same qualified repository source/revision unless a different pinned/reproducible source is explicitly justified.
 - [ ] Add or update build automation that produces a real MAME executable for the Linux release package.
 - [ ] Stage the real binary with `hash`, `bgfx`, COPYING, and required legal/runtime resources via the package staging path.
-- [ ] Record bundled MAME version/source provenance in build/release evidence.
+- [x] Record bundled MAME version/source provenance in build/release evidence.
 - [ ] Ensure the staged executable has correct permissions and is runnable on the target Linux environment.
 - [ ] Identify and package/declare any system shared-library dependencies needed by the real MAME binary.
-- [ ] Keep synthetic fixtures available only for fast structural tests where useful.
+- [x] Keep synthetic fixtures available only for fast structural tests where useful.
 
 **Acceptance:** a production-qualified staging directory contains a real MAME binary whose `-version` command succeeds.
 
@@ -134,7 +136,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-009 — Replace synthetic-only package qualification with real-runtime release qualification
 
-- [ ] Keep the existing synthetic MT-1305-style package test clearly labeled as structural/fixture validation if it remains useful.
+- [x] Keep the existing synthetic MT-1305-style package test clearly labeled as structural/fixture validation if it remains useful.
 - [ ] Add a release-grade workflow/job that stages a real MAME runtime.
 - [ ] Install the resulting `.deb` into a clean qualification environment.
 - [ ] Verify the installed bundled MAME binary executes `-version`.
@@ -166,10 +168,10 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 ## BMR-011 — Upgrade and override lifecycle
 
 - [ ] Verify upgrading the `.deb` replaces the bundled runtime atomically with the new package version.
-- [ ] Verify bundled-runtime version changes stale/refresh metadata automatically.
+- [x] Verify bundled-runtime version changes stale/refresh metadata automatically.
 - [ ] Preserve user content paths, favorites, collections, controller profiles, launch preferences, and other user data across upgrades.
-- [ ] Preserve an intentional external override across upgrades.
-- [ ] If an external override becomes invalid, present recovery and “Use bundled MAME” rather than leaving the user permanently blocked.
+- [x] Preserve an intentional external override across upgrades.
+- [x] If an external override becomes invalid, present recovery and “Use bundled MAME” rather than leaving the user permanently blocked.
 - [ ] Add migration/upgrade qualification covering at least one prior-settings scenario.
 
 **Acceptance:** normal package upgrade requires no executable reconfiguration.
@@ -179,11 +181,11 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 ## BMR-012 — Security, legal, and provenance closure
 
 - [ ] Re-run bundled-runtime containment and executable-validation threat review after default-source changes.
-- [ ] Verify no generic shell/process path was added to the WebView API.
-- [ ] Verify external override remains validated and explicit.
+- [x] Verify no generic shell/process path was added to the WebView API.
+- [x] Verify external override remains validated and explicit.
 - [ ] Verify required MAME COPYING/license/legal resources are included in production packages.
-- [ ] Record source/build provenance for the bundled runtime in release evidence.
-- [ ] Explicitly document that ROMs/CHDs/game software/undistributable firmware are not included.
+- [x] Record source/build provenance for the bundled runtime in release evidence.
+- [x] Explicitly document that ROMs/CHDs/game software/undistributable firmware are not included.
 - [ ] Ensure diagnostics expose useful runtime provenance without leaking unrelated filesystem data.
 
 **Acceptance:** making bundled MAME the default does not weaken the existing process/filesystem security boundary or redistribution compliance.
@@ -207,13 +209,13 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-014 — Regression tripwires
 
-- [ ] Add a static/source/component tripwire preventing the normal settings UI from reverting to a required executable-path picker.
-- [ ] Add a Rust/backend tripwire proving default resolution prefers bundled runtime.
-- [ ] Add a package tripwire requiring `mame-runtime/bin/mame` and required resources.
-- [ ] Add a real-runtime qualification assertion that rejects a synthetic/non-MAME executable.
-- [ ] Add a first-run tripwire proving bundled install does not report `MameVersionReport::NotConfigured`.
-- [ ] Add an override-reset tripwire proving “Use bundled MAME” restores bundled source.
-- [ ] Wire these tests into the applicable project/package/security workflows.
+- [x] Add a static/source/component tripwire preventing the normal settings UI from reverting to a required executable-path picker.
+- [x] Add a Rust/backend tripwire proving default resolution prefers bundled runtime.
+- [x] Add a package tripwire requiring `mame-runtime/bin/mame` and required resources.
+- [x] Add a real-runtime qualification assertion that rejects a synthetic/non-MAME executable.
+- [x] Add a first-run tripwire proving bundled install does not report `MameVersionReport::NotConfigured`.
+- [x] Add an override-reset tripwire proving “Use bundled MAME” restores bundled source.
+- [x] Wire these tests into the applicable project/package/security workflows.
 
 **Acceptance:** the original broken UX cannot silently return without CI failing.
 
