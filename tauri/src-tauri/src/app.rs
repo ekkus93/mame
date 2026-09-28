@@ -225,7 +225,8 @@ mod tests {
         let resource_dir = temp.path().join("resources");
         fs::create_dir_all(&resource_dir).expect("resource dir");
         let layout = BundledRuntimeLayout::from_resource_dir(&resource_dir);
-        fs::create_dir_all(layout.executable.parent().expect("bin dir")).expect("bin dir");
+        fs::create_dir_all(layout.executable.parent().expect("bin dir"))
+            .expect("bin dir");
         fs::create_dir_all(&layout.hash_dir).expect("hash dir");
         fs::create_dir_all(layout.bgfx_dir.join("shaders")).expect("bgfx dir");
         fs::create_dir_all(&layout.legal_dir).expect("legal dir");
@@ -265,7 +266,10 @@ mod tests {
         let source = effective_mame_source(&settings, std::path::Path::new("/unused"))
             .expect("external override does not require bundled layout");
         assert_eq!(source.kind(), MameExecutableSourceKind::External);
-        assert_eq!(source.path(), std::path::Path::new("/opt/custom-mame/mame"));
+        assert_eq!(
+            source.path(),
+            std::path::Path::new("/opt/custom-mame/mame")
+        );
     }
 
     #[test]
