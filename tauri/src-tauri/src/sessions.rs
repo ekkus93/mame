@@ -9,20 +9,25 @@ pub(crate) mod save_state;
 mod supervisor;
 mod supervisor_exit;
 
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::{
+    bundled_runtime::BundledRuntimeLayout,
     config::{load_settings, settings_path, LaunchPreferencesV1},
     diagnostics,
-    errors::AppResult,
+    errors::{AppError, AppResult},
     event_names::{external_session_lifecycle_event, SESSION_PAUSED_EVENT, SESSION_RESUMED_EVENT},
     history, machine_settings,
     mame::{
         build_launch_argv, inspect_executable, MameExecutableIdentity, MameExecutableSource,
-        MameLaunchTarget, ProjectPathArgument,
+        MameExecutableSourceKind, MameLaunchTarget, ProjectPathArgument,
     },
     storage,
 };
@@ -34,6 +39,18 @@ pub use supervisor::{
     EffectiveLaunchConfig, EffectiveProjectPath, SessionLifecycleEventV1, SessionSnapshot,
     SessionState, SessionSupervisor, StopSessionResult,
 };
+
+const BUNDLED_MAME_STATE_DIR: &str = "mame-state";
+const USER_WRITABLE_MAME_PATHS: [(&str, &str); 8] = [
+    ("inipath", "ini"),
+    ("cfg_directory", "cfg"),
+    ("nvram_directory", "nvram"),
+    ("input_directory", "input"),
+    ("state_directory", "state"),
+    ("snapshot_directory", "snap"),
+    ("diff_directory", "diff"),
+    ("comment_directory", "comments"),
+];
 
 /// MAME executable sources that an untrusted frontend may select by path.
 ///
@@ -196,6 +213,7 @@ pub(crate) fn launch_mame_with_source_and_bios(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
+    let project_paths = append_bundled_runtime_project_paths(&app, &source, project_paths)?;
     let general_launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
         project_paths: project_paths
@@ -330,6 +348,88 @@ pub(crate) fn launch_mame_with_source_and_bios(
     }
 }
 
+fn append_bundled_runtime_project_paths(
+    app: &AppHandle,
+    source: &MameExecutableSource,
+    mut project_paths: Vec<ProjectPathRequest>,
+) -> AppResult<Vec<ProjectPathRequest>> {
+    if source.kind() != MameExecutableSourceKind::Bundled {
+        return Ok(project_paths);
+    }
+
+    let resource_dir = app.path().resource_dir().map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+            "The application resource directory could not be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    let layout = BundledRuntimeLayout::from_resource_dir(&resource_dir);
+    layout.validate()?;
+
+    let user_state_root = app
+        .path()
+        .app_data_dir()
+        .map(|path| path.join(BUNDLED_MAME_STATE_DIR))
+        .map_err(|error| {
+            AppError::new(
+                "MAME_USER_STATE_ROOT_UNAVAILABLE",
+                "The platform application data directory is unavailable for MAME user state.",
+            )
+            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        })?;
+    let bundled_paths = bundled_runtime_project_paths(&layout, &user_state_root);
+    ensure_user_state_directories(&bundled_paths)?;
+    project_paths.extend(bundled_paths);
+    Ok(project_paths)
+}
+
+fn bundled_runtime_project_paths(
+    layout: &BundledRuntimeLayout,
+    user_state_root: &Path,
+) -> Vec<ProjectPathRequest> {
+    let mut paths = vec![
+        project_path("hashpath", layout.hash_dir.clone()),
+        project_path("bgfx_path", layout.bgfx_dir.clone()),
+    ];
+    paths.extend(
+        USER_WRITABLE_MAME_PATHS
+            .iter()
+            .map(|(option, directory)| project_path(option, user_state_root.join(directory))),
+    );
+    paths
+}
+
+fn ensure_user_state_directories(paths: &[ProjectPathRequest]) -> AppResult<()> {
+    for path in paths.iter().filter(|path| is_user_writable_mame_path(&path.option)) {
+        fs::create_dir_all(&path.path).map_err(|error| {
+            AppError::new(
+                "MAME_USER_STATE_DIRECTORY_CREATE_FAILED",
+                "A MAME user-writable state directory could not be created.",
+            )
+            .with_details(serde_json::json!({
+                "option": path.option,
+                "path": path.path,
+                "cause": error.to_string()
+            }))
+        })?;
+    }
+    Ok(())
+}
+
+fn is_user_writable_mame_path(option: &str) -> bool {
+    USER_WRITABLE_MAME_PATHS
+        .iter()
+        .any(|(known_option, _)| *known_option == option)
+}
+
+fn project_path(option: &str, path: PathBuf) -> ProjectPathRequest {
+    ProjectPathRequest {
+        option: option.to_owned(),
+        path: path.to_string_lossy().into_owned(),
+    }
+}
+
 #[tauri::command]
 pub fn get_mame_session(
     supervisor: State<'_, SessionSupervisor>,
@@ -412,8 +512,16 @@ fn executable_source(request: &MameExecutableRequest) -> MameExecutableSource {
 
 #[cfg(test)]
 mod tests {
-    use super::{executable_source, MameExecutableRequest, MameExecutableSelectionKind};
-    use crate::mame::{MameExecutableSourceKind, MameExecutableTrust};
+    use std::path::{Path, PathBuf};
+
+    use super::{
+        bundled_runtime_project_paths, executable_source, MameExecutableRequest,
+        MameExecutableSelectionKind,
+    };
+    use crate::{
+        bundled_runtime::BundledRuntimeLayout,
+        mame::{MameExecutableSourceKind, MameExecutableTrust},
+    };
 
     #[test]
     fn frontend_selectable_sources_cannot_self_assert_bundled_trust() {
@@ -433,5 +541,41 @@ mod tests {
             MameExecutableSourceKind::DevelopmentTree
         );
         assert_eq!(development.trust(), MameExecutableTrust::Development);
+    }
+
+    #[test]
+    fn bundled_launch_paths_pin_package_resources_and_user_writable_state() {
+        let resource_dir = PathBuf::from("/package/resources");
+        let state_root = PathBuf::from("/user/data/mame-state");
+        let layout = BundledRuntimeLayout::from_resource_dir(&resource_dir);
+        let paths = bundled_runtime_project_paths(&layout, &state_root);
+
+        assert_eq!(option_path(&paths, "hashpath"), layout.hash_dir);
+        assert_eq!(option_path(&paths, "bgfx_path"), layout.bgfx_dir);
+        assert_eq!(option_path(&paths, "inipath"), state_root.join("ini"));
+        assert_eq!(
+            option_path(&paths, "cfg_directory"),
+            state_root.join("cfg")
+        );
+        assert_eq!(
+            option_path(&paths, "nvram_directory"),
+            state_root.join("nvram")
+        );
+        assert_eq!(
+            option_path(&paths, "snapshot_directory"),
+            state_root.join("snap")
+        );
+        assert!(paths.iter().all(|path| path.option != "rompath"));
+    }
+
+    fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {
+        Path::new(
+            &paths
+                .iter()
+                .find(|path| path.option == option)
+                .unwrap_or_else(|| panic!("missing {option}"))
+                .path,
+        )
+        .to_path_buf()
     }
 }
