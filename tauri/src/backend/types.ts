@@ -46,9 +46,15 @@ export type AppReadyEventV1 = {
 };
 
 export type MameExecutableSelectionKind = "external" | "developmentTree";
+export type MetadataExecutableSelectionKind = "bundled" | MameExecutableSelectionKind;
 
 export type MameExecutableRequest = {
   source: MameExecutableSelectionKind;
+  path: string;
+};
+
+export type MetadataExecutableRequest = {
+  source: MetadataExecutableSelectionKind;
   path: string;
 };
 
@@ -91,11 +97,11 @@ export type MetadataRefreshResult = {
 };
 
 export type RefreshMameMetadataRequest = {
-  executable: MameExecutableRequest;
+  executable: MetadataExecutableRequest;
 };
 
 export type MetadataStatusRequest = {
-  executable: MameExecutableRequest;
+  executable: MetadataExecutableRequest;
 };
 
 export type CloneFilter = "all" | "parentsOnly" | "clonesOnly";
