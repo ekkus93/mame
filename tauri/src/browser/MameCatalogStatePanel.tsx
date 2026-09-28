@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import type { MameCatalogState } from "./mameCatalogState";
 
 export function MameCatalogStatePanel({
@@ -9,6 +11,19 @@ export function MameCatalogStatePanel({
   onConfigureOptions: () => void;
   onImportMetadata: () => void;
 }) {
+  const autoImportKeyRef = useRef<string | null>(null);
+  const autoImportKey =
+    state.status === "importNeeded"
+      ? `${state.freshness}:${state.previousMachineCount ?? "none"}`
+      : null;
+
+  useEffect(() => {
+    if (state.status !== "importNeeded" || autoImportKey === null) return;
+    if (autoImportKeyRef.current === autoImportKey) return;
+    autoImportKeyRef.current = autoImportKey;
+    onImportMetadata();
+  }, [autoImportKey, onImportMetadata, state.status]);
+
   let title: string;
   let detail: string;
   let showConfigure = false;
@@ -18,20 +33,20 @@ export function MameCatalogStatePanel({
 
   switch (state.status) {
     case "notConfigured":
-      title = "MAME is not configured";
+      title = "MAME runtime is not available";
       detail =
-        "Choose a MAME executable in Configure Options before importing the machine catalog.";
+        "The backend did not report an active MAME runtime. Check the installed package diagnostics or use the advanced runtime override.";
       showConfigure = true;
       break;
     case "executableUnavailable":
-      title = "Configured MAME is unavailable";
+      title = "MAME runtime is unavailable";
       detail = state.message;
       showConfigure = true;
       alert = true;
       break;
     case "checking":
       title = "Checking MAME metadata…";
-      detail = "Reading the active catalog generation for the configured MAME executable.";
+      detail = "Reading the active catalog generation for the effective MAME runtime.";
       break;
     case "importNeeded":
       title =
@@ -39,11 +54,11 @@ export function MameCatalogStatePanel({
       if (state.freshness === "stale") {
         detail =
           state.previousMachineCount === null
-            ? "The active catalog belongs to a different MAME executable or version. Refresh it before browsing or launching."
-            : `The active catalog belongs to a different MAME executable or version and contains ${state.previousMachineCount.toLocaleString()} machines. Refresh it before browsing or launching.`;
+            ? "The active catalog belongs to a different MAME executable or version. Refresh is starting automatically before browsing or launching."
+            : `The active catalog belongs to a different MAME executable or version and contains ${state.previousMachineCount.toLocaleString()} machines. Refresh is starting automatically before browsing or launching.`;
       } else {
         detail =
-          "No successfully imported MAME machine catalog is active. Import metadata to populate the machine list.";
+          "No successfully imported MAME machine catalog is active. Metadata import is starting automatically to populate the machine list.";
       }
       showConfigure = true;
       showImport = true;
