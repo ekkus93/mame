@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MAME_TAURI_MAME_BUILD_JOBS: "1"
+      MAME_TAURI_MAME_BUILD_JOBS: "2"
       MAME_TAURI_MAME_SUBTARGET: "tiny"
       MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "gridlee"
     steps:
