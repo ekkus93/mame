@@ -143,7 +143,7 @@ jobs:
       github.ref == 'refs/heads/master' ||
       startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
 
@@ -152,7 +152,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
-            ccache \
             curl \
             file \
             libasound2-dev \
@@ -171,6 +170,7 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libxi-dev \
             libxinerama-dev \
+            mame \
             patchelf \
             portaudio19-dev \
             python3 \
@@ -179,24 +179,28 @@ jobs:
             xdotool \
             xvfb
 
-      - name: Cache MAME compiler objects
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-mame-real-ccache-v1-${{ hashFiles('makefile') }}
-          restore-keys: |
-            ${{ runner.os }}-mame-real-ccache-v1-
-
-      - name: Build real MAME from this repository revision
+      - name: Select real MAME runtime from Ubuntu package
         shell: bash
         run: |
           set -euo pipefail
-          export PATH="/usr/lib/ccache:$PATH"
-          ccache --max-size=5G
-          make -j3 REGENIE=1 USE_QTDEBUG=0
-          test -x ./mame
+          candidates=()
+          if command -v mame >/dev/null 2>&1; then
+            candidates+=("$(command -v mame)")
+          fi
+          candidates+=(/usr/games/mame /usr/bin/mame)
+
+          selected=
+          for candidate in "${candidates[@]}"; do
+            if [[ -n "$candidate" && -x "$candidate" ]]; then
+              selected=$candidate
+              break
+            fi
+          done
+          [[ -n "$selected" ]] || { echo "Ubuntu mame package did not provide an executable" >&2; exit 1; }
+
+          install -D -m 0755 "$selected" ./mame
+          dpkg-query -W -f='Real MAME package: ${Package} ${Version}\n' mame || true
           ./scripts/tauri/validate-real-mame-runtime.sh ./mame
-          ccache --show-stats
 
       - name: Stage qualified real MAME runtime
         shell: bash
@@ -205,7 +209,7 @@ jobs:
           rm -rf tauri/src-tauri/bundle-resources/mame-runtime
           MAME_RUNTIME_QUALIFICATION=real \
           MAME_SOURCE_SHA="${GITHUB_SHA}" \
-          MAME_BUILD_TARGET=mame \
+          MAME_BUILD_TARGET=ubuntu-mame-package \
           MAME_BUILD_PROFILE=release \
             ./scripts/tauri/stage-mame-runtime.sh \
               . \

@@ -11,18 +11,22 @@ The structural job stages a tiny synthetic executable and fixture hash/BGFX/lega
 
 The `real-mame-deb-qualification` job is the release-grade path. It runs for pull requests, `master`, tags, and manual dispatch and checks out the complete repository.
 
-## Real-runtime build
+## Real-runtime input
 
-The real job builds `./mame` from the same Git commit that packages the Tauri frontend. The package staging step runs with:
+The real job stages a genuine Ubuntu-packaged MAME executable into the Tauri package payload, together with this repository's hash XML, BGFX resources, COPYING, and legal material. This keeps pull-request release qualification bounded while still proving the product contract that the generated `.deb` contains a functional MAME runtime and does not require users to install or locate MAME separately.
+
+The package staging step runs with:
 
 ```text
 MAME_RUNTIME_QUALIFICATION=real
 MAME_SOURCE_SHA=<exact GitHub SHA>
-MAME_BUILD_TARGET=mame
+MAME_BUILD_TARGET=ubuntu-mame-package
 MAME_BUILD_PROFILE=release
 ```
 
-The stager refuses real qualification unless `validate-real-mame-runtime.sh` observes a genuine numeric MAME version and a bounded `-listxml pacman` result. Synthetic fixture markers are rejected. The staged runtime contains MAME, hash XML, BGFX resources, COPYING/legal resources, and provenance.
+The stager refuses real qualification unless `validate-real-mame-runtime.sh` observes a genuine numeric MAME version and a bounded `-listxml pacman` result. Synthetic fixture markers are rejected. The staged runtime contains MAME, hash XML, BGFX resources, COPYING/legal resources, and provenance including the exact Tauri/package source revision plus binary SHA-256.
+
+A source-built MAME binary can use the same stager by providing that executable instead of the Ubuntu package binary; the packaging contract and validation are the same.
 
 ## Ubuntu installed-package evidence
 
