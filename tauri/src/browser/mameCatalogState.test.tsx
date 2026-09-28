@@ -124,7 +124,8 @@ describe("MAME startup and metadata parity state", () => {
   });
 
   it("renders original-shell configuration, import, progress, and failure states", () => {
-    expect(renderState({ status: "notConfigured" })).toContain("MAME is not configured");
+    expect(renderState({ status: "notConfigured" })).toContain("MAME runtime is not available");
+    expect(renderState({ status: "notConfigured" })).toContain("advanced runtime override");
     expect(renderState({ status: "notConfigured" })).toContain("Configure Options");
 
     const needed = renderState({
@@ -133,6 +134,7 @@ describe("MAME startup and metadata parity state", () => {
       previousMachineCount: null,
     });
     expect(needed).toContain("MAME metadata needs import");
+    expect(needed).toContain("Metadata import is starting automatically");
     expect(needed).toContain("Import Metadata");
     expect(needed).toContain("Configure Options");
 
