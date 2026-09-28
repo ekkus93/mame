@@ -122,10 +122,15 @@ pub async fn query_mame_library(
     let query = validated_query(request)?;
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let resource_dir = package_resource_dir(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        let availability =
-            current_machine_availability_query(&catalog_path, &settings_path, availability_filter)?;
+        let availability = current_machine_availability_query(
+            &catalog_path,
+            &settings_path,
+            &resource_dir,
+            availability_filter,
+        )?;
         CatalogRepository::open(&catalog_path)?
             .query_machines_with_availability(&query, &availability)
     })
@@ -240,14 +245,18 @@ pub fn launch_library_machine(
 fn resolve_current_effective_mame_source(app: &AppHandle) -> AppResult<MameExecutableSource> {
     let path = settings_path(app)?;
     let settings = load_settings(&path)?;
-    let resource_dir = app.path().resource_dir().map_err(|error| {
+    let resource_dir = package_resource_dir(app)?;
+    resolve_effective_mame_source(&settings, &resource_dir)
+}
+
+fn package_resource_dir(app: &AppHandle) -> AppResult<std::path::PathBuf> {
+    app.path().resource_dir().map_err(|error| {
         AppError::new(
             "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
             "The application resource directory could not be resolved.",
         )
         .with_details(serde_json::json!({ "cause": error.to_string() }))
-    })?;
-    resolve_effective_mame_source(&settings, &resource_dir)
+    })
 }
 
 fn launch_source_from_generation(
@@ -316,9 +325,14 @@ fn availability_filter(request: Option<AvailabilityFilterRequest>) -> Availabili
 fn current_machine_availability_query(
     catalog_path: &std::path::Path,
     settings_path: &std::path::Path,
+    resource_dir: &std::path::Path,
     filter: AvailabilityFilter,
 ) -> AppResult<MachineAvailabilityQuery> {
-    let context = match audit::resolve_bulk_audit_context(catalog_path, settings_path) {
+    let context = match audit::resolve_bulk_audit_context_with_resource_dir(
+        catalog_path,
+        settings_path,
+        resource_dir,
+    ) {
         Ok(context) => context,
         // Keep browsing available when the current executable cannot establish trustworthy
         // audit provenance. Do not swallow storage, settings, database, or malformed-catalog

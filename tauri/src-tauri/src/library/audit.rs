@@ -150,7 +150,7 @@ pub(crate) fn resolve_bulk_audit_context(
     resolve_bulk_audit_context_with_effective_source(catalog_path, settings_path, None)
 }
 
-fn resolve_bulk_audit_context_with_resource_dir(
+pub(crate) fn resolve_bulk_audit_context_with_resource_dir(
     catalog_path: &Path,
     settings_path: &Path,
     resource_dir: &Path,
