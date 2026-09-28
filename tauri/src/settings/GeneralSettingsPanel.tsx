@@ -9,6 +9,7 @@ import {
   type GeneralSettings,
   type LaunchPreferences,
 } from "../backend/generalSettings";
+import type { MameVersionReport } from "../backend/types";
 import { ArtworkConfigurationPanel } from "./ArtworkConfigurationPanel";
 import { ControllerConfigurationPanel } from "./ControllerConfigurationPanel";
 import { PathConfigurationPanel } from "./PathConfigurationPanel";
@@ -20,14 +21,40 @@ const DEFAULT_PREFERENCES: LaunchPreferences = {
   audio: "inherit",
 };
 
+function runtimeSourceLabel(report: MameVersionReport | undefined): string {
+  if (!report) return "Checking runtime status";
+  if (report.status === "available") {
+    return report.identity.source === "bundled"
+      ? "Bundled MAME runtime"
+      : "External MAME override";
+  }
+  if (report.status === "unavailable") return "Runtime unavailable";
+  return "Runtime not configured";
+}
+
+function runtimeStatusText(report: MameVersionReport | undefined): string {
+  if (!report) return "The application is checking the active runtime.";
+  if (report.status === "available") {
+    const build = report.identity.build ? ` · ${report.identity.build}` : "";
+    return `${report.identity.version}${build} · ${report.identity.trust}`;
+  }
+  if (report.status === "unavailable") {
+    return `${report.errorCode}: ${report.errorMessage}`;
+  }
+  return "No active runtime was reported by the backend.";
+}
+
 export function GeneralSettingsPanel({
+  mame,
   onContentPathsChanged,
 }: {
+  mame?: MameVersionReport;
   onContentPathsChanged?: () => void;
 }) {
   const [settings, setSettings] = useState<GeneralSettings | null>(null);
   const [executableDraft, setExecutableDraft] = useState("");
   const [preferencesDraft, setPreferencesDraft] = useState<LaunchPreferences>(DEFAULT_PREFERENCES);
+  const [showAdvancedRuntimeOverride, setShowAdvancedRuntimeOverride] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -73,13 +100,13 @@ export function GeneralSettingsPanel({
     setError(null);
     setNotice(null);
     try {
-      const saved = await setGeneralMameExecutable(executableDraft === "" ? null : executableDraft);
+      const saved = await setGeneralMameExecutable(executableDraft.trim() === "" ? null : executableDraft);
       setSettings(saved);
       setExecutableDraft(saved.mameExecutable ?? "");
       setNotice(
         saved.mameExecutable
-          ? "MAME executable validated and saved. Refresh metadata before treating it as the active catalog executable."
-          : "Configured MAME executable cleared.",
+          ? "External MAME override validated and saved. Refresh metadata before treating it as the active catalog runtime."
+          : "Using bundled MAME runtime.",
       );
     } catch (reason: unknown) {
       setError(errorMessage(reason));
@@ -96,7 +123,7 @@ export function GeneralSettingsPanel({
     try {
       const saved = await setGeneralMameExecutable(null);
       setSettings(saved);
-      setNotice("Configured MAME executable cleared.");
+      setNotice("Using bundled MAME runtime.");
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
@@ -127,7 +154,7 @@ export function GeneralSettingsPanel({
           <p className="eyebrow">Application configuration</p>
           <h2 id="general-settings-heading">General settings</h2>
           <p>
-            Configure the MAME executable, content search paths, local artwork, and bounded launch
+            Review the bundled runtime, content search paths, local artwork, and bounded launch
             preferences. Existing MAME-owned INI and CFG files remain authoritative unless a launch
             preference explicitly supplies a command-line override.
           </p>
@@ -151,38 +178,32 @@ export function GeneralSettingsPanel({
         </p>
       ) : (
         <div className="general-settings__body">
-          <section className="general-settings__group" aria-labelledby="mame-executable-heading">
+          <section className="general-settings__group" aria-labelledby="mame-runtime-heading">
             <div>
-              <h3 id="mame-executable-heading">MAME executable</h3>
+              <h3 id="mame-runtime-heading">Bundled MAME runtime</h3>
               <p>
-                A newly selected executable is validated before it is saved. Changing this setting
-                does not silently retarget the active metadata catalog; refresh metadata before the
-                new executable becomes authoritative for catalog-backed launches.
+                Normal installs use the package-owned MAME runtime. ROMs, CHDs, and software lists
+                are still supplied by the user through content paths.
               </p>
             </div>
             <div className="general-settings__executable-row">
-              <label>
-                <span>Executable path</span>
-                <input
-                  type="text"
-                  value={executableDraft}
-                  disabled={busy}
-                  spellCheck={false}
-                  placeholder="Choose a MAME executable"
-                  onChange={(event) => setExecutableDraft(event.target.value)}
-                />
-              </label>
+              <div>
+                <span>{runtimeSourceLabel(mame)}</span>
+                <p>{runtimeStatusText(mame)}</p>
+                {settings.mameExecutable ? (
+                  <p>Advanced override: {settings.mameExecutable}</p>
+                ) : (
+                  <p>No external runtime override is active.</p>
+                )}
+              </div>
               <div className="general-settings__actions">
                 <button
                   type="button"
                   className="secondary-button"
                   disabled={busy}
-                  onClick={() => void browseExecutable()}
+                  onClick={() => setShowAdvancedRuntimeOverride((current) => !current)}
                 >
-                  Browse…
-                </button>
-                <button type="button" disabled={busy} onClick={() => void saveExecutable()}>
-                  Save executable
+                  {showAdvancedRuntimeOverride ? "Hide advanced override" : "Advanced override"}
                 </button>
                 <button
                   type="button"
@@ -190,11 +211,60 @@ export function GeneralSettingsPanel({
                   disabled={busy || settings.mameExecutable === null}
                   onClick={() => void clearExecutable()}
                 >
-                  Clear
+                  Use bundled MAME
                 </button>
               </div>
             </div>
           </section>
+
+          {showAdvancedRuntimeOverride && (
+            <section
+              className="general-settings__group"
+              aria-labelledby="external-runtime-override-heading"
+            >
+              <div>
+                <h3 id="external-runtime-override-heading">External runtime override</h3>
+                <p>
+                  Developers and advanced users can point the app at a different MAME executable.
+                  Clearing the override restores the bundled runtime.
+                </p>
+              </div>
+              <div className="general-settings__executable-row">
+                <label>
+                  <span>Override executable path</span>
+                  <input
+                    type="text"
+                    value={executableDraft}
+                    disabled={busy}
+                    spellCheck={false}
+                    placeholder="Optional external override"
+                    onChange={(event) => setExecutableDraft(event.target.value)}
+                  />
+                </label>
+                <div className="general-settings__actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={busy}
+                    onClick={() => void browseExecutable()}
+                  >
+                    Browse for override…
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => void saveExecutable()}>
+                    Save override
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={busy || settings.mameExecutable === null}
+                    onClick={() => void clearExecutable()}
+                  >
+                    Use bundled MAME
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="general-settings__group" aria-labelledby="launch-preferences-heading">
             <div>
