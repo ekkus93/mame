@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::{
     config::settings_path,
     errors::{AppError, AppResult},
-    library::audit::resolve_bulk_audit_context,
+    library::audit::resolve_bulk_audit_context_with_resource_dir,
     mame::validate_short_identifier,
     metadata::{CatalogRepository, MachinePage, MameUiMachineFilter, MameUiMachineQuery},
     storage,
@@ -65,9 +65,10 @@ pub async fn query_mame_ui_library(
 ) -> AppResult<MachinePage> {
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let resource_dir = package_resource_dir(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        let query = validated_query(request, &catalog_path, &settings_path)?;
+        let query = validated_query(request, &catalog_path, &settings_path, &resource_dir)?;
         CatalogRepository::open(&catalog_path)?.query_mame_ui_machines(&query)
     })
     .await
@@ -84,6 +85,7 @@ pub(crate) fn validated_query(
     request: MameUiMachineSearchRequest,
     catalog_path: &std::path::Path,
     settings_path: &std::path::Path,
+    resource_dir: &std::path::Path,
 ) -> AppResult<MameUiMachineQuery> {
     let text = normalize_optional(request.text, "text", MAX_SEARCH_TEXT_LENGTH)?;
     let filter_value =
@@ -110,15 +112,16 @@ pub(crate) fn validated_query(
         ));
     }
 
-    let (audit_identity_json, audit_content_paths_json) =
-        match resolve_bulk_audit_context(catalog_path, settings_path) {
-            Ok(context) => (
-                Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
-                Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
-            ),
-            Err(error) if availability_provenance_unavailable(&error) => (None, None),
-            Err(error) => return Err(error),
-        };
+    let (audit_identity_json, audit_content_paths_json) = match
+        resolve_bulk_audit_context_with_resource_dir(catalog_path, settings_path, resource_dir)
+    {
+        Ok(context) => (
+            Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
+            Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
+        ),
+        Err(error) if availability_provenance_unavailable(&error) => (None, None),
+        Err(error) => return Err(error),
+    };
 
     Ok(MameUiMachineQuery {
         text,
@@ -198,6 +201,16 @@ fn availability_provenance_unavailable(error: &AppError) -> bool {
             | "MAME_VERSION_PROBE_OUTPUT_FAILED"
             | "MAME_VERSION_PROBE_FAILED"
     )
+}
+
+fn package_resource_dir(app: &AppHandle) -> AppResult<std::path::PathBuf> {
+    app.path().resource_dir().map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+            "The application resource directory could not be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })
 }
 
 fn serialization_error(error: serde_json::Error) -> AppError {
