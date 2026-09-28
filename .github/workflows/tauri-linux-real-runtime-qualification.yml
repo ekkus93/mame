@@ -1,0 +1,114 @@
+name: Tauri Linux real-runtime qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      make_target:
+        description: "MAME make target to build for the bundled runtime"
+        required: true
+        default: "mame"
+      make_jobs:
+        description: "Parallel make jobs; leave blank for runner CPU count"
+        required: false
+        default: ""
+      make_extra_args:
+        description: "Additional MAME make variables"
+        required: false
+        default: "NOWERROR=1 TOOLS=0 TESTS=0"
+
+permissions:
+  contents: read
+
+jobs:
+  linux-real-runtime-deb:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install MAME and Tauri Linux build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            libfontconfig-dev \
+            libfuse2 \
+            libsdl2-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            python3 \
+            wget \
+            xdotool \
+            xvfb
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install frontend dependencies from lockfile
+        working-directory: tauri
+        run: npm ci
+
+      - name: Build and stage real bundled MAME runtime
+        env:
+          MAME_TAURI_RUNTIME_MAKE_TARGET: ${{ inputs.make_target }}
+          MAME_TAURI_RUNTIME_MAKE_JOBS: ${{ inputs.make_jobs }}
+          MAME_TAURI_RUNTIME_MAKE_EXTRA_ARGS: ${{ inputs.make_extra_args }}
+        run: >-
+          ./scripts/tauri/build-linux-bundled-mame-runtime.sh
+          tauri/src-tauri/bundle-resources/mame-runtime
+
+      - name: Verify real runtime provenance and version
+        run: |
+          set -euo pipefail
+          provenance=tauri/src-tauri/bundle-resources/mame-runtime/runtime-provenance.txt
+          test -s "$provenance"
+          grep -Fxq 'mode=real' "$provenance"
+          grep -Fxq 'release_qualified=true' "$provenance"
+          ! grep -Eqi 'synthetic|MT-1305' "$provenance"
+          tauri/src-tauri/bundle-resources/mame-runtime/bin/mame -noreadconfig -version
+
+      - name: Build Debian package with real bundled runtime
+        working-directory: tauri
+        run: >-
+          npm run tauri -- build
+          --config src-tauri/tauri.linux-bundle.conf.json
+          --bundles deb
+
+      - name: Install package and verify installed real runtime
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          test -n "$deb"
+          package=$(dpkg-deb --field "$deb" Package)
+          sudo apt-get install -y "$deb"
+          installed=$(dpkg -L "$package")
+          runtime_bin=$(grep -m1 '/mame-runtime/bin/mame$' <<<"$installed" || true)
+          test -n "$runtime_bin"
+          test -x "$runtime_bin"
+          runtime_root=${runtime_bin%/bin/mame}
+          grep -Fxq 'release_qualified=true' "$runtime_root/runtime-provenance.txt"
+          ! grep -Eqi 'synthetic|MT-1305' "$runtime_root/runtime-provenance.txt"
+          "$runtime_bin" -noreadconfig -version
+          sudo apt-get remove -y "$package"
+
+      - name: Upload real runtime package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-real-runtime-deb-${{ github.sha }}
+          path: |
+            tauri/src-tauri/target/release/bundle/deb/*.deb
+            tauri/src-tauri/bundle-resources/mame-runtime/runtime-provenance.txt
+          if-no-files-found: error
