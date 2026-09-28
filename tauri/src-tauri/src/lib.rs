@@ -13,6 +13,7 @@ pub mod configuration_precedence;
 pub mod controller_profiles;
 pub mod controller_settings;
 pub mod diagnostics;
+pub mod effective_runtime;
 pub mod errors;
 mod event_names;
 pub mod general_settings;

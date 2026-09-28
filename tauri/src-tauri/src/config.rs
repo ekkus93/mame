@@ -509,6 +509,25 @@ mod tests {
     }
 
     #[test]
+    fn null_executable_is_the_bundled_default_preference() {
+        let settings = parse_settings_json(
+            r#"{"schemaVersion":2,"mameExecutable":null,"contentPaths":{"romPaths":[],"softwarePaths":[],"chdPaths":[]}}"#,
+        )
+        .expect("schema v2 bundled default");
+
+        assert_eq!(settings.mame_executable, None);
+    }
+
+    #[test]
+    fn legacy_null_executable_migrates_to_bundled_default_preference() {
+        let settings = parse_settings_json(r#"{"schemaVersion":1,"mameExecutable":null}"#)
+            .expect("schema v1 bundled default");
+
+        assert_eq!(settings.schema_version, SETTINGS_SCHEMA_VERSION);
+        assert_eq!(settings.mame_executable, None);
+    }
+
+    #[test]
     fn migrates_schema_v1_without_guessing_content_paths() {
         let settings =
             parse_settings_json(r#"{"schemaVersion":1,"mameExecutable":"/opt/mame/mame"}"#)
