@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MAME_TAURI_MAME_BUILD_JOBS: "2"
+      MAME_TAURI_MAME_BUILD_JOBS: "1"
       MAME_TAURI_MAME_SUBTARGET: "tiny"
       MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "gridlee"
     steps:
@@ -81,9 +81,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jobs=${MAME_TAURI_MAME_BUILD_JOBS:-2}
+          jobs=${MAME_TAURI_MAME_BUILD_JOBS:-1}
           subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
-          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"
+          echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
+          if ! make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"; then
+            status=$?
+            echo "MAME build failed with status $status" >&2
+            echo "--- runner memory ---" >&2
+            free -h >&2 || true
+            echo "--- runner disk ---" >&2
+            df -h . "$RUNNER_TEMP" >&2 || true
+            echo "--- ccache stats ---" >&2
+            ccache -s >&2 || true
+            echo "--- partial runtime outputs ---" >&2
+            find . -maxdepth 3 -type f \( -name 'mame' -o -name 'mame*' \) -perm -111 -print >&2 || true
+            exit "$status"
+          fi
           runtime=./mame
           if [[ ! -x "$runtime" && -x "./mame${subtarget}" ]]; then
             runtime="./mame${subtarget}"
