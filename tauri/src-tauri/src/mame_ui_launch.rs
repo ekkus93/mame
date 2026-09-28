@@ -175,9 +175,7 @@ fn package_resource_dir(app: &AppHandle) -> AppResult<std::path::PathBuf> {
 mod tests {
     use super::{launch_source_from_generation, validated_bios_selection};
     use crate::{
-        mame::{
-            BiosChoice, MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust,
-        },
+        mame::{BiosChoice, MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust},
         metadata::MetadataGenerationSummary,
     };
 
