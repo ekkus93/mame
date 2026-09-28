@@ -54,6 +54,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./scripts/tauri/test-stage-mame-runtime.sh
 
+      - name: BMR bundled runtime preparation regression tests
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/tauri/test-prepare-bundled-mame-runtime.sh
+
       - name: MT-1407 exact-head CI evidence helper regression tests
         working-directory: ${{ github.workspace }}
         run: python3 scripts/tauri/test-report-ci-evidence.py

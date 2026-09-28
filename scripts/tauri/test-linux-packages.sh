@@ -58,7 +58,8 @@ for required in \
   "$runtime_root_rel/hash/fixture.xml" \
   "$runtime_root_rel/bgfx/chains/fixture.json" \
   "$runtime_root_rel/licenses/COPYING" \
-  "$runtime_root_rel/licenses/legal/GPL-2.0"; do
+  "$runtime_root_rel/licenses/legal/GPL-2.0" \
+  "$runtime_root_rel/runtime-provenance.txt"; do
   if ! grep -Fxq "$required" "$payload"; then
     echo "Debian package is missing packaged runtime resource: $required" >&2
     dump_payload
@@ -89,9 +90,13 @@ for required in \
   "$runtime_root/hash/fixture.xml" \
   "$runtime_root/bgfx/chains/fixture.json" \
   "$runtime_root/licenses/COPYING" \
-  "$runtime_root/licenses/legal/GPL-2.0"; do
+  "$runtime_root/licenses/legal/GPL-2.0" \
+  "$runtime_root/runtime-provenance.txt"; do
   [[ -f "$required" ]] || { echo "installed runtime resource is missing: $required" >&2; exit 1; }
 done
+
+grep -Fq 'mode=synthetic-structural-fixture' "$runtime_root/runtime-provenance.txt" || { echo "runtime provenance does not mark the MT-1305 package fixture as structural:" >&2; cat "$runtime_root/runtime-provenance.txt" >&2; exit 1; }
+grep -Fq 'release_qualified=false' "$runtime_root/runtime-provenance.txt" || { echo "runtime provenance does not mark the MT-1305 package fixture as non-release-qualified:" >&2; cat "$runtime_root/runtime-provenance.txt" >&2; exit 1; }
 
 x11_smoke() {
   local log_path=$1
@@ -168,11 +173,15 @@ for required in \
   "$app_runtime_root/hash/fixture.xml" \
   "$app_runtime_root/bgfx/chains/fixture.json" \
   "$app_runtime_root/licenses/COPYING" \
-  "$app_runtime_root/licenses/legal/GPL-2.0"; do
+  "$app_runtime_root/licenses/legal/GPL-2.0" \
+  "$app_runtime_root/runtime-provenance.txt"; do
   [[ -f "$required" ]] || { echo "AppImage runtime resource is missing: $required" >&2; exit 1; }
 done
 app_desktop=$(find "$app_root" -name '*.desktop' -type f -print -quit)
 [[ -n "$app_desktop" ]] || { echo "AppImage desktop entry is missing" >&2; exit 1; }
 grep -Fq 'Name=MAME Tauri Frontend' "$app_desktop" || { echo "AppImage desktop entry has unexpected Name:" >&2; cat "$app_desktop" >&2; exit 1; }
+
+grep -Fq 'mode=synthetic-structural-fixture' "$app_runtime_root/runtime-provenance.txt" || { echo "AppImage runtime provenance does not mark the MT-1305 fixture as structural:" >&2; cat "$app_runtime_root/runtime-provenance.txt" >&2; exit 1; }
+grep -Fq 'release_qualified=false' "$app_runtime_root/runtime-provenance.txt" || { echo "AppImage runtime provenance does not mark the MT-1305 fixture as non-release-qualified:" >&2; cat "$app_runtime_root/runtime-provenance.txt" >&2; exit 1; }
 
 printf 'MT-1305 Debian install/uninstall, X11 launch, desktop integration, and AppImage extraction/launch smoke passed\n'

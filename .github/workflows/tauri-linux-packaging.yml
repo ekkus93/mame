@@ -32,27 +32,14 @@ jobs:
             tauri
             scripts/tauri
 
-      - name: Stage synthetic MT-1305 MAME runtime
+      - name: Stage MT-1305 structural MAME runtime fixture
         working-directory: ${{ github.workspace }}
         shell: bash
-        run: |
-          set -euo pipefail
-          fixture=.mt1305-fixture
-          rm -rf "$fixture" tauri/src-tauri/bundle-resources/mame-runtime
-          mkdir -p \
-            "$fixture/source/hash" \
-            "$fixture/source/bgfx/chains" \
-            "$fixture/source/docs/legal"
-          printf '<softwarelist name="fixture"/>\n' > "$fixture/source/hash/fixture.xml"
-          printf 'bgfx fixture\n' > "$fixture/source/bgfx/chains/fixture.json"
-          printf 'MAME COPYING fixture\n' > "$fixture/source/COPYING"
-          printf 'GPL fixture\n' > "$fixture/source/docs/legal/GPL-2.0"
-          printf '#!/usr/bin/env sh\necho MT-1305 synthetic payload\n' > "$fixture/mame"
-          chmod 0755 "$fixture/mame"
-          ./scripts/tauri/stage-mame-runtime.sh \
-            "$fixture/source" \
-            "$fixture/mame" \
-            tauri/src-tauri/bundle-resources/mame-runtime
+        env:
+          MAME_TAURI_ALLOW_SYNTHETIC_RUNTIME: "1"
+        run: >-
+          ./scripts/tauri/prepare-bundled-mame-runtime.sh
+          tauri/src-tauri/bundle-resources/mame-runtime
 
       - name: Install Linux build and smoke prerequisites
         run: |
