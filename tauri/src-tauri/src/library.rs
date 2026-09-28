@@ -7,10 +7,11 @@ pub(crate) mod audit;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    config::{settings_path, LaunchPreferencesV1},
+    config::{load_settings, settings_path, LaunchPreferencesV1},
+    effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
     mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
     metadata::{
@@ -216,7 +217,12 @@ pub fn launch_library_machine(
             )
         })?;
 
-    let source = launch_source_from_generation(&generation)?;
+    let effective_source = if generation.source_kind == "bundled" {
+        Some(resolve_current_effective_mame_source(&app)?)
+    } else {
+        None
+    };
+    let source = launch_source_from_generation(&generation, effective_source)?;
     let current_identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(&generation, &current_identity)?;
 
@@ -231,8 +237,22 @@ pub fn launch_library_machine(
     )
 }
 
+fn resolve_current_effective_mame_source(app: &AppHandle) -> AppResult<MameExecutableSource> {
+    let path = settings_path(app)?;
+    let settings = load_settings(&path)?;
+    let resource_dir = app.path().resource_dir().map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+            "The application resource directory could not be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    resolve_effective_mame_source(&settings, &resource_dir)
+}
+
 fn launch_source_from_generation(
     generation: &MetadataGenerationSummary,
+    effective_source: Option<MameExecutableSource>,
 ) -> AppResult<MameExecutableSource> {
     match (generation.source_kind.as_str(), generation.trust.as_str()) {
         ("external", "userConfigured") => {
@@ -241,10 +261,12 @@ fn launch_source_from_generation(
         ("developmentTree", "development") => Ok(MameExecutableSource::development_tree(
             &generation.executable_path,
         )),
-        ("bundled", "qualifiedBundled") => Err(AppError::new(
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
-            "Bundled MAME launch requires package-owned executable resolution.",
-        )),
+        ("bundled", "qualifiedBundled") => effective_source.ok_or_else(|| {
+            AppError::new(
+                "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
+                "Bundled MAME launch requires package-owned executable resolution.",
+            )
+        }),
         (source_kind, trust) => Err(AppError::new(
             "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
             "The active catalog has an invalid executable source/trust pairing.",
@@ -476,7 +498,10 @@ mod tests {
         CloneFilterRequest, MachineSearchRequest, MachineSortRequest, DEFAULT_PAGE_SIZE,
     };
     use crate::{
-        mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
+        mame::{
+            MameExecutableIdentity, MameExecutableSource, MameExecutableSourceKind,
+            MameExecutableTrust,
+        },
         metadata::{AvailabilityFilter, MetadataGenerationSummary},
     };
 
@@ -525,18 +550,42 @@ mod tests {
 
     #[test]
     fn persisted_catalog_cannot_self_assert_bundled_trust() {
-        let error = launch_source_from_generation(&generation("bundled", "qualifiedBundled"))
-            .expect_err("bundled launch must require package-owned resolution");
+        let error = launch_source_from_generation(
+            &generation("bundled", "qualifiedBundled"),
+            None,
+        )
+        .expect_err("bundled launch must require package-owned resolution");
         assert_eq!(error.code, "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED");
     }
 
     #[test]
+    fn bundled_catalog_launch_uses_resolved_effective_runtime() {
+        let source = launch_source_from_generation(
+            &generation("bundled", "qualifiedBundled"),
+            Some(MameExecutableSource::bundled(
+                "/package/resources/mame-runtime/bin/mame",
+            )),
+        )
+        .expect("bundled catalog launch uses backend-resolved runtime");
+
+        assert_eq!(source.kind(), MameExecutableSourceKind::Bundled);
+        assert_eq!(source.trust(), MameExecutableTrust::QualifiedBundled);
+        assert_eq!(
+            source.path(),
+            std::path::Path::new("/package/resources/mame-runtime/bin/mame")
+        );
+    }
+
+    #[test]
     fn persisted_source_and_trust_pair_must_match() {
-        let error = launch_source_from_generation(&generation("external", "qualifiedBundled"))
-            .expect_err("mismatched persisted provenance must fail");
+        let error = launch_source_from_generation(
+            &generation("external", "qualifiedBundled"),
+            None,
+        )
+        .expect_err("mismatched persisted provenance must fail");
         assert_eq!(error.code, "CATALOG_EXECUTABLE_PROVENANCE_INVALID");
 
-        let source = launch_source_from_generation(&generation("external", "userConfigured"))
+        let source = launch_source_from_generation(&generation("external", "userConfigured"), None)
             .expect("valid external provenance");
         assert_eq!(source.kind(), MameExecutableSourceKind::External);
         assert_eq!(source.trust(), MameExecutableTrust::UserConfigured);
