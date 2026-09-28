@@ -97,11 +97,23 @@ jobs:
             find . -maxdepth 3 -type f \( -name 'mame' -o -name 'mame*' \) -perm -111 -print >&2 || true
             exit "$status"
           fi
-          runtime=./mame
-          if [[ ! -x "$runtime" && -x "./mame${subtarget}" ]]; then
-            runtime="./mame${subtarget}"
+          runtime=
+          for candidate in \
+            "./mame" \
+            "./mame_${subtarget}" \
+            "./mame${subtarget}" \
+            "./build/linux_gcc/bin/x64/Release/mame_${subtarget}" \
+            "./build/linux_gcc/bin/x64/Release/mame${subtarget}"; do
+            if [[ -x "$candidate" && -f "$candidate" ]]; then
+              runtime="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$runtime" ]]; then
+            echo "Could not find built MAME runtime executable for SUBTARGET=$subtarget" >&2
+            find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
+            exit 1
           fi
-          test -x "$runtime"
           ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
