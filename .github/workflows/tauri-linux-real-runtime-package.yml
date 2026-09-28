@@ -1,0 +1,149 @@
+name: Tauri Linux real runtime package
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tauri-linux-real-runtime-package.yml"
+      - "tauri/**"
+      - "scripts/tauri/**"
+      - "makefile"
+      - "scripts/**"
+      - "src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-runtime-deb-appimage-qualification:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install MAME, Tauri, and package qualification prerequisites
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            ccache \
+            clang \
+            curl \
+            file \
+            git \
+            libasound2-dev \
+            libayatana-appindicator3-dev \
+            libfontconfig1-dev \
+            libfuse2 \
+            libgl1-mesa-dev \
+            libgtk-3-dev \
+            libpulse-dev \
+            librsvg2-dev \
+            libsdl2-dev \
+            libssl-dev \
+            libutf8proc-dev \
+            libwebkit2gtk-4.1-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            patchelf \
+            pkg-config \
+            python3 \
+            wget \
+            xdotool \
+            xvfb
+
+      - name: Configure compiler cache
+        shell: bash
+        run: |
+          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >>"$GITHUB_ENV"
+          echo "USE_CCACHE=1" >>"$GITHUB_ENV"
+          ccache --set-config=max_size=5G
+
+      - name: Cache MAME compiler output
+        uses: actions/cache@v6
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-real-mame-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-real-mame-
+
+      - name: Build real MAME runtime from repository source
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)" NOWERROR=1 TOOLS=0 TESTS=0
+          test -x ./mame
+          ./scripts/tauri/validate-real-mame-runtime.sh ./mame
+
+      - name: Stage release-qualified bundled runtime
+        shell: bash
+        env:
+          MAME_TAURI_REAL_RUNTIME_SOURCE_ROOT: ${{ github.workspace }}
+          MAME_TAURI_REAL_RUNTIME_EXECUTABLE: ${{ github.workspace }}/mame
+        run: >-
+          ./scripts/tauri/prepare-bundled-mame-runtime.sh
+          tauri/src-tauri/bundle-resources/mame-runtime
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies and Linux release build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/debug
+            tauri/src-tauri/target/release
+          key: ${{ runner.os }}-tauri-real-linux-package-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-real-linux-package-${{ steps.rust-toolchain.outputs.cachekey }}-
+
+      - name: Install frontend dependencies from lockfile
+        working-directory: tauri
+        run: npm ci
+
+      - name: Validate bundled runtime paths on Linux
+        working-directory: tauri/src-tauri
+        run: cargo test --locked bundled_runtime
+
+      - name: Build Debian package and AppImage with real bundled MAME
+        working-directory: tauri
+        run: >-
+          npm run tauri -- build
+          --config src-tauri/tauri.linux-bundle.conf.json
+          --bundles deb,appimage
+
+      - name: Real bundled runtime package qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          appimage=$(find tauri/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -type f -print -quit)
+          [[ -n "$deb" ]] || { echo "Debian package was not produced" >&2; exit 1; }
+          [[ -n "$appimage" ]] || { echo "AppImage was not produced" >&2; exit 1; }
+          ./scripts/tauri/test-real-linux-package.sh "$deb" "$appimage"
+
+      - name: Upload real runtime package artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: real-bundled-mame-linux-packages
+          path: |
+            tauri/src-tauri/target/release/bundle/deb/*.deb
+            tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+            tauri/src-tauri/bundle-resources/mame-runtime/runtime-provenance.txt
+          if-no-files-found: error
+
+      - name: Verify lockfiles remain unchanged
+        working-directory: tauri
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
