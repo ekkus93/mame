@@ -128,7 +128,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             </button>
             {view === "session" && <SessionControlPanel />}
             {view === "settings" && (
-              <GeneralSettingsPanel onContentPathsChanged={bumpAvailabilityRevision} />
+              <GeneralSettingsPanel
+                mame={mameReport}
+                onContentPathsChanged={bumpAvailabilityRevision}
+              />
             )}
             {view === "audit" && (
               <BulkAuditPanel onAuditResultsChanged={bumpAvailabilityRevision} />
