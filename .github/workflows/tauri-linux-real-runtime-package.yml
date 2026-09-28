@@ -79,7 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           jobs=${MAME_TAURI_MAME_BUILD_JOBS:-2}
-          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0
+          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0
           test -x ./mame
           ./scripts/tauri/validate-real-mame-runtime.sh ./mame
 
