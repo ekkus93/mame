@@ -20,13 +20,14 @@ mod provenance_fixture;
 mod software;
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::{
+    config::{load_settings, settings_path},
     diagnostics,
+    effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
     mame::MameExecutableSource,
-    sessions::{MameExecutableRequest, MameExecutableSelectionKind},
     storage,
 };
 
@@ -50,16 +51,31 @@ pub(crate) use catalog::{
 pub(crate) use mame_ui_query::{MameUiMachineFilter, MameUiMachineQuery};
 pub(crate) use software::{parse_software_item, parse_software_list_page};
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum MetadataExecutableSelectionKind {
+    Bundled,
+    External,
+    DevelopmentTree,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MetadataExecutableRequest {
+    pub source: MetadataExecutableSelectionKind,
+    pub path: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RefreshMameMetadataRequest {
-    pub executable: MameExecutableRequest,
+    pub executable: MetadataExecutableRequest,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MetadataStatusRequest {
-    pub executable: MameExecutableRequest,
+    pub executable: MetadataExecutableRequest,
 }
 
 #[tauri::command]
@@ -67,7 +83,7 @@ pub async fn refresh_mame_metadata(
     request: RefreshMameMetadataRequest,
     app: AppHandle,
 ) -> AppResult<MetadataRefreshResult> {
-    let source = executable_source(&request.executable);
+    let source = executable_source(&request.executable, &app)?;
     let catalog_path = storage::catalog_path(&app)?;
     diagnostics::record(
         "info",
@@ -95,7 +111,7 @@ pub async fn get_mame_metadata_status(
     request: MetadataStatusRequest,
     app: AppHandle,
 ) -> AppResult<MetadataStatus> {
-    let source = executable_source(&request.executable);
+    let source = executable_source(&request.executable, &app)?;
     let catalog_path = storage::catalog_path(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || generator::metadata_status(source, &catalog_path))
@@ -103,11 +119,25 @@ pub async fn get_mame_metadata_status(
         .map_err(metadata_worker_error)?
 }
 
-fn executable_source(request: &MameExecutableRequest) -> MameExecutableSource {
+fn executable_source(
+    request: &MetadataExecutableRequest,
+    app: &AppHandle,
+) -> AppResult<MameExecutableSource> {
     match request.source {
-        MameExecutableSelectionKind::External => MameExecutableSource::external(&request.path),
-        MameExecutableSelectionKind::DevelopmentTree => {
-            MameExecutableSource::development_tree(&request.path)
+        MetadataExecutableSelectionKind::Bundled => {
+            let settings = load_settings(&settings_path(app)?)?;
+            let resource_dir = app.path().resource_dir().map_err(|error| {
+                AppError::new(
+                    "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+                    "The application resource directory could not be resolved.",
+                )
+                .with_details(serde_json::json!({ "cause": error.to_string() }))
+            })?;
+            resolve_effective_mame_source(&settings, &resource_dir)
+        }
+        MetadataExecutableSelectionKind::External => Ok(MameExecutableSource::external(&request.path)),
+        MetadataExecutableSelectionKind::DevelopmentTree => {
+            Ok(MameExecutableSource::development_tree(&request.path))
         }
     }
 }
