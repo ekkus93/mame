@@ -112,16 +112,19 @@ pub(crate) fn validated_query(
         ));
     }
 
-    let (audit_identity_json, audit_content_paths_json) = match
-        resolve_bulk_audit_context_with_resource_dir(catalog_path, settings_path, resource_dir)
-    {
-        Ok(context) => (
-            Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
-            Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
-        ),
-        Err(error) if availability_provenance_unavailable(&error) => (None, None),
-        Err(error) => return Err(error),
-    };
+    let (audit_identity_json, audit_content_paths_json) =
+        match resolve_bulk_audit_context_with_resource_dir(
+            catalog_path,
+            settings_path,
+            resource_dir,
+        ) {
+            Ok(context) => (
+                Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
+                Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
+            ),
+            Err(error) if availability_provenance_unavailable(&error) => (None, None),
+            Err(error) => return Err(error),
+        };
 
     Ok(MameUiMachineQuery {
         text,
