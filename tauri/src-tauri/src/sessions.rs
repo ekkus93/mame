@@ -401,7 +401,10 @@ fn bundled_runtime_project_paths(
 }
 
 fn ensure_user_state_directories(paths: &[ProjectPathRequest]) -> AppResult<()> {
-    for path in paths.iter().filter(|path| is_user_writable_mame_path(&path.option)) {
+    for path in paths
+        .iter()
+        .filter(|path| is_user_writable_mame_path(&path.option))
+    {
         fs::create_dir_all(&path.path).map_err(|error| {
             AppError::new(
                 "MAME_USER_STATE_DIRECTORY_CREATE_FAILED",
@@ -553,10 +556,7 @@ mod tests {
         assert_eq!(option_path(&paths, "hashpath"), layout.hash_dir);
         assert_eq!(option_path(&paths, "bgfx_path"), layout.bgfx_dir);
         assert_eq!(option_path(&paths, "inipath"), state_root.join("ini"));
-        assert_eq!(
-            option_path(&paths, "cfg_directory"),
-            state_root.join("cfg")
-        );
+        assert_eq!(option_path(&paths, "cfg_directory"), state_root.join("cfg"));
         assert_eq!(
             option_path(&paths, "nvram_directory"),
             state_root.join("nvram")
