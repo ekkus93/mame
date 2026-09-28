@@ -550,11 +550,8 @@ mod tests {
 
     #[test]
     fn persisted_catalog_cannot_self_assert_bundled_trust() {
-        let error = launch_source_from_generation(
-            &generation("bundled", "qualifiedBundled"),
-            None,
-        )
-        .expect_err("bundled launch must require package-owned resolution");
+        let error = launch_source_from_generation(&generation("bundled", "qualifiedBundled"), None)
+            .expect_err("bundled launch must require package-owned resolution");
         assert_eq!(error.code, "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED");
     }
 
@@ -578,11 +575,9 @@ mod tests {
 
     #[test]
     fn persisted_source_and_trust_pair_must_match() {
-        let error = launch_source_from_generation(
-            &generation("external", "qualifiedBundled"),
-            None,
-        )
-        .expect_err("mismatched persisted provenance must fail");
+        let error =
+            launch_source_from_generation(&generation("external", "qualifiedBundled"), None)
+                .expect_err("mismatched persisted provenance must fail");
         assert_eq!(error.code, "CATALOG_EXECUTABLE_PROVENANCE_INVALID");
 
         let source = launch_source_from_generation(&generation("external", "userConfigured"), None)
