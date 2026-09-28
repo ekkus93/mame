@@ -210,6 +210,23 @@ assert_runtime_tree() {
   assert_no_missing_shared_libraries "$runtime_bin" "$smoke_tmp/ldd.log"
 }
 
+refresh_installed_paths() {
+  installed=$(dpkg -L "$package")
+  binary=$(grep -m1 '^/usr/bin/[^/]*$' <<<"$installed" || true)
+  runtime_bin=$(grep -m1 '/mame-runtime/bin/mame$' <<<"$installed" || true)
+  desktop_file=$(grep -m1 '^/usr/share/applications/.*\.desktop$' <<<"$installed" || true)
+
+  [[ -n "$binary" && -x "$binary" ]] || { echo "installed frontend executable is missing or non-executable: ${binary:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
+  [[ -n "$runtime_bin" && -x "$runtime_bin" ]] || { echo "installed MAME executable is missing or non-executable: ${runtime_bin:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
+  [[ -n "$desktop_file" && -f "$desktop_file" ]] || { echo "installed desktop entry is missing: ${desktop_file:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
+
+  grep -Fq 'Name=MAME Tauri Frontend' "$desktop_file" || { echo "desktop entry has unexpected Name:" >&2; cat "$desktop_file" >&2; exit 1; }
+  frontend_name=$(basename "$binary")
+  grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry does not launch $frontend_name:" >&2; cat "$desktop_file" >&2; exit 1; }
+
+  runtime_root=${runtime_bin%/bin/mame}
+}
+
 frontend_rel=$(require_payload_match '^(\./)?usr/bin/[^/]+$' 'frontend executable')
 runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME executable')
 desktop_rel=$(require_payload_match '^(\./)?usr/share/applications/.*\.desktop$' 'desktop entry')
@@ -233,20 +250,8 @@ printf 'Real-runtime Debian package dependencies: %s\n' "${depends:-<none>}"
 
 sudo apt-get install -y "$DEB"
 
-installed=$(dpkg -L "$package")
-binary=$(grep -m1 '^/usr/bin/[^/]*$' <<<"$installed" || true)
-runtime_bin=$(grep -m1 '/mame-runtime/bin/mame$' <<<"$installed" || true)
-desktop_file=$(grep -m1 '^/usr/share/applications/.*\.desktop$' <<<"$installed" || true)
+refresh_installed_paths
 
-[[ -n "$binary" && -x "$binary" ]] || { echo "installed frontend executable is missing or non-executable: ${binary:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
-[[ -n "$runtime_bin" && -x "$runtime_bin" ]] || { echo "installed MAME executable is missing or non-executable: ${runtime_bin:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
-[[ -n "$desktop_file" && -f "$desktop_file" ]] || { echo "installed desktop entry is missing: ${desktop_file:-<not found>}" >&2; printf '%s\n' "$installed" >&2; exit 1; }
-
-grep -Fq 'Name=MAME Tauri Frontend' "$desktop_file" || { echo "desktop entry has unexpected Name:" >&2; cat "$desktop_file" >&2; exit 1; }
-frontend_name=$(basename "$binary")
-grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry does not launch $frontend_name:" >&2; cat "$desktop_file" >&2; exit 1; }
-
-runtime_root=${runtime_bin%/bin/mame}
 assert_runtime_tree "$runtime_root"
 assert_deb_declares_runtime_library_dependencies "$runtime_bin" "$depends" "$smoke_tmp/declared-runtime-deps-ldd.log"
 
@@ -325,7 +330,63 @@ x11_smoke() {
   ' bash "$log_path" "$@"
 }
 
+assert_package_reinstall_preserves_user_state() {
+  local probe_root="$smoke_tmp/package-reinstall"
+  local sentinel
+  mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache"
+
+  for sentinel in \
+    "$probe_root/home/user-content.sentinel" \
+    "$probe_root/config/user-settings.sentinel" \
+    "$probe_root/data/user-library.sentinel" \
+    "$probe_root/cache/user-cache.sentinel"; do
+    printf 'preserve across package reinstall: %s\n' "$(basename "$sentinel")" >"$sentinel"
+  done
+
+  x11_smoke "$smoke_tmp/deb-reinstall-before.log" env \
+    HOME="$probe_root/home" \
+    XDG_CONFIG_HOME="$probe_root/config" \
+    XDG_DATA_HOME="$probe_root/data" \
+    XDG_CACHE_HOME="$probe_root/cache" \
+    "$binary"
+
+  sudo apt-get install --reinstall -y "$DEB"
+
+  refresh_installed_paths
+  assert_runtime_tree "$runtime_root"
+  assert_deb_declares_runtime_library_dependencies "$runtime_bin" "$depends" "$smoke_tmp/reinstall-declared-runtime-deps-ldd.log"
+
+  "$runtime_bin" -noreadconfig -version >"$smoke_tmp/reinstall-version.log" 2>&1
+  grep -Eq '^[0-9]+\.[0-9]+' "$smoke_tmp/reinstall-version.log" || {
+    echo "reinstalled package runtime -version smoke did not report real MAME identity:" >&2
+    cat "$smoke_tmp/reinstall-version.log" >&2
+    exit 1
+  }
+
+  for sentinel in \
+    "$probe_root/home/user-content.sentinel" \
+    "$probe_root/config/user-settings.sentinel" \
+    "$probe_root/data/user-library.sentinel" \
+    "$probe_root/cache/user-cache.sentinel"; do
+    [[ -s "$sentinel" ]] || {
+      echo "user-state sentinel missing after Debian package reinstall: $sentinel" >&2
+      find "$probe_root" -maxdepth 3 -type f -print >&2 || true
+      exit 1
+    }
+  done
+
+  x11_smoke "$smoke_tmp/deb-reinstall-after.log" env \
+    HOME="$probe_root/home" \
+    XDG_CONFIG_HOME="$probe_root/config" \
+    XDG_DATA_HOME="$probe_root/data" \
+    XDG_CACHE_HOME="$probe_root/cache" \
+    "$binary"
+
+  printf 'Debian package reinstall preserved user state and restored package-owned bundled runtime\n'
+}
+
 x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+assert_package_reinstall_preserves_user_state
 
 sudo apt-get remove -y "$package"
 [[ ! -e "$binary" ]] || { echo "frontend executable remains after Debian uninstall: $binary" >&2; exit 1; }
@@ -347,4 +408,4 @@ if [[ -n "$APPIMAGE" ]]; then
   assert_runtime_tree "${app_runtime_bin%/bin/mame}"
 fi
 
-printf 'Real-runtime Debian install/uninstall, bundled MAME execution, read-only runtime, declared shared-library dependencies, desktop launch, and package dependency qualification passed\n'
+printf 'Real-runtime Debian install/uninstall, bundled MAME execution, read-only runtime, declared shared-library dependencies, package reinstall/user-state preservation, desktop launch, and package dependency qualification passed\n'
