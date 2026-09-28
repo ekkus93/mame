@@ -148,7 +148,7 @@ pub(crate) fn resolve_bulk_audit_context(
         )
     })?;
 
-    let source = launch_source_from_generation(&generation)?;
+    let source = launch_source_from_generation(&generation, None)?;
     let identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(&generation, &identity)?;
     let content_paths = load_settings(settings_path)?.content_paths;
