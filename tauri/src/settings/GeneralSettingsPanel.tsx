@@ -100,7 +100,9 @@ export function GeneralSettingsPanel({
     setError(null);
     setNotice(null);
     try {
-      const saved = await setGeneralMameExecutable(executableDraft.trim() === "" ? null : executableDraft);
+      const saved = await setGeneralMameExecutable(
+        executableDraft.trim() === "" ? null : executableDraft,
+      );
       setSettings(saved);
       setExecutableDraft(saved.mameExecutable ?? "");
       setNotice(
