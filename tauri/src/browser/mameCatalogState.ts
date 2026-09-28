@@ -27,7 +27,9 @@ export function initialMameCatalogState(mame: MameVersionReport): MameCatalogSta
   }
 }
 
-export function metadataExecutableRequest(mame: MameVersionReport): MetadataExecutableRequest | null {
+export function metadataExecutableRequest(
+  mame: MameVersionReport,
+): MetadataExecutableRequest | null {
   if (mame.status !== "available") return null;
   switch (mame.identity.source) {
     case "bundled":
