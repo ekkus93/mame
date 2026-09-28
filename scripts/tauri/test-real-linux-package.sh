@@ -29,6 +29,7 @@ fi
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 validator="$repo_root/scripts/tauri/validate-real-mame-runtime.sh"
+smoke_machine=${MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE:-pacman}
 [[ -x "$validator" ]] || { echo "missing real runtime validator: $validator" >&2; exit 1; }
 
 package=$(dpkg-deb --field "$DEB" Package)
@@ -216,10 +217,10 @@ grep -Eq '^[0-9]+\.[0-9]+' "$smoke_tmp/readonly-version.log" || {
     XDG_CONFIG_HOME="$readonly_probe_root/config" \
     XDG_DATA_HOME="$readonly_probe_root/data" \
     XDG_CACHE_HOME="$readonly_probe_root/cache" \
-    "$runtime_bin" -noreadconfig -listxml pacman >"$smoke_tmp/readonly-listxml.xml" 2>"$smoke_tmp/readonly-listxml.err"
+    "$runtime_bin" -noreadconfig -listxml "$smoke_machine" >"$smoke_tmp/readonly-listxml.xml" 2>"$smoke_tmp/readonly-listxml.err"
 )
-grep -Eq '<machine[^>]+name="pacman"' "$smoke_tmp/readonly-listxml.xml" || {
-  echo "read-only runtime listxml smoke did not return pacman metadata" >&2
+grep -Eq "<machine[^>]+name=\"$smoke_machine\"" "$smoke_tmp/readonly-listxml.xml" || {
+  echo "read-only runtime listxml smoke did not return $smoke_machine metadata" >&2
   cat "$smoke_tmp/readonly-listxml.err" >&2 || true
   exit 1
 }

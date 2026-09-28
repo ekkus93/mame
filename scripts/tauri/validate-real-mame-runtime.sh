@@ -7,6 +7,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 mame=$1
+smoke_machine=${MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE:-pacman}
 [[ -f "$mame" && -x "$mame" ]] || {
   echo "real MAME executable is missing or non-executable: $mame" >&2
   exit 1
@@ -32,9 +33,9 @@ fi
 
 (
   cd "$tmp"
-  timeout 60 "$mame" -noreadconfig -listxml pacman >listxml.xml 2>listxml.err
+  timeout 60 "$mame" -noreadconfig -listxml "$smoke_machine" >listxml.xml 2>listxml.err
 ) || {
-  echo "real MAME bounded listxml smoke failed" >&2
+  echo "real MAME bounded listxml smoke failed for $smoke_machine" >&2
   cat "$tmp/listxml.err" >&2 || true
   exit 1
 }
@@ -43,9 +44,9 @@ grep -Eq '<mame[^>]+build=' "$tmp/listxml.xml" || {
   cat "$tmp/listxml.err" >&2 || true
   exit 1
 }
-grep -Eq '<machine[^>]+name="pacman"' "$tmp/listxml.xml" || {
-  echo "real MAME listxml smoke did not contain pacman" >&2
+grep -Eq "<machine[^>]+name=\"$smoke_machine\"" "$tmp/listxml.xml" || {
+  echo "real MAME listxml smoke did not contain $smoke_machine" >&2
   exit 1
 }
 
-printf 'Qualified real MAME runtime: %s\n' "$version_line"
+printf 'Qualified real MAME runtime: %s (%s listxml smoke)\n' "$version_line" "$smoke_machine"

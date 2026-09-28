@@ -20,7 +20,8 @@ jobs:
     timeout-minutes: 360
     env:
       MAME_TAURI_MAME_BUILD_JOBS: "2"
-      MAME_TAURI_MAME_SUBTARGET: "arcade"
+      MAME_TAURI_MAME_SUBTARGET: "tiny"
+      MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "gridlee"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -81,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           jobs=${MAME_TAURI_MAME_BUILD_JOBS:-2}
-          subtarget=${MAME_TAURI_MAME_SUBTARGET:-arcade}
+          subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
           make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"
           runtime=./mame
           if [[ ! -x "$runtime" && -x "./mame${subtarget}" ]]; then
@@ -95,7 +96,6 @@ jobs:
         shell: bash
         env:
           MAME_TAURI_REAL_RUNTIME_SOURCE_ROOT: ${{ github.workspace }}
-          MAME_TAURI_REAL_RUNTIME_EXECUTABLE: ${{ env.MAME_TAURI_REAL_RUNTIME_EXECUTABLE }}
         run: >-
           ./scripts/tauri/prepare-bundled-mame-runtime.sh
           tauri/src-tauri/bundle-resources/mame-runtime
