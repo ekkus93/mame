@@ -8,7 +8,7 @@ This is the canonical implementation and completion ledger for making the Debian
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.
 
-**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, real-runtime validator/dependency-augmentation plumbing, bundled launch resource/user-state directory handling, BMR baseline inventory, BMR TODO workflow wiring guard, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master` `5b07d0010974b1d13eeb5ad019a8f50263d7e785`. Exact-head CI passed: Tauri project run `36436956493`, Tauri Linux packaging run `36436956933`, Tauri macOS packaging run `36436956591`, and Tauri Windows packaging run `36436956622`. Real production MAME build/staging dispatch and real-runtime `.deb` qualification evidence remain open and are intentionally not claimed complete by synthetic fixture evidence.
+**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, real-runtime validator/dependency-augmentation plumbing, bundled launch resource/user-state directory handling, BMR baseline inventory, BMR TODO workflow wiring guard, bundled-runtime security review, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master`. Code-bearing head `5b07d0010974b1d13eeb5ad019a8f50263d7e785` passed exact-head CI: Tauri project run `36436956493`, Tauri Linux packaging run `36436956933`, Tauri macOS packaging run `36436956591`, and Tauri Windows packaging run `36436956622`. Baseline/TODO reconciliation head `203f01af0526ff241d080cede0d36578c2c29d38` passed Tauri project run `36438583452` and Build documentation run `36438583398`. Security-review documentation head `6613938d9cffcf370802b40ef1ff934156e1698b` passed Build documentation run `36440652200`. Real production MAME build/staging dispatch and real-runtime `.deb` qualification evidence remain open and are intentionally not claimed complete by synthetic fixture evidence.
 
 ---
 
@@ -180,7 +180,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-012 — Security, legal, and provenance closure
 
-- [ ] Re-run bundled-runtime containment and executable-validation threat review after default-source changes.
+- [x] Re-run bundled-runtime containment and executable-validation threat review after default-source changes.
 - [x] Verify no generic shell/process path was added to the WebView API.
 - [x] Verify external override remains validated and explicit.
 - [ ] Verify required MAME COPYING/license/legal resources are included in production packages.
