@@ -1,10 +1,11 @@
-use std::io::Cursor;
+use std::{io::Cursor, path::Path};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    config::LaunchPreferencesV1,
+    config::{load_settings, settings_path, LaunchPreferencesV1},
+    effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
     mame::{
         get_machine_bios_choices, get_software_list_xml, inspect_executable,
@@ -90,6 +91,8 @@ pub async fn query_mame_software_list(
 ) -> AppResult<SoftwareListPage> {
     let request = validate_query_request(request)?;
     let catalog_path = storage::catalog_path(&app)?;
+    let settings_path = settings_path(&app)?;
+    let resource_dir = package_resource_dir(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let repository = CatalogRepository::open(&catalog_path)?;
@@ -99,7 +102,7 @@ pub async fn query_mame_software_list(
             &request.short_name,
             &request.software_list,
         )?;
-        let source = validated_generation_source(&generation)?;
+        let source = validated_generation_source(&generation, &settings_path, &resource_dir)?;
         let xml = get_software_list_xml(&source, &request.software_list)?;
         let parsed = parse_software_list_page(
             Cursor::new(xml.as_bytes()),
@@ -133,12 +136,14 @@ pub async fn query_mame_bios_choices(
 ) -> AppResult<BiosChoicesResponse> {
     let short_name = validated_short_identifier("machine", request.short_name)?;
     let catalog_path = storage::catalog_path(&app)?;
+    let settings_path = settings_path(&app)?;
+    let resource_dir = package_resource_dir(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let repository = CatalogRepository::open(&catalog_path)?;
         repository.machine_detail(&short_name)?;
         let generation = active_generation(&repository)?;
-        let source = validated_generation_source(&generation)?;
+        let source = validated_generation_source(&generation, &settings_path, &resource_dir)?;
         let choices = get_machine_bios_choices(&source, &short_name)?;
         Ok(BiosChoicesResponse {
             schema_version: 1,
@@ -172,10 +177,12 @@ pub fn launch_library_software(
         })
         .transpose()?;
     let catalog_path = storage::catalog_path(&app)?;
+    let settings_path = settings_path(&app)?;
+    let resource_dir = package_resource_dir(&app)?;
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
-    let source = validated_generation_source(&generation)?;
+    let source = validated_generation_source(&generation, &settings_path, &resource_dir)?;
     if let Some(selected_bios) = bios.as_deref() {
         let choices = get_machine_bios_choices(&source, &short_name)?;
         validate_bios_selection(&choices, selected_bios)?;
@@ -331,8 +338,16 @@ fn ensure_machine_software_list_association(
 
 fn validated_generation_source(
     generation: &MetadataGenerationSummary,
+    settings_path: &Path,
+    resource_dir: &Path,
 ) -> AppResult<MameExecutableSource> {
-    let source = launch_source_from_generation(generation)?;
+    let effective_source = if generation.source_kind == "bundled" {
+        let settings = load_settings(settings_path)?;
+        Some(resolve_effective_mame_source(&settings, resource_dir)?)
+    } else {
+        None
+    };
+    let source = launch_source_from_generation(generation, effective_source)?;
     let identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(generation, &identity)?;
     Ok(source)
@@ -340,6 +355,7 @@ fn validated_generation_source(
 
 fn launch_source_from_generation(
     generation: &MetadataGenerationSummary,
+    effective_source: Option<MameExecutableSource>,
 ) -> AppResult<MameExecutableSource> {
     match (generation.source_kind.as_str(), generation.trust.as_str()) {
         ("external", "userConfigured") => {
@@ -348,10 +364,12 @@ fn launch_source_from_generation(
         ("developmentTree", "development") => Ok(MameExecutableSource::development_tree(
             &generation.executable_path,
         )),
-        ("bundled", "qualifiedBundled") => Err(AppError::new(
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
-            "Bundled MAME launch requires package-owned executable resolution.",
-        )),
+        ("bundled", "qualifiedBundled") => effective_source.ok_or_else(|| {
+            AppError::new(
+                "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
+                "Bundled MAME launch requires package-owned executable resolution.",
+            )
+        }),
         (source_kind, trust) => Err(AppError::new(
             "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
             "The active catalog has an invalid executable source/trust pairing.",
@@ -388,6 +406,16 @@ fn ensure_generation_matches_executable(
     })))
 }
 
+fn package_resource_dir(app: &AppHandle) -> AppResult<std::path::PathBuf> {
+    app.path().resource_dir().map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+            "The application resource directory could not be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })
+}
+
 fn default_software_page_size() -> u32 {
     DEFAULT_SOFTWARE_PAGE_SIZE
 }
@@ -403,9 +431,30 @@ fn software_worker_error(error: impl std::fmt::Display) -> AppError {
 #[cfg(test)]
 mod tests {
     use super::{
-        validate_query_request, SoftwareListFilter, SoftwareListQueryRequest,
-        MAX_SOFTWARE_FILTER_VALUE_LENGTH,
+        launch_source_from_generation, validate_query_request, SoftwareListFilter,
+        SoftwareListQueryRequest, MAX_SOFTWARE_FILTER_VALUE_LENGTH,
     };
+    use crate::{
+        mame::{MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust},
+        metadata::MetadataGenerationSummary,
+    };
+
+    fn generation(source_kind: &str, trust: &str) -> MetadataGenerationSummary {
+        MetadataGenerationSummary {
+            generation_id: 1,
+            source_kind: source_kind.to_owned(),
+            trust: trust.to_owned(),
+            executable_path: "/opt/mame/mame".to_owned(),
+            mame_version: "0.288".to_owned(),
+            mame_build: Some("test-fixture".to_owned()),
+            raw_version_line: "0.288 test-fixture".to_owned(),
+            listxml_build: Some("0.288 test-fixture".to_owned()),
+            mame_config: Some("10".to_owned()),
+            generated_at_epoch_ms: 100,
+            imported_at_epoch_ms: 200,
+            machine_count: 4,
+        }
+    }
 
     #[test]
     fn query_validation_is_bounded_and_normalizes_search_text() {
@@ -464,5 +513,26 @@ mod tests {
         })
         .expect_err("oversized filter value must fail");
         assert_eq!(error.code, "MAME_SOFTWARE_QUERY_VALUE_TOO_LONG");
+    }
+
+    #[test]
+    fn bundled_catalog_software_paths_use_resolved_effective_runtime() {
+        let source = launch_source_from_generation(
+            &generation("bundled", "qualifiedBundled"),
+            Some(MameExecutableSource::bundled(
+                "/package/resources/mame-runtime/bin/mame",
+            )),
+        )
+        .expect("bundled software operations use backend-resolved runtime");
+
+        assert_eq!(source.kind(), MameExecutableSourceKind::Bundled);
+        assert_eq!(source.trust(), MameExecutableTrust::QualifiedBundled);
+    }
+
+    #[test]
+    fn bundled_catalog_software_paths_cannot_self_assert_bundled_runtime() {
+        let error = launch_source_from_generation(&generation("bundled", "qualifiedBundled"), None)
+            .expect_err("bundled software operations require package-owned resolution");
+        assert_eq!(error.code, "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED");
     }
 }
