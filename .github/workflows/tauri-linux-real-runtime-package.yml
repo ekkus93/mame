@@ -18,8 +18,13 @@ jobs:
   real-runtime-deb-appimage-qualification:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    env:
+      MAME_TAURI_MAME_BUILD_JOBS: "2"
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install MAME, Tauri, and package qualification prerequisites
         shell: bash
@@ -73,7 +78,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          make -j"$(nproc)" NOWERROR=1 TOOLS=0 TESTS=0
+          jobs=${MAME_TAURI_MAME_BUILD_JOBS:-2}
+          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0
           test -x ./mame
           ./scripts/tauri/validate-real-mame-runtime.sh ./mame
 
