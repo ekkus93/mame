@@ -84,8 +84,11 @@ jobs:
           jobs=${MAME_TAURI_MAME_BUILD_JOBS:-1}
           subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
           echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
-          if ! make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"; then
-            status=$?
+          set +e
+          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"
+          status=$?
+          set -e
+          if [[ "$status" -ne 0 ]]; then
             echo "MAME build failed with status $status" >&2
             echo "--- runner memory ---" >&2
             free -h >&2 || true
@@ -162,6 +165,16 @@ jobs:
           npm run tauri -- build
           --config src-tauri/tauri.linux-bundle.conf.json
           --bundles deb,appimage
+
+      - name: Declare bundled MAME runtime dependencies in Debian package
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          runtime=tauri/src-tauri/bundle-resources/mame-runtime/bin/mame
+          [[ -n "$deb" ]] || { echo "Debian package was not produced" >&2; exit 1; }
+          [[ -x "$runtime" ]] || { echo "staged bundled MAME executable is missing or non-executable: $runtime" >&2; exit 1; }
+          ./scripts/tauri/augment-deb-runtime-deps.sh "$deb" "$runtime"
 
       - name: Real bundled runtime package qualification
         shell: bash

@@ -139,6 +139,62 @@ assert_no_missing_shared_libraries() {
   fi
 }
 
+assert_deb_declares_runtime_library_dependencies() {
+  local executable=$1
+  local deb_depends=$2
+  local ldd_log=$3
+  local declared
+  declared=$(python3 - "$deb_depends" <<'PY'
+import re
+import sys
+
+for clause in sys.argv[1].split(','):
+    for alternative in clause.split('|'):
+        token = alternative.strip().split(maxsplit=1)[0] if alternative.strip() else ''
+        if not token:
+            continue
+        print(re.split(r'[:(]', token, maxsplit=1)[0])
+PY
+)
+
+  declare -A seen=()
+  local missing=()
+  local library canonical owner package
+  while IFS= read -r library; do
+    [[ -n "$library" ]] || continue
+    canonical=$(readlink -f "$library")
+    owner=$(dpkg-query -S "$canonical" 2>/dev/null | head -n 1 | cut -d: -f1 || true)
+    if [[ -z "$owner" ]]; then
+      owner=$(dpkg-query -S "$library" 2>/dev/null | head -n 1 | cut -d: -f1 || true)
+    fi
+    [[ -n "$owner" ]] || {
+      echo "no Debian package owns runtime library: $library" >&2
+      exit 1
+    }
+    package=${owner%%:*}
+    [[ -n "${seen[$package]:-}" ]] && continue
+    seen[$package]=1
+    if ! grep -Fxq "$package" <<<"$declared"; then
+      missing+=("$package")
+    fi
+  done < <(
+    ldd "$executable" >"$ldd_log" 2>&1
+    awk '
+      /=> \/[^ ]+/ { print $3 }
+      /^[[:space:]]*\/[^ ]+/ { print $1 }
+    ' "$ldd_log" | sort -u
+  )
+
+  if [[ ${#missing[@]} -ne 0 ]]; then
+    echo "Debian package does not declare bundled MAME shared-library packages: ${missing[*]}" >&2
+    echo "Depends: ${deb_depends:-<none>}" >&2
+    echo "--- bundled MAME ldd ---" >&2
+    cat "$ldd_log" >&2
+    exit 1
+  fi
+  printf 'Debian package declares bundled MAME shared-library dependencies\n'
+}
+
 assert_runtime_tree() {
   local runtime_root=$1
   local runtime_bin="$runtime_root/bin/mame"
@@ -192,6 +248,7 @@ grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry doe
 
 runtime_root=${runtime_bin%/bin/mame}
 assert_runtime_tree "$runtime_root"
+assert_deb_declares_runtime_library_dependencies "$runtime_bin" "$depends" "$smoke_tmp/declared-runtime-deps-ldd.log"
 
 readonly_probe_root="$smoke_tmp/readonly-runtime"
 mkdir -p "$readonly_probe_root/cwd" "$readonly_probe_root/home" "$readonly_probe_root/config" "$readonly_probe_root/data" "$readonly_probe_root/cache"
@@ -290,4 +347,4 @@ if [[ -n "$APPIMAGE" ]]; then
   assert_runtime_tree "${app_runtime_bin%/bin/mame}"
 fi
 
-printf 'Real-runtime Debian install/uninstall, bundled MAME execution, read-only runtime, desktop launch, and package dependency qualification passed\n'
+printf 'Real-runtime Debian install/uninstall, bundled MAME execution, read-only runtime, declared shared-library dependencies, desktop launch, and package dependency qualification passed\n'
