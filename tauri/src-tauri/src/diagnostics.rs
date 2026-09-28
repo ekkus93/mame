@@ -22,6 +22,7 @@ use crate::{
     app::{self, AppInfoRequest, AppInfoResponse, APP_PROTOCOL_VERSION},
     config::settings_path,
     errors::{AppError, AppResult},
+    mame::{MameExecutableSourceKind, MameExecutableTrust},
     storage,
 };
 
@@ -50,11 +51,23 @@ pub struct CatalogSchemaDiagnostics {
     pub error_code: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeDiagnostics {
+    pub status: String,
+    pub active_source: Option<String>,
+    pub trust: Option<String>,
+    pub failure_domain: Option<String>,
+    pub error_code: Option<String>,
+    pub message: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticsSnapshot {
     pub schema_version: u32,
     pub app: AppInfoResponse,
+    pub runtime: RuntimeDiagnostics,
     pub platform: String,
     pub architecture: String,
     pub settings_path: String,
@@ -239,6 +252,7 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         },
         handle.clone(),
     )?;
+    let runtime = runtime_diagnostics(&app.mame);
     let log_path = RECORDER
         .get()
         .and_then(|recorder| recorder.lock().ok())
@@ -246,8 +260,9 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         .unwrap_or_else(|| PathBuf::from(LOG_FILE_NAME));
 
     Ok(DiagnosticsSnapshot {
-        schema_version: 2,
+        schema_version: 3,
         app,
+        runtime,
         platform: std::env::consts::OS.to_owned(),
         architecture: std::env::consts::ARCH.to_owned(),
         settings_path: settings.to_string_lossy().into_owned(),
@@ -256,6 +271,71 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         log_path: log_path.to_string_lossy().into_owned(),
         recent_logs: recent_logs(),
     })
+}
+
+fn runtime_diagnostics(report: &app::MameVersionReport) -> RuntimeDiagnostics {
+    match report {
+        app::MameVersionReport::Available { identity } => RuntimeDiagnostics {
+            status: "available".to_owned(),
+            active_source: Some(source_label(identity.source).to_owned()),
+            trust: Some(trust_label(identity.trust).to_owned()),
+            failure_domain: None,
+            error_code: None,
+            message: None,
+        },
+        app::MameVersionReport::Unavailable {
+            path,
+            error_code,
+            error_message,
+        } => RuntimeDiagnostics {
+            status: "unavailable".to_owned(),
+            active_source: None,
+            trust: None,
+            failure_domain: Some(runtime_failure_domain(path.as_deref(), error_code).to_owned()),
+            error_code: Some(error_code.clone()),
+            message: Some(error_message.clone()),
+        },
+        app::MameVersionReport::NotConfigured => RuntimeDiagnostics {
+            status: "notConfigured".to_owned(),
+            active_source: None,
+            trust: None,
+            failure_domain: Some("legacyNoRuntimeReported".to_owned()),
+            error_code: None,
+            message: Some(
+                "Backend reported no configured runtime; packaged installs should normally resolve bundled MAME."
+                    .to_owned(),
+            ),
+        },
+    }
+}
+
+fn runtime_failure_domain(path: Option<&str>, error_code: &str) -> &'static str {
+    if error_code.starts_with("CONFIG_") {
+        return "configuration";
+    }
+    if error_code == "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE"
+        || error_code.starts_with("MAME_BUNDLED_")
+        || path.is_none()
+    {
+        return "bundledPackage";
+    }
+    "externalOverride"
+}
+
+fn source_label(source: MameExecutableSourceKind) -> &'static str {
+    match source {
+        MameExecutableSourceKind::Bundled => "bundled",
+        MameExecutableSourceKind::External => "external",
+        MameExecutableSourceKind::DevelopmentTree => "developmentTree",
+    }
+}
+
+fn trust_label(trust: MameExecutableTrust) -> &'static str {
+    match trust {
+        MameExecutableTrust::QualifiedBundled => "qualifiedBundled",
+        MameExecutableTrust::UserConfigured => "userConfigured",
+        MameExecutableTrust::Development => "development",
+    }
 }
 
 fn inspect_catalog_schema(path: &Path) -> CatalogSchemaDiagnostics {
@@ -411,8 +491,12 @@ mod tests {
     use serde_json::json;
     use tempfile::tempdir;
 
-    use super::{error_category, inspect_catalog_schema, sanitize_context};
-    use crate::storage::CATALOG_SCHEMA_VERSION;
+    use super::{error_category, inspect_catalog_schema, runtime_diagnostics, sanitize_context};
+    use crate::{
+        app::MameVersionReport,
+        mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
+        storage::CATALOG_SCHEMA_VERSION,
+    };
 
     #[test]
     fn maps_stable_error_codes_to_support_categories() {
@@ -422,6 +506,52 @@ mod tests {
         assert_eq!(error_category("ARTWORK_ASSET_UNAVAILABLE"), "artwork");
         assert_eq!(error_category("APP_READY_EVENT_FAILED"), "application");
         assert_eq!(error_category("SOMETHING_ELSE"), "backend");
+    }
+
+    #[test]
+    fn runtime_diagnostics_classify_bundled_external_and_configuration_failures() {
+        let bundled = runtime_diagnostics(&MameVersionReport::Unavailable {
+            path: None,
+            error_code: "MAME_BUNDLED_RUNTIME_MISSING".to_owned(),
+            error_message: "missing bundled runtime".to_owned(),
+        });
+        assert_eq!(bundled.failure_domain.as_deref(), Some("bundledPackage"));
+        assert_eq!(
+            bundled.error_code.as_deref(),
+            Some("MAME_BUNDLED_RUNTIME_MISSING")
+        );
+
+        let external = runtime_diagnostics(&MameVersionReport::Unavailable {
+            path: Some("/opt/mame/mame".to_owned()),
+            error_code: "MAME_EXECUTABLE_NOT_FOUND".to_owned(),
+            error_message: "missing external override".to_owned(),
+        });
+        assert_eq!(external.failure_domain.as_deref(), Some("externalOverride"));
+
+        let configuration = runtime_diagnostics(&MameVersionReport::Unavailable {
+            path: None,
+            error_code: "CONFIG_READ_FAILED".to_owned(),
+            error_message: "settings unreadable".to_owned(),
+        });
+        assert_eq!(configuration.failure_domain.as_deref(), Some("configuration"));
+    }
+
+    #[test]
+    fn runtime_diagnostics_report_available_source_and_trust() {
+        let diagnostics = runtime_diagnostics(&MameVersionReport::Available {
+            identity: MameExecutableIdentity {
+                source: MameExecutableSourceKind::Bundled,
+                trust: MameExecutableTrust::QualifiedBundled,
+                path: "/package/mame-runtime/bin/mame".to_owned(),
+                version: "0.288".to_owned(),
+                build: None,
+                raw_version_line: "0.288".to_owned(),
+            },
+        });
+        assert_eq!(diagnostics.status, "available");
+        assert_eq!(diagnostics.active_source.as_deref(), Some("bundled"));
+        assert_eq!(diagnostics.trust.as_deref(), Some("qualifiedBundled"));
+        assert_eq!(diagnostics.failure_domain, None);
     }
 
     #[test]
