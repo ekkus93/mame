@@ -85,7 +85,9 @@ jobs:
           subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
           echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
           set +e
-          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget"
+          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" generate
+          make -j"$jobs" -C "build/projects/sdl/mame${subtarget}/gmake-linux" config=release64 precompile
+          make -j"$jobs" -C "build/projects/sdl/mame${subtarget}/gmake-linux" config=release64 "mame_${subtarget}"
           status=$?
           set -e
           if [[ "$status" -ne 0 ]]; then
