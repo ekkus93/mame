@@ -24,9 +24,7 @@ const DEFAULT_PREFERENCES: LaunchPreferences = {
 function runtimeSourceLabel(report: MameVersionReport | undefined): string {
   if (!report) return "Checking runtime status";
   if (report.status === "available") {
-    return report.identity.source === "bundled"
-      ? "Bundled MAME runtime"
-      : "External MAME override";
+    return report.identity.source === "bundled" ? "Bundled MAME runtime" : "External MAME override";
   }
   if (report.status === "unavailable") return "Runtime unavailable";
   return "Runtime not configured";
