@@ -115,7 +115,10 @@ fn unavailable_mame(path: Option<String>, error: AppError) -> MameVersionReport 
     }
 }
 
-fn effective_mame_source(\n    settings: &SettingsV2,\n    resource_dir: &std::path::Path,\n) -> AppResult<MameExecutableSource> {
+fn effective_mame_source(
+    settings: &SettingsV2,
+    resource_dir: &std::path::Path,
+) -> AppResult<MameExecutableSource> {
     if let Some(path) = settings.mame_executable.as_deref() {
         return Ok(MameExecutableSource::external(path));
     }
@@ -184,7 +187,10 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use super::{\n        build_app_info, effective_mame_source, AppInfoRequest, MameVersionReport,\n        APP_PROTOCOL_VERSION,\n    };
+    use super::{
+        build_app_info, effective_mame_source, AppInfoRequest, MameVersionReport,
+        APP_PROTOCOL_VERSION,
+    };
     use crate::{
         bundled_runtime::BundledRuntimeLayout,
         config::{SettingsV2, SETTINGS_SCHEMA_VERSION},
@@ -227,12 +233,19 @@ mod tests {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut permissions = fs::metadata(&layout.executable)\n                .expect("metadata")\n                .permissions();
+            let mut permissions = fs::metadata(&layout.executable)
+                .expect("metadata")
+                .permissions();
             permissions.set_mode(0o755);
             fs::set_permissions(&layout.executable, permissions).expect("permissions");
         }
-        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>")\n            .expect("hash");
-        fs::write(\n            layout.bgfx_dir.join("shaders").join("fixture.bin"),\n            b"shader",\n        )\n        .expect("bgfx");
+        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>")
+            .expect("hash");
+        fs::write(
+            layout.bgfx_dir.join("shaders").join("fixture.bin"),
+            b"shader",
+        )
+        .expect("bgfx");
         fs::write(&layout.copying, b"license").expect("copying");
         fs::write(layout.legal_dir.join("GPL-2.0"), b"license").expect("legal");
 
