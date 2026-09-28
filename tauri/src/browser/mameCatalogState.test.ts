@@ -33,6 +33,9 @@ describe("metadataExecutableRequest", () => {
       },
     };
 
-    expect(metadataExecutableRequest(report)).toEqual({ source: "external", path: "/opt/mame/mame" });
+    expect(metadataExecutableRequest(report)).toEqual({
+      source: "external",
+      path: "/opt/mame/mame",
+    });
   });
 });
