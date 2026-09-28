@@ -25,6 +25,7 @@ fi
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 stager="$repo_root/scripts/tauri/stage-mame-runtime.sh"
+validator="$repo_root/scripts/tauri/validate-real-mame-runtime.sh"
 destination=$1
 
 fail() {
@@ -59,6 +60,8 @@ stage_real_runtime() {
   [[ -n "$executable" ]] || fail 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE is required for real runtime staging'
   [[ -d "$source_root" ]] || fail "real runtime source root is not a directory: $source_root"
   [[ -x "$executable" ]] || fail "real runtime executable is missing or not executable: $executable"
+
+  "$validator" "$executable"
 
   local probe_output
   probe_output=$(mktemp)

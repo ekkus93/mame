@@ -70,15 +70,17 @@ jobs:
           ./scripts/tauri/build-linux-bundled-mame-runtime.sh
           tauri/src-tauri/bundle-resources/mame-runtime
 
-      - name: Verify real runtime provenance and version
+      - name: Verify real runtime provenance and metadata smoke
         run: |
           set -euo pipefail
           provenance=tauri/src-tauri/bundle-resources/mame-runtime/runtime-provenance.txt
+          runtime_bin=tauri/src-tauri/bundle-resources/mame-runtime/bin/mame
           test -s "$provenance"
           grep -Fxq 'mode=real' "$provenance"
           grep -Fxq 'release_qualified=true' "$provenance"
           ! grep -Eqi 'synthetic|MT-1305' "$provenance"
-          tauri/src-tauri/bundle-resources/mame-runtime/bin/mame -noreadconfig -version
+          "$runtime_bin" -noreadconfig -version
+          ./scripts/tauri/validate-real-mame-runtime.sh "$runtime_bin"
 
       - name: Build Debian package with real bundled runtime
         working-directory: tauri
@@ -86,6 +88,17 @@ jobs:
           npm run tauri -- build
           --config src-tauri/tauri.linux-bundle.conf.json
           --bundles deb
+
+      - name: Augment Debian package dependencies for bundled MAME
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          test -n "$deb"
+          ./scripts/tauri/augment-deb-runtime-deps.sh \
+            "$deb" \
+            tauri/src-tauri/bundle-resources/mame-runtime/bin/mame
+          depends=$(dpkg-deb --field "$deb" Depends)
+          ! grep -Eq '(^|, )[[:space:]]*mame([[:space:](,]|$)' <<<"$depends"
 
       - name: Install package and verify installed real runtime
         run: |
@@ -102,7 +115,13 @@ jobs:
           grep -Fxq 'release_qualified=true' "$runtime_root/runtime-provenance.txt"
           ! grep -Eqi 'synthetic|MT-1305' "$runtime_root/runtime-provenance.txt"
           "$runtime_bin" -noreadconfig -version
+          ./scripts/tauri/validate-real-mame-runtime.sh "$runtime_bin"
+          if dpkg-query -W -f='${Status}' mame 2>/dev/null | grep -q 'install ok installed'; then
+            echo 'real-runtime qualification must not depend on the distro mame package' >&2
+            exit 1
+          fi
           sudo apt-get remove -y "$package"
+          ! dpkg -L "$package" 2>/dev/null | grep -q '/mame-runtime/'
 
       - name: Upload real runtime package artifacts
         uses: actions/upload-artifact@v4
