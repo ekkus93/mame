@@ -7,7 +7,7 @@
 use std::{io::Write, path::Path};
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use tauri_plugin_dialog::DialogExt;
 use tempfile::Builder;
@@ -75,9 +75,16 @@ pub async fn export_mame_ui_displayed_list(
         })?;
         let catalog_path = storage::catalog_path(&app)?;
         let settings_path = settings_path(&app)?;
+        let resource_dir = package_resource_dir(&app)?;
 
         tauri::async_runtime::spawn_blocking(move || {
-            export_displayed_list_to_path(request, &catalog_path, &settings_path, &destination)
+            export_displayed_list_to_path(
+                request,
+                &catalog_path,
+                &settings_path,
+                &resource_dir,
+                &destination,
+            )
         })
         .await
         .map_err(|error| {
@@ -103,9 +110,15 @@ fn export_displayed_list_to_path(
     request: ExportMameUiDisplayedListRequest,
     catalog_path: &Path,
     settings_path: &Path,
+    resource_dir: &Path,
     destination: &Path,
 ) -> AppResult<ExportMameUiDisplayedListResult> {
-    let mut query = validated_query(export_search_request(request), catalog_path, settings_path)?;
+    let mut query = validated_query(
+        export_search_request(request),
+        catalog_path,
+        settings_path,
+        resource_dir,
+    )?;
     let repository = CatalogRepository::open(catalog_path)?;
     let parent = destination.parent().ok_or_else(|| {
         AppError::new(
@@ -242,6 +255,16 @@ fn availability_token(value: MachineAvailability) -> &'static str {
         MachineAvailability::Missing => "missing",
         MachineAvailability::Unknown => "unknown",
     }
+}
+
+fn package_resource_dir(app: &AppHandle) -> AppResult<std::path::PathBuf> {
+    app.path().resource_dir().map_err(|error| {
+        AppError::new(
+            "MAME_BUNDLED_RESOURCE_DIR_UNAVAILABLE",
+            "The application resource directory could not be resolved.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })
 }
 
 fn export_write_error(error: std::io::Error) -> AppError {
