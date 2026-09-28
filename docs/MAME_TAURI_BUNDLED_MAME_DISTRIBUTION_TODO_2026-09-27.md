@@ -8,17 +8,17 @@ This is the canonical implementation and completion ledger for making the Debian
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.
 
-**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master` `65774a9470e3eceb1e3212cc515e592393f52f33`. Exact-head CI passed: Tauri project run `36396444809`, Tauri Linux packaging run `36396444762`, Tauri macOS packaging run `36396444805`, Tauri Windows packaging run `36396444807`, and Tauri security run `36396444836`. Real production MAME build/staging and real-runtime `.deb` qualification remain open and are intentionally not claimed complete by synthetic fixture evidence.
+**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, real-runtime validator/dependency-augmentation plumbing, bundled launch resource/user-state directory handling, BMR baseline inventory, BMR TODO workflow wiring guard, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master` `5b07d0010974b1d13eeb5ad019a8f50263d7e785`. Exact-head CI passed: Tauri project run `36436956493`, Tauri Linux packaging run `36436956933`, Tauri macOS packaging run `36436956591`, and Tauri Windows packaging run `36436956622`. Real production MAME build/staging dispatch and real-runtime `.deb` qualification evidence remain open and are intentionally not claimed complete by synthetic fixture evidence.
 
 ---
 
 ## BMR-000 — Baseline and invariants
 
-- [ ] Record the current bundled-runtime, settings, startup, metadata, launch, and Linux packaging paths relevant to this work.
-- [ ] Confirm the current failure mode: no `settings.mameExecutable` yields `MameVersionReport::NotConfigured` even when a package-owned runtime is present.
+- [x] Record the current bundled-runtime, settings, startup, metadata, launch, and Linux packaging paths relevant to this work.
+- [x] Confirm the current failure mode: no `settings.mameExecutable` yields `MameVersionReport::NotConfigured` even when a package-owned runtime is present.
 - [x] Preserve the invariant that Rust owns runtime resolution, validation, and process launch.
 - [x] Preserve the invariant that ROM/CHD/software content is not bundled as part of this work.
-- [ ] Add a regression guard that the canonical bundled-runtime TODO remains wired into applicable CI/documentation checks.
+- [x] Add a regression guard that the canonical bundled-runtime TODO remains wired into applicable CI/documentation checks.
 
 **Required evidence:** source inventory plus regression/static test for the core product invariant.
 
@@ -154,10 +154,10 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-010 — Runtime working directories and user-writable MAME state
 
-- [ ] Identify MAME runtime assumptions for `hash`, `bgfx`, INI/CFG, plugins, and other resources in the packaged layout.
-- [ ] Ensure package-owned `hash`/`bgfx` assets are discovered without relying on a developer checkout or mutable current working directory.
-- [ ] Ensure MAME-generated/user configuration is directed to appropriate user-writable directories.
-- [ ] Ensure package operation does not require writes under `/usr` or the bundled runtime resource directory.
+- [x] Identify MAME runtime assumptions for `hash`, `bgfx`, INI/CFG, plugins, and other resources in the packaged layout.
+- [x] Ensure package-owned `hash`/`bgfx` assets are discovered without relying on a developer checkout or mutable current working directory.
+- [x] Ensure MAME-generated/user configuration is directed to appropriate user-writable directories.
+- [x] Ensure package operation does not require writes under `/usr` or the bundled runtime resource directory.
 - [ ] Add tests/smoke evidence for launch from an arbitrary working directory.
 - [ ] Add package smoke proving a read-only package runtime can still launch and initialize user state.
 
