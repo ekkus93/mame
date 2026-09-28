@@ -134,7 +134,8 @@ fn resolve_audit_context(
     resource_dir: &Path,
     short_name: &str,
 ) -> AppResult<AuditContext> {
-    let context = resolve_bulk_audit_context_with_resource_dir(catalog_path, settings_path, resource_dir)?;
+    let context =
+        resolve_bulk_audit_context_with_resource_dir(catalog_path, settings_path, resource_dir)?;
 
     // Keep the command scoped to a machine in the active generation. A syntactically
     // valid arbitrary frontend string must not become an unconstrained MAME target.
@@ -154,7 +155,8 @@ fn resolve_bulk_audit_context_with_resource_dir(
     settings_path: &Path,
     resource_dir: &Path,
 ) -> AppResult<AuditContext> {
-    let effective_source = effective_source_for_bundled_catalog(catalog_path, settings_path, resource_dir)?;
+    let effective_source =
+        effective_source_for_bundled_catalog(catalog_path, settings_path, resource_dir)?;
     resolve_bulk_audit_context_with_effective_source(catalog_path, settings_path, effective_source)
 }
 
