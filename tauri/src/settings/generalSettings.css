@@ -107,3 +107,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+.general-settings__runtime-status,
+.general-settings__advanced-runtime {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 9px;
+}
+
+.general-settings__runtime-status strong {
+  font-size: 1rem;
+}
+
+.general-settings__runtime-status span,
+.general-settings__advanced-runtime p {
+  margin: 0;
+}
+
+.general-settings__runtime-path {
+  font-size: 0.78rem;
+  opacity: 0.68;
+  overflow-wrap: anywhere;
+}
+
+.general-settings__advanced-runtime {
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}

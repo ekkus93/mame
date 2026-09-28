@@ -5,11 +5,10 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        get_machine_bios_choices, inspect_executable, validate_bios_identifier,
-        validate_bios_selection, validate_short_identifier, BiosChoice, MameExecutableIdentity,
-        MameExecutableSource,
+        get_machine_bios_choices, validate_bios_identifier, validate_bios_selection,
+        validate_short_identifier, BiosChoice,
     },
-    metadata::{CatalogRepository, MetadataGenerationSummary},
+    metadata::{effective_source_for_generation, CatalogRepository, MetadataGenerationSummary},
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
 };
@@ -43,7 +42,7 @@ pub fn launch_mame_empty(
     }
 
     let generation = active_generation(&repository)?;
-    let source = validated_generation_source(&generation)?;
+    let source = effective_source_for_generation(&app, &generation)?;
     let bios = match request.bios {
         None => None,
         Some(value) => {
@@ -84,65 +83,6 @@ fn active_generation(repository: &CatalogRepository) -> AppResult<MetadataGenera
             "No successfully imported MAME metadata generation is active.",
         )
     })
-}
-
-fn validated_generation_source(
-    generation: &MetadataGenerationSummary,
-) -> AppResult<MameExecutableSource> {
-    let source = launch_source_from_generation(generation)?;
-    let identity = inspect_executable(source.clone())?;
-    ensure_generation_matches_executable(generation, &identity)?;
-    Ok(source)
-}
-
-fn launch_source_from_generation(
-    generation: &MetadataGenerationSummary,
-) -> AppResult<MameExecutableSource> {
-    match (generation.source_kind.as_str(), generation.trust.as_str()) {
-        ("external", "userConfigured") => {
-            Ok(MameExecutableSource::external(&generation.executable_path))
-        }
-        ("developmentTree", "development") => Ok(MameExecutableSource::development_tree(
-            &generation.executable_path,
-        )),
-        ("bundled", "qualifiedBundled") => Err(AppError::new(
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
-            "Bundled MAME launch requires package-owned executable resolution.",
-        )),
-        (source_kind, trust) => Err(AppError::new(
-            "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
-            "The active catalog has an invalid executable source/trust pairing.",
-        )
-        .with_details(serde_json::json!({
-            "sourceKind": source_kind,
-            "trust": trust
-        }))),
-    }
-}
-
-fn ensure_generation_matches_executable(
-    generation: &MetadataGenerationSummary,
-    identity: &MameExecutableIdentity,
-) -> AppResult<()> {
-    if generation.executable_path == identity.path
-        && generation.mame_version == identity.version
-        && generation.mame_build == identity.build
-        && generation.raw_version_line == identity.raw_version_line
-    {
-        return Ok(());
-    }
-    Err(AppError::new(
-        "MAME_METADATA_STALE",
-        "The selected MAME executable no longer matches the active metadata generation.",
-    )
-    .with_details(serde_json::json!({
-        "catalogPath": generation.executable_path,
-        "catalogVersion": generation.mame_version,
-        "catalogBuild": generation.mame_build,
-        "currentPath": identity.path,
-        "currentVersion": identity.version,
-        "currentBuild": identity.build
-    })))
 }
 
 #[cfg(test)]

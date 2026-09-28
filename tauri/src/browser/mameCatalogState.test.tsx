@@ -9,7 +9,6 @@ import {
   catalogStateFromMetadata,
   initialMameCatalogState,
   machineAvailabilityNotice,
-  metadataExecutableRequest,
   type MameCatalogState,
 } from "./mameCatalogState";
 
@@ -93,10 +92,16 @@ describe("MAME startup and metadata parity state", () => {
       status: "notConfigured",
     });
     expect(initialMameCatalogState(availableMame)).toEqual({ status: "checking" });
-    expect(metadataExecutableRequest(availableMame)).toEqual({
-      source: "external",
-      path: "/opt/mame/mame",
-    });
+    expect(
+      initialMameCatalogState({
+        status: "available",
+        identity: {
+          ...availableMame.identity,
+          source: "bundled",
+          trust: "qualifiedBundled",
+        },
+      }),
+    ).toEqual({ status: "checking" });
   });
 
   it("distinguishes empty, stale, and fresh metadata generations", () => {

@@ -7,12 +7,26 @@ on:
       - ".github/workflows/tauri-linux-packaging.yml"
       - "tauri/**"
       - "scripts/tauri/**"
+      - "makefile"
+      - "src/**"
+      - "3rdparty/**"
+      - "hash/**"
+      - "bgfx/**"
+      - "COPYING"
+      - "docs/legal/**"
   pull_request:
     paths:
       - ".gitattributes"
       - ".github/workflows/tauri-linux-packaging.yml"
       - "tauri/**"
       - "scripts/tauri/**"
+      - "makefile"
+      - "src/**"
+      - "3rdparty/**"
+      - "hash/**"
+      - "bgfx/**"
+      - "COPYING"
+      - "docs/legal/**"
   workflow_dispatch:
 
 permissions:
@@ -119,4 +133,186 @@ jobs:
           ./scripts/tauri/test-linux-packages.sh "$deb" "$appimage"
 
       - name: Verify lockfiles remain unchanged
+        run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+
+
+  real-mame-deb-qualification:
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/master' ||
+      startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install real MAME and Tauri build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libasound2-dev \
+            libayatana-appindicator3-dev \
+            libfontconfig1-dev \
+            libfuse2 \
+            libgl1-mesa-dev \
+            libpcap-dev \
+            libpipewire-0.3-dev \
+            libpulse-dev \
+            librsvg2-dev \
+            libsdl2-dev \
+            libsdl2-ttf-dev \
+            libssl-dev \
+            libudev-dev \
+            libwebkit2gtk-4.1-dev \
+            libxi-dev \
+            libxinerama-dev \
+            mame \
+            patchelf \
+            portaudio19-dev \
+            python3 \
+            sqlite3 \
+            wget \
+            xdotool \
+            xvfb
+
+      - name: Select real MAME runtime from Ubuntu package
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidates=()
+          if command -v mame >/dev/null 2>&1; then
+            candidates+=("$(command -v mame)")
+          fi
+          candidates+=(/usr/games/mame /usr/bin/mame)
+
+          selected=
+          for candidate in "${candidates[@]}"; do
+            if [[ -n "$candidate" && -x "$candidate" ]]; then
+              selected=$candidate
+              break
+            fi
+          done
+          [[ -n "$selected" ]] || { echo "Ubuntu mame package did not provide an executable" >&2; exit 1; }
+
+          install -D -m 0755 "$selected" ./mame
+          dpkg-query -W -f='Real MAME package: ${Package} ${Version}\n' mame || true
+          ./scripts/tauri/validate-real-mame-runtime.sh ./mame
+
+      - name: Stage qualified real MAME runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf tauri/src-tauri/bundle-resources/mame-runtime
+          MAME_RUNTIME_QUALIFICATION=real \
+          MAME_SOURCE_SHA="${GITHUB_SHA}" \
+          MAME_BUILD_TARGET=ubuntu-mame-package \
+          MAME_BUILD_PROFILE=release \
+            ./scripts/tauri/stage-mame-runtime.sh \
+              . \
+              ./mame \
+              tauri/src-tauri/bundle-resources/mame-runtime
+          cat tauri/src-tauri/bundle-resources/mame-runtime/provenance.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - id: rust-toolchain-real
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust release dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target/release
+          key: ${{ runner.os }}-tauri-real-package-${{ steps.rust-toolchain-real.outputs.cachekey }}-${{ hashFiles('tauri/src-tauri/Cargo.lock', 'tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-real-package-${{ steps.rust-toolchain-real.outputs.cachekey }}-
+
+      - name: Install frontend dependencies from lockfile
+        working-directory: tauri
+        run: npm ci
+
+      - name: Validate bundled runtime containment
+        working-directory: tauri/src-tauri
+        run: |
+          cargo test --locked bundled_runtime
+          cargo test --locked effective_runtime
+
+      - name: Build real-runtime Debian package and AppImage
+        working-directory: tauri
+        run: >-
+          npm run tauri -- build
+          --config src-tauri/tauri.linux-bundle.conf.json
+          --bundles deb,appimage
+
+      - name: Add bundled-MAME shared-library dependencies to Debian metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          test -n "$deb"
+          ./scripts/tauri/augment-deb-runtime-deps.sh \
+            "$deb" \
+            tauri/src-tauri/bundle-resources/mame-runtime/bin/mame
+          dpkg-deb --field "$deb" Depends
+
+      - name: Ubuntu installed real-runtime package qualification
+        shell: bash
+        env:
+          MAME_PACKAGE_RUNTIME_MODE: real
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          appimage=$(find tauri/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -type f -print -quit)
+          test -n "$deb"
+          test -n "$appimage"
+          ./scripts/tauri/test-linux-packages.sh "$deb" "$appimage"
+
+      - name: Debian Bookworm install and real-MAME runtime qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          test -n "$deb"
+          docker run --rm \
+            -v "$PWD/$deb:/tmp/mame-tauri.deb:ro" \
+            debian:bookworm-slim \
+            bash -euc '
+              apt-get update
+              apt-get install -y /tmp/mame-tauri.deb
+              package=$(dpkg-deb --field /tmp/mame-tauri.deb Package)
+              runtime=$(dpkg -L "$package" | grep -m1 "/mame-runtime/bin/mame$")
+              test -x "$runtime"
+              version=$("$runtime" -noreadconfig -version | head -n 1)
+              printf "Debian bundled MAME version: %s\\n" "$version"
+              printf "%s\\n" "$version" | grep -Eq "^[0-9]+\\.[0-9]+"
+              timeout 90 "$runtime" -noreadconfig -listxml pacman > /tmp/pacman.xml
+              grep -Eq "<machine[^>]+name=\"pacman\"" /tmp/pacman.xml
+              apt-get remove -y "$package"
+              test ! -e "$runtime"
+            '
+
+      - name: Upload real-runtime Linux release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: mame-tauri-real-linux-${{ github.sha }}
+          path: |
+            tauri/src-tauri/target/release/bundle/deb/*.deb
+            tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+            tauri/src-tauri/bundle-resources/mame-runtime/provenance.json
+          if-no-files-found: error
+
+      - name: Verify lockfiles remain unchanged
+        working-directory: tauri
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock

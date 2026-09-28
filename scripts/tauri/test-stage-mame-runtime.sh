@@ -44,4 +44,12 @@ if "$stager" "$invalid_source" "$temp/mame" "$destination" >/dev/null 2>&1; then
 fi
 
 test -f "$destination/sentinel"
+
+if MAME_RUNTIME_QUALIFICATION=real MAME_SOURCE_SHA=test-sha \
+  "$stager" "$source_root" "$temp/mame" "$destination" >/dev/null 2>&1; then
+  printf 'Expected synthetic fixture to be rejected by real-runtime qualification\n' >&2
+  exit 1
+fi
+test -f "$destination/sentinel"
+
 printf 'MT-1302 runtime staging contract passed\n'

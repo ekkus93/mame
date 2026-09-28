@@ -3,6 +3,7 @@ use tauri::AppHandle;
 
 use crate::{
     config::settings_path,
+    effective_runtime::effective_mame_source,
     errors::{AppError, AppResult},
     library::audit::resolve_bulk_audit_context,
     mame::validate_short_identifier,
@@ -65,9 +66,10 @@ pub async fn query_mame_ui_library(
 ) -> AppResult<MachinePage> {
     let catalog_path = storage::catalog_path(&app)?;
     let settings_path = settings_path(&app)?;
+    let source = effective_mame_source(&app)?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        let query = validated_query(request, &catalog_path, &settings_path)?;
+        let query = validated_query(request, &catalog_path, &settings_path, source)?;
         CatalogRepository::open(&catalog_path)?.query_mame_ui_machines(&query)
     })
     .await
@@ -84,6 +86,7 @@ pub(crate) fn validated_query(
     request: MameUiMachineSearchRequest,
     catalog_path: &std::path::Path,
     settings_path: &std::path::Path,
+    source: crate::mame::MameExecutableSource,
 ) -> AppResult<MameUiMachineQuery> {
     let text = normalize_optional(request.text, "text", MAX_SEARCH_TEXT_LENGTH)?;
     let filter_value =
@@ -111,7 +114,7 @@ pub(crate) fn validated_query(
     }
 
     let (audit_identity_json, audit_content_paths_json) =
-        match resolve_bulk_audit_context(catalog_path, settings_path) {
+        match resolve_bulk_audit_context(catalog_path, settings_path, source) {
             Ok(context) => (
                 Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
                 Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
@@ -183,8 +186,7 @@ fn normalize_optional(
 fn availability_provenance_unavailable(error: &AppError) -> bool {
     matches!(
         error.code.as_str(),
-        "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED"
-            | "MAME_METADATA_STALE"
+        "MAME_METADATA_STALE"
             | "MAME_EXECUTABLE_PATH_EMPTY"
             | "MAME_EXECUTABLE_NOT_FOUND"
             | "MAME_EXECUTABLE_PATH_INVALID"

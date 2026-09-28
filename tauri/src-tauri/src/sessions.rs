@@ -17,6 +17,7 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     config::{load_settings, settings_path, LaunchPreferencesV1},
     diagnostics,
+    effective_runtime::{bundled_layout_for_source, effective_mame_source},
     errors::AppResult,
     event_names::{external_session_lifecycle_event, SESSION_PAUSED_EVENT, SESSION_RESUMED_EVENT},
     history, machine_settings,
@@ -150,7 +151,9 @@ pub fn launch_mame(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
-    let source = executable_source(&request.executable);
+    // The request retains its legacy typed executable field for wire compatibility,
+    // but launch authority follows the persisted bundled/default-or-external override.
+    let source = effective_mame_source(&app)?;
     launch_mame_with_source(
         source,
         request.machine,
@@ -206,17 +209,53 @@ pub(crate) fn launch_mame_with_source_and_bios(
             })
             .collect(),
     };
+    let mut effective_project_paths = project_paths
+        .into_iter()
+        .map(|project_path| ProjectPathArgument {
+            option: project_path.option,
+            path: PathBuf::from(project_path.path),
+        })
+        .collect::<Vec<_>>();
+
+    if let Some(layout) = bundled_layout_for_source(&source)? {
+        let user = storage::mame_user_directories(&app)?;
+        effective_project_paths.extend([
+            ProjectPathArgument {
+                option: "hashpath".to_owned(),
+                path: layout.hash_dir,
+            },
+            ProjectPathArgument {
+                option: "bgfx_path".to_owned(),
+                path: layout.bgfx_dir,
+            },
+            ProjectPathArgument {
+                option: "cfg_directory".to_owned(),
+                path: user.cfg,
+            },
+            ProjectPathArgument {
+                option: "nvram_directory".to_owned(),
+                path: user.nvram,
+            },
+            ProjectPathArgument {
+                option: "state_directory".to_owned(),
+                path: user.state,
+            },
+            ProjectPathArgument {
+                option: "snapshot_directory".to_owned(),
+                path: user.snapshot,
+            },
+            ProjectPathArgument {
+                option: "diff_directory".to_owned(),
+                path: user.diff,
+            },
+        ]);
+    }
+
     let target = MameLaunchTarget {
         machine,
         software,
         bios,
-        project_paths: project_paths
-            .into_iter()
-            .map(|project_path| ProjectPathArgument {
-                option: project_path.option,
-                path: PathBuf::from(project_path.path),
-            })
-            .collect(),
+        project_paths: effective_project_paths,
     };
 
     // Validate identifiers and project-controlled paths before persisting an

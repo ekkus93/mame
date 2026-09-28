@@ -38,7 +38,6 @@ import {
   catalogStateFromMetadata,
   initialMameCatalogState,
   machineAvailabilityNotice,
-  metadataExecutableRequest,
   type MameCatalogState,
 } from "./mameCatalogState";
 import {
@@ -244,26 +243,33 @@ export function MameBrowser({
 
     if (initial.status !== "checking") return;
 
-    const executable = metadataExecutableRequest(mame);
-    if (!executable) {
-      setCatalogState({
-        status: "executableUnavailable",
-        message: "The active MAME executable cannot be used to inspect metadata.",
-      });
-      return;
-    }
-
-    void getMameMetadataStatus({ executable })
+    void getMameMetadataStatus({})
       .then((status) => {
-        if (catalogSequence.current === sequence) {
-          setCatalogState(catalogStateFromMetadata(status));
+        if (catalogSequence.current !== sequence) return;
+        const next = catalogStateFromMetadata(status);
+        if (next.status === "ready") {
+          setCatalogState(next);
+          return null;
         }
+
+        // Fresh installs and bundled-runtime upgrades bootstrap metadata
+        // automatically. Manual retry remains available after a real failure.
+        setCatalogState({ status: "importing" });
+        return refreshMameMetadata({}).then((result) => {
+          if (catalogSequence.current !== sequence) return;
+          setCatalogState({
+            status: "ready",
+            machineCount: result.generation.machineCount,
+          });
+          setOffset(0);
+          setPreferredMachine(selectedRef.current?.shortName ?? null);
+        });
       })
       .catch((reason: unknown) => {
         if (catalogSequence.current === sequence) {
           setCatalogState({
             status: "importFailed",
-            message: `Metadata status unavailable: ${errorMessage(reason)}`,
+            message: errorMessage(reason),
           });
         }
       });
@@ -322,21 +328,13 @@ export function MameBrowser({
 
   const importMetadata = useCallback(() => {
     if (catalogState.status === "importing") return;
-    const executable = metadataExecutableRequest(mame);
-    if (!executable) {
-      setCatalogState({
-        status: "importFailed",
-        message: "The active MAME executable cannot be used to refresh metadata.",
-      });
-      return;
-    }
 
     const sequence = ++catalogSequence.current;
     setCatalogState({ status: "importing" });
     setLoadState({ status: "loading" });
     selectMachine(null);
 
-    void refreshMameMetadata({ executable })
+    void refreshMameMetadata({})
       .then((result) => {
         if (catalogSequence.current !== sequence) return;
         setCatalogState({
@@ -344,7 +342,7 @@ export function MameBrowser({
           machineCount: result.generation.machineCount,
         });
         setOffset(0);
-        setPreferredMachine(rememberedMachine);
+        setPreferredMachine(selectedRef.current?.shortName ?? null);
       })
       .catch((reason: unknown) => {
         if (catalogSequence.current === sequence) {
@@ -354,7 +352,7 @@ export function MameBrowser({
           });
         }
       });
-  }, [catalogState.status, mame, rememberedMachine, selectMachine]);
+  }, [catalogState.status, selectMachine]);
 
   const valueRequired = filterRequiresValue(filter);
   const request = useMemo(

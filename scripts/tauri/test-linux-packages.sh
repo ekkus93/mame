@@ -8,6 +8,13 @@ fi
 
 DEB=$(realpath "$1")
 APPIMAGE=$(realpath "$2")
+RUNTIME_MODE=${MAME_PACKAGE_RUNTIME_MODE:-structural}
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+
+case "$RUNTIME_MODE" in
+  structural|real) ;;
+  *) echo "unsupported MAME_PACKAGE_RUNTIME_MODE: $RUNTIME_MODE" >&2; exit 64 ;;
+esac
 
 [[ -f "$DEB" ]] || { echo "missing Debian package: $DEB" >&2; exit 1; }
 [[ -f "$APPIMAGE" ]] || { echo "missing AppImage: $APPIMAGE" >&2; exit 1; }
@@ -54,17 +61,24 @@ runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME exec
 desktop_rel=$(require_payload_match '^(\./)?usr/share/applications/.*\.desktop$' 'desktop entry')
 runtime_root_rel=${runtime_rel%/bin/mame}
 
-for required in \
-  "$runtime_root_rel/hash/fixture.xml" \
-  "$runtime_root_rel/bgfx/chains/fixture.json" \
-  "$runtime_root_rel/licenses/COPYING" \
-  "$runtime_root_rel/licenses/legal/GPL-2.0"; do
-  if ! grep -Fxq "$required" "$payload"; then
-    echo "Debian package is missing packaged runtime resource: $required" >&2
+for requirement in \
+  "$runtime_root_rel/hash/.*\\.xml$|software-list XML" \
+  "$runtime_root_rel/bgfx/.+|BGFX runtime resources" \
+  "$runtime_root_rel/licenses/COPYING$|COPYING" \
+  "$runtime_root_rel/licenses/legal/.+|legal resources"; do
+  pattern=${requirement%%|*}
+  description=${requirement#*|}
+  if ! grep -Eq "$pattern" "$payload"; then
+    echo "Debian package is missing $description" >&2
     dump_payload
     exit 1
   fi
 done
+if [[ "$RUNTIME_MODE" == "real" ]] && ! grep -Fxq "$runtime_root_rel/provenance.json" "$payload"; then
+  echo "Debian package is missing real-runtime provenance.json" >&2
+  dump_payload
+  exit 1
+fi
 
 printf 'MT-1305 Debian payload root: %s\n' "${runtime_root_rel#./}"
 printf 'MT-1305 Debian package dependencies: %s\n' "$depends"
@@ -85,13 +99,31 @@ frontend_name=$(basename "$binary")
 grep -Eq "^Exec=.*${frontend_name}" "$desktop_file" || { echo "desktop entry does not launch $frontend_name:" >&2; cat "$desktop_file" >&2; exit 1; }
 
 runtime_root=${runtime_bin%/bin/mame}
-for required in \
-  "$runtime_root/hash/fixture.xml" \
-  "$runtime_root/bgfx/chains/fixture.json" \
-  "$runtime_root/licenses/COPYING" \
-  "$runtime_root/licenses/legal/GPL-2.0"; do
-  [[ -f "$required" ]] || { echo "installed runtime resource is missing: $required" >&2; exit 1; }
-done
+find "$runtime_root/hash" -maxdepth 1 -type f -name '*.xml' -print -quit | grep -q . \
+  || { echo "installed runtime has no software-list XML" >&2; exit 1; }
+find "$runtime_root/bgfx" -type f -print -quit | grep -q . \
+  || { echo "installed runtime has no BGFX resources" >&2; exit 1; }
+[[ -s "$runtime_root/licenses/COPYING" ]] || { echo "installed COPYING is missing" >&2; exit 1; }
+find "$runtime_root/licenses/legal" -type f -print -quit | grep -q . \
+  || { echo "installed legal resources are missing" >&2; exit 1; }
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  [[ -s "$runtime_root/provenance.json" ]] || { echo "installed runtime provenance is missing" >&2; exit 1; }
+  [[ ! -w "$runtime_root" ]] || { echo "installed package runtime root is unexpectedly user-writable" >&2; exit 1; }
+  if grep -Eq '(^|, )[[:space:]]*mame([[:space:](,]|$)' <<<"$depends"; then
+    echo "Debian package must not depend on the distro mame package: $depends" >&2
+    exit 1
+  fi
+  if ldd "$runtime_bin" | grep -q 'not found'; then
+    echo "installed bundled MAME has unresolved shared-library dependencies" >&2
+    ldd "$runtime_bin" >&2
+    exit 1
+  fi
+  (
+    cd "$smoke_tmp"
+    bash "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$runtime_bin"
+  )
+fi
 
 x11_smoke() {
   local log_path=$1
@@ -143,7 +175,114 @@ x11_smoke() {
   ' bash "$log_path" "$@"
 }
 
-x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+real_bootstrap_smoke() {
+  local log_path=$1
+  local data_home="$smoke_tmp/xdg-data"
+  local config_home="$smoke_tmp/xdg-config"
+  mkdir -p "$data_home" "$config_home"
+
+  xvfb-run -a bash -c '
+    set -euo pipefail
+    log_path=$1
+    data_home=$2
+    config_home=$3
+    binary=$4
+
+    XDG_DATA_HOME="$data_home" XDG_CONFIG_HOME="$config_home" "$binary" >"$log_path" 2>&1 &
+    pid=$!
+    trap "kill $pid 2>/dev/null || true" EXIT
+    window_seen=0
+
+    for _ in $(seq 1 1000); do
+      if [[ "$window_seen" -eq 0 ]]; then
+        window_id=$(xdotool search --name "^MAME Tauri Frontend$" 2>/dev/null | head -n 1 || true)
+        [[ -n "$window_id" ]] && window_seen=1
+      fi
+
+      catalog=$(find "$data_home" -type f -name catalog.sqlite3 -print -quit 2>/dev/null || true)
+      if [[ "$window_seen" -eq 1 && -n "$catalog" ]]; then
+        row=$(sqlite3 "$catalog"           "SELECT source_kind || '|' || trust || '|' || machine_count FROM metadata_generation WHERE active = 1 LIMIT 1;"           2>/dev/null || true)
+        if [[ -n "$row" ]]; then
+          IFS="|" read -r source trust count <<<"$row"
+          if [[ "$source" == "bundled" && "$trust" == "qualifiedBundled" && "$count" =~ ^[0-9]+$ && "$count" -gt 1000 ]]; then
+            settings=$(find "$config_home" -type f -name settings.json -print -quit 2>/dev/null || true)
+            if [[ -n "$settings" ]] && grep -Eq "\"mameExecutable\"[[:space:]]*:[[:space:]]*\"" "$settings"; then
+              echo "fresh installed startup unexpectedly persisted an external MAME executable" >&2
+              cat "$settings" >&2
+              exit 1
+            fi
+            printf "BMR real-package bootstrap ready: source=%s trust=%s machines=%s catalog=%s\n"               "$source" "$trust" "$count" "$catalog"
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            exit 0
+          fi
+        fi
+      fi
+
+      if ! kill -0 "$pid" 2>/dev/null; then
+        echo "application exited before bundled metadata bootstrap reached ready state" >&2
+        cat "$log_path" >&2
+        exit 1
+      fi
+      sleep 0.25
+    done
+
+    echo "bundled metadata bootstrap did not reach a ready catalog before timeout" >&2
+    echo "--- application log ---" >&2
+    cat "$log_path" >&2
+    exit 1
+  ' bash "$log_path" "$data_home" "$config_home" "$binary"
+}
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  real_bootstrap_smoke "$smoke_tmp/deb-launch.log"
+else
+  x11_smoke "$smoke_tmp/deb-launch.log" "$binary"
+fi
+
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  data_home="$smoke_tmp/xdg-data"
+  config_home="$smoke_tmp/xdg-config"
+  catalog=$(find "$data_home" -type f -name catalog.sqlite3 -print -quit)
+  [[ -n "$catalog" ]] || { echo "real bootstrap catalog missing before upgrade smoke" >&2; exit 1; }
+
+  sentinel="$data_home/bmr-upgrade-user-data-sentinel"
+  printf 'preserve user data across package upgrade\n' >"$sentinel"
+  config_dir="$config_home/io.github.ekkus93.mame-tauri"
+  mkdir -p "$config_dir"
+  settings_file="$config_dir/settings.json"
+  cat >"$settings_file" <<'JSON'
+{
+  "schemaVersion": 2,
+  "mameExecutable": "/opt/preserved/custom-mame",
+  "contentPaths": {
+    "romPaths": ["/games/roms"],
+    "softwarePaths": ["/games/software"],
+    "chdPaths": ["/games/chd"]
+  },
+  "launchPreferences": {
+    "windowMode": "windowed",
+    "renderer": "bgfx",
+    "audio": "auto"
+  }
+}
+JSON
+
+  catalog_sha_before=$(sha256sum "$catalog" | awk '{print $1}')
+  settings_sha_before=$(sha256sum "$settings_file" | awk '{print $1}')
+  runtime_sha_before=$(sha256sum "$runtime_bin" | awk '{print $1}')
+  sudo apt-get install --reinstall -y "$DEB"
+
+  [[ -x "$runtime_bin" ]] || { echo "bundled runtime missing after package reinstall/upgrade" >&2; exit 1; }
+  [[ -f "$sentinel" ]] || { echo "user data sentinel was removed by package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$catalog" | awk '{print $1}')" == "$catalog_sha_before" ]] \
+    || { echo "user catalog changed during package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$settings_file" | awk '{print $1}')" == "$settings_sha_before" ]] \
+    || { echo "runtime override/content/launch settings changed during package reinstall/upgrade" >&2; exit 1; }
+  [[ "$(sha256sum "$runtime_bin" | awk '{print $1}')" == "$runtime_sha_before" ]] \
+    || { echo "reinstalled bundled runtime does not match qualified package payload" >&2; exit 1; }
+  printf 'BMR package reinstall/upgrade preservation smoke passed\n'
+fi
 
 sudo apt-get remove -y "$package"
 [[ ! -e "$binary" ]] || { echo "frontend executable remains after Debian uninstall: $binary" >&2; exit 1; }
@@ -164,13 +303,20 @@ app_root="$extract_dir/squashfs-root"
 app_runtime_bin=$(find "$app_root" -path '*/mame-runtime/bin/mame' -type f -print -quit)
 [[ -n "$app_runtime_bin" && -x "$app_runtime_bin" ]] || { echo "AppImage bundled MAME executable is missing or non-executable" >&2; find "$app_root" -maxdepth 5 -type f -print >&2; exit 1; }
 app_runtime_root=${app_runtime_bin%/bin/mame}
-for required in \
-  "$app_runtime_root/hash/fixture.xml" \
-  "$app_runtime_root/bgfx/chains/fixture.json" \
-  "$app_runtime_root/licenses/COPYING" \
-  "$app_runtime_root/licenses/legal/GPL-2.0"; do
-  [[ -f "$required" ]] || { echo "AppImage runtime resource is missing: $required" >&2; exit 1; }
-done
+find "$app_runtime_root/hash" -maxdepth 1 -type f -name '*.xml' -print -quit | grep -q . \
+  || { echo "AppImage runtime has no software-list XML" >&2; exit 1; }
+find "$app_runtime_root/bgfx" -type f -print -quit | grep -q . \
+  || { echo "AppImage runtime has no BGFX resources" >&2; exit 1; }
+[[ -s "$app_runtime_root/licenses/COPYING" ]] || { echo "AppImage COPYING is missing" >&2; exit 1; }
+find "$app_runtime_root/licenses/legal" -type f -print -quit | grep -q . \
+  || { echo "AppImage legal resources are missing" >&2; exit 1; }
+if [[ "$RUNTIME_MODE" == "real" ]]; then
+  [[ -s "$app_runtime_root/provenance.json" ]] || { echo "AppImage runtime provenance is missing" >&2; exit 1; }
+  (
+    cd "$smoke_tmp"
+    bash "$SCRIPT_DIR/validate-real-mame-runtime.sh" "$app_runtime_bin"
+  )
+fi
 app_desktop=$(find "$app_root" -name '*.desktop' -type f -print -quit)
 [[ -n "$app_desktop" ]] || { echo "AppImage desktop entry is missing" >&2; exit 1; }
 grep -Fq 'Name=MAME Tauri Frontend' "$app_desktop" || { echo "AppImage desktop entry has unexpected Name:" >&2; cat "$app_desktop" >&2; exit 1; }

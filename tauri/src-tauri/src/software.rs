@@ -7,14 +7,13 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        get_machine_bios_choices, get_software_list_xml, inspect_executable,
-        validate_bios_identifier, validate_bios_selection, validate_short_identifier,
-        validate_software_identifier, validate_software_list_identifier, BiosChoice,
-        MameExecutableIdentity, MameExecutableSource,
+        get_machine_bios_choices, get_software_list_xml, validate_bios_identifier,
+        validate_bios_selection, validate_short_identifier, validate_software_identifier,
+        validate_software_list_identifier, BiosChoice,
     },
     metadata::{
-        parse_software_item, parse_software_list_page, CatalogRepository,
-        MetadataGenerationSummary, SoftwareItemSummary, SoftwareListFilter,
+        effective_source_for_generation, parse_software_item, parse_software_list_page,
+        CatalogRepository, MetadataGenerationSummary, SoftwareItemSummary, SoftwareListFilter,
     },
     sessions::{self, SessionSnapshot, SessionSupervisor},
     storage,
@@ -99,7 +98,7 @@ pub async fn query_mame_software_list(
             &request.short_name,
             &request.software_list,
         )?;
-        let source = validated_generation_source(&generation)?;
+        let source = effective_source_for_generation(&app, &generation)?;
         let xml = get_software_list_xml(&source, &request.software_list)?;
         let parsed = parse_software_list_page(
             Cursor::new(xml.as_bytes()),
@@ -138,7 +137,7 @@ pub async fn query_mame_bios_choices(
         let repository = CatalogRepository::open(&catalog_path)?;
         repository.machine_detail(&short_name)?;
         let generation = active_generation(&repository)?;
-        let source = validated_generation_source(&generation)?;
+        let source = effective_source_for_generation(&app, &generation)?;
         let choices = get_machine_bios_choices(&source, &short_name)?;
         Ok(BiosChoicesResponse {
             schema_version: 1,
@@ -175,7 +174,7 @@ pub fn launch_library_software(
     let repository = CatalogRepository::open(&catalog_path)?;
     let generation = active_generation(&repository)?;
     ensure_machine_software_list_association(&repository, &short_name, &software_list)?;
-    let source = validated_generation_source(&generation)?;
+    let source = effective_source_for_generation(&app, &generation)?;
     if let Some(selected_bios) = bios.as_deref() {
         let choices = get_machine_bios_choices(&source, &short_name)?;
         validate_bios_selection(&choices, selected_bios)?;
@@ -326,65 +325,6 @@ fn ensure_machine_software_list_association(
     .with_details(serde_json::json!({
         "shortName": short_name,
         "softwareList": software_list
-    })))
-}
-
-fn validated_generation_source(
-    generation: &MetadataGenerationSummary,
-) -> AppResult<MameExecutableSource> {
-    let source = launch_source_from_generation(generation)?;
-    let identity = inspect_executable(source.clone())?;
-    ensure_generation_matches_executable(generation, &identity)?;
-    Ok(source)
-}
-
-fn launch_source_from_generation(
-    generation: &MetadataGenerationSummary,
-) -> AppResult<MameExecutableSource> {
-    match (generation.source_kind.as_str(), generation.trust.as_str()) {
-        ("external", "userConfigured") => {
-            Ok(MameExecutableSource::external(&generation.executable_path))
-        }
-        ("developmentTree", "development") => Ok(MameExecutableSource::development_tree(
-            &generation.executable_path,
-        )),
-        ("bundled", "qualifiedBundled") => Err(AppError::new(
-            "CATALOG_BUNDLED_EXECUTABLE_RESOLUTION_REQUIRED",
-            "Bundled MAME launch requires package-owned executable resolution.",
-        )),
-        (source_kind, trust) => Err(AppError::new(
-            "CATALOG_EXECUTABLE_PROVENANCE_INVALID",
-            "The active catalog has an invalid executable source/trust pairing.",
-        )
-        .with_details(serde_json::json!({
-            "sourceKind": source_kind,
-            "trust": trust
-        }))),
-    }
-}
-
-fn ensure_generation_matches_executable(
-    generation: &MetadataGenerationSummary,
-    identity: &MameExecutableIdentity,
-) -> AppResult<()> {
-    if generation.executable_path == identity.path
-        && generation.mame_version == identity.version
-        && generation.mame_build == identity.build
-        && generation.raw_version_line == identity.raw_version_line
-    {
-        return Ok(());
-    }
-    Err(AppError::new(
-        "MAME_METADATA_STALE",
-        "The selected MAME executable no longer matches the active metadata generation.",
-    )
-    .with_details(serde_json::json!({
-        "catalogPath": generation.executable_path,
-        "catalogVersion": generation.mame_version,
-        "catalogBuild": generation.mame_build,
-        "currentPath": identity.path,
-        "currentVersion": identity.version,
-        "currentBuild": identity.build
     })))
 }
 

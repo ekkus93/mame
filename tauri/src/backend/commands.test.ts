@@ -41,10 +41,8 @@ describe("typed backend commands", () => {
     });
   });
 
-  it("passes executable identity requests through typed metadata commands", async () => {
-    const request = {
-      executable: { source: "external" as const, path: "/opt/mame/mame" },
-    };
+  it("uses effective-runtime metadata commands without accepting an executable override", async () => {
+    const request = {};
     vi.mocked(invoke).mockResolvedValue({ schemaVersion: 1 });
 
     await refreshMameMetadata(request);
