@@ -225,7 +225,7 @@ mod tests {
         let resource_dir = temp.path().join("resources");
         fs::create_dir_all(&resource_dir).expect("resource dir");
         let layout = BundledRuntimeLayout::from_resource_dir(&resource_dir);
-        fs::create_dir_all(layout.executable.parent().expect("bin dir")).expect("bin dir");
+        fs::create_dir_all(layout.executable.parent().expect("bin dir"))\n            .expect("bin dir");
         fs::create_dir_all(&layout.hash_dir).expect("hash dir");
         fs::create_dir_all(layout.bgfx_dir.join("shaders")).expect("bgfx dir");
         fs::create_dir_all(&layout.legal_dir).expect("legal dir");
@@ -233,12 +233,12 @@ mod tests {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut permissions = fs::metadata(&layout.executable).expect("metadata").permissions();
+            let mut permissions = fs::metadata(&layout.executable)\n                .expect("metadata")\n                .permissions();
             permissions.set_mode(0o755);
             fs::set_permissions(&layout.executable, permissions).expect("permissions");
         }
-        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>").expect("hash");
-        fs::write(layout.bgfx_dir.join("shaders").join("fixture.bin"), b"shader").expect("bgfx");
+        fs::write(layout.hash_dir.join("fixture.xml"), b"<softwarelist/>")\n            .expect("hash");
+        fs::write(\n            layout.bgfx_dir.join("shaders").join("fixture.bin"),\n            b"shader",\n        )\n        .expect("bgfx");
         fs::write(&layout.copying, b"license").expect("copying");
         fs::write(layout.legal_dir.join("GPL-2.0"), b"license").expect("legal");
 
@@ -258,7 +258,7 @@ mod tests {
         let source = effective_mame_source(&settings, std::path::Path::new("/unused"))
             .expect("external override does not require bundled layout");
         assert_eq!(source.kind(), MameExecutableSourceKind::External);
-        assert_eq!(source.path(), std::path::Path::new("/opt/custom-mame/mame"));
+        assert_eq!(\n            source.path(),\n            std::path::Path::new("/opt/custom-mame/mame")\n        );
     }
 
     #[test]
