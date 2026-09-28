@@ -42,6 +42,10 @@ if [ "${1:-}" = "-noreadconfig" ] && [ "${2:-}" = "-version" ]; then
   echo "0.288 test-real-runtime"
   exit 0
 fi
+if [ "${1:-}" = "-noreadconfig" ] && [ "${2:-}" = "-listxml" ] && [ "${3:-}" = "pacman" ]; then
+  echo '<mame build="0.288 test-real-runtime"><machine name="pacman"/></mame>'
+  exit 0
+fi
 exit 1
 EOF
 chmod 0755 "$temp/real-mame"
