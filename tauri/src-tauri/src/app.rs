@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::{
-    bundled_runtime::BundledRuntimeLayout,
-    config::{load_settings, settings_path, SettingsV2, SETTINGS_SCHEMA_VERSION},
+    config::{load_settings, settings_path, SETTINGS_SCHEMA_VERSION},
+    effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
     event_names::APP_READY_EVENT,
-    mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
+    mame::{inspect_executable, MameExecutableIdentity},
     sessions::query_state::RUNTIME_CONTROL_PROTOCOL_VERSION,
     storage::CATALOG_SCHEMA_VERSION,
 };
@@ -115,17 +115,6 @@ fn unavailable_mame(path: Option<String>, error: AppError) -> MameVersionReport 
     }
 }
 
-fn effective_mame_source(
-    settings: &SettingsV2,
-    resource_dir: &std::path::Path,
-) -> AppResult<MameExecutableSource> {
-    if let Some(path) = settings.mame_executable.as_deref() {
-        return Ok(MameExecutableSource::external(path));
-    }
-
-    BundledRuntimeLayout::from_resource_dir(resource_dir).executable_source()
-}
-
 fn resolve_mame_version<R: Runtime>(app: &AppHandle<R>) -> MameVersionReport {
     let path = match settings_path(app) {
         Ok(path) => path,
@@ -149,7 +138,7 @@ fn resolve_mame_version<R: Runtime>(app: &AppHandle<R>) -> MameVersionReport {
         }
     };
 
-    let source = match effective_mame_source(&settings, &resource_dir) {
+    let source = match resolve_effective_mame_source(&settings, &resource_dir) {
         Ok(source) => source,
         Err(error) => return unavailable_mame(settings.mame_executable.clone(), error),
     };
@@ -187,13 +176,11 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use super::{
-        build_app_info, effective_mame_source, AppInfoRequest, MameVersionReport,
-        APP_PROTOCOL_VERSION,
-    };
+    use super::{build_app_info, AppInfoRequest, MameVersionReport, APP_PROTOCOL_VERSION};
     use crate::{
         bundled_runtime::BundledRuntimeLayout,
         config::{SettingsV2, SETTINGS_SCHEMA_VERSION},
+        effective_runtime::resolve_effective_mame_source,
         mame::{MameExecutableSourceKind, MameExecutableTrust},
         sessions::query_state::RUNTIME_CONTROL_PROTOCOL_VERSION,
         storage::CATALOG_SCHEMA_VERSION,
@@ -248,7 +235,7 @@ mod tests {
         fs::write(&layout.copying, b"license").expect("copying");
         fs::write(layout.legal_dir.join("GPL-2.0"), b"license").expect("legal");
 
-        let source = effective_mame_source(&SettingsV2::default(), &resource_dir)
+        let source = resolve_effective_mame_source(&SettingsV2::default(), &resource_dir)
             .expect("default settings must resolve bundled runtime");
         assert_eq!(source.kind(), MameExecutableSourceKind::Bundled);
         assert_eq!(source.trust(), MameExecutableTrust::QualifiedBundled);
@@ -261,7 +248,7 @@ mod tests {
             mame_executable: Some("/opt/custom-mame/mame".to_owned()),
             ..SettingsV2::default()
         };
-        let source = effective_mame_source(&settings, std::path::Path::new("/unused"))
+        let source = resolve_effective_mame_source(&settings, std::path::Path::new("/unused"))
             .expect("external override does not require bundled layout");
         assert_eq!(source.kind(), MameExecutableSourceKind::External);
         assert_eq!(source.path(), std::path::Path::new("/opt/custom-mame/mame"));
@@ -272,7 +259,7 @@ mod tests {
         let temp = tempdir().expect("tempdir");
         let resource_dir = temp.path().join("resources");
         fs::create_dir_all(&resource_dir).expect("resource dir");
-        let error = effective_mame_source(&SettingsV2::default(), &resource_dir)
+        let error = resolve_effective_mame_source(&SettingsV2::default(), &resource_dir)
             .expect_err("missing bundled runtime must fail closed");
         assert_eq!(error.code, "MAME_BUNDLED_RUNTIME_MISSING");
     }
