@@ -1,7 +1,7 @@
 import type {
-  MameExecutableRequest,
   MameVersionReport,
   MachinePage,
+  MetadataExecutableRequest,
   MetadataStatus,
 } from "../backend/types";
 
@@ -27,15 +27,15 @@ export function initialMameCatalogState(mame: MameVersionReport): MameCatalogSta
   }
 }
 
-export function metadataExecutableRequest(mame: MameVersionReport): MameExecutableRequest | null {
+export function metadataExecutableRequest(mame: MameVersionReport): MetadataExecutableRequest | null {
   if (mame.status !== "available") return null;
   switch (mame.identity.source) {
+    case "bundled":
+      return { source: "bundled", path: "" };
     case "external":
       return { source: "external", path: mame.identity.path };
     case "developmentTree":
       return { source: "developmentTree", path: mame.identity.path };
-    case "bundled":
-      return null;
   }
 }
 
