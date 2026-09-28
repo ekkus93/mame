@@ -8,6 +8,7 @@ from pathlib import Path
 TODO = Path("docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md")
 WORKFLOW = Path(".github/workflows/tauri-project.yml")
 TODO_TOKEN = "docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md"
+SPEC_TOKEN = "docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_SPEC_2026-09-27.md"
 STEP_NAME = "BMR bundled runtime TODO wiring regression tests"
 SCRIPT_TOKEN = "scripts/tauri/test-bmr-bundled-runtime-todo-wiring.py"
 
@@ -24,10 +25,8 @@ def main() -> None:
     todo = TODO.read_text(encoding="utf-8")
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
-    require(
-        "Canonical specification: `docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_SPEC_2026-09-27.md`" in todo,
-        "BMR TODO must keep its canonical specification link",
-    )
+    require("Canonical specification" in todo, "BMR TODO must name its canonical specification")
+    require(SPEC_TOKEN in todo, "BMR TODO must keep its canonical specification link")
     require("## BMR-000" in todo, "BMR TODO must retain baseline/invariant section")
     require("## BMR-015" in todo, "BMR TODO must retain final qualification section")
     require("Synthetic package fixtures alone are never sufficient" in todo, "BMR completion rule must reject synthetic-only closure")
