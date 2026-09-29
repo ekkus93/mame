@@ -48,6 +48,7 @@ jobs:
             libpulse-dev \
             librsvg2-dev \
             libsdl2-dev \
+            libsdl2-ttf-dev \
             libssl-dev \
             libutf8proc-dev \
             libwebkit2gtk-4.1-dev \
@@ -94,7 +95,7 @@ jobs:
           )
 
           probe_runtime_candidate() {
-            local candidate size_before size_after version_log version_line
+            local candidate size_before size_after version_log
             for candidate in "${runtime_candidates[@]}"; do
               [[ -x "$candidate" && -f "$candidate" ]] || continue
               size_before=$(stat -c '%s' "$candidate" 2>/dev/null || printf '0')
@@ -105,8 +106,7 @@ jobs:
 
               version_log=$(mktemp)
               if timeout 30s "$candidate" -noreadconfig -version >"$version_log" 2>&1; then
-                version_line=$(head -n 1 "$version_log" | tr -d '\r')
-                if grep -Eq '^[0-9]+[.][0-9]+' <<<"$version_line" && ! grep -Eiq 'synthetic|fixture payload|MT-1305' "$version_log"; then
+                if grep -Eiq '(^|[[:space:]])(mame[[:space:]]*)?[0-9]+[.][0-9]+' "$version_log" && ! grep -Eiq 'synthetic|fixture payload|MT-1305' "$version_log"; then
                   runtime="$candidate"
                   echo "Validated linked MAME runtime candidate with -version: $runtime"
                   cat "$version_log"
