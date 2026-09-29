@@ -83,54 +83,78 @@ jobs:
           set -euo pipefail
           jobs=${MAME_TAURI_MAME_BUILD_JOBS:-1}
           subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
-          project_dir="build/projects/sdl/mame${subtarget}/gmake-linux"
-          echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs project_dir=$project_dir"
+          echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
 
-          status=0
-          phase="generate targeted gmake project"
-          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" "$project_dir/Makefile" || status=$?
-          if [[ "$status" -eq 0 ]]; then
-            phase="precompile targeted project"
-            make -j"$jobs" -C "$project_dir" config=release64 precompile || status=$?
-          fi
-          if [[ "$status" -eq 0 ]]; then
-            phase="generate MAME layout/resource headers"
-            make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" generate || status=$?
-          fi
-          if [[ "$status" -eq 0 ]]; then
-            phase="build targeted runtime executable"
-            make -j"$jobs" -C "$project_dir" config=release64 "mame_${subtarget}" || status=$?
-          fi
-          if [[ "$status" -ne 0 ]]; then
-            echo "MAME build failed during phase '$phase' with status $status" >&2
-            echo "--- runner memory ---" >&2
-            free -h >&2 || true
-            echo "--- runner disk ---" >&2
-            df -h . "$RUNNER_TEMP" >&2 || true
-            echo "--- ccache stats ---" >&2
-            ccache -s >&2 || true
-            echo "--- partial runtime outputs ---" >&2
-            find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
-            exit "$status"
-          fi
+          runtime_candidates=(
+            "./mame"
+            "./mame_${subtarget}"
+            "./mame${subtarget}"
+            "./build/linux_gcc/bin/x64/Release/mame_${subtarget}"
+            "./build/linux_gcc/bin/x64/Release/mame${subtarget}"
+          )
+
+          validate_runtime_candidate() {
+            local candidate
+            for candidate in "${runtime_candidates[@]}"; do
+              if [[ -x "$candidate" && -f "$candidate" ]]; then
+                if ./scripts/tauri/validate-real-mame-runtime.sh "$candidate" >/tmp/mame-runtime-validator.log 2>&1; then
+                  runtime="$candidate"
+                  cat /tmp/mame-runtime-validator.log
+                  return 0
+                fi
+              fi
+            done
+            return 1
+          }
+
+          build_log=$(mktemp)
           runtime=
-          for candidate in \
-            "./mame" \
-            "./mame_${subtarget}" \
-            "./mame${subtarget}" \
-            "./build/linux_gcc/bin/x64/Release/mame_${subtarget}" \
-            "./build/linux_gcc/bin/x64/Release/mame${subtarget}"; do
-            if [[ -x "$candidate" && -f "$candidate" ]]; then
-              runtime="$candidate"
+          build_pid=
+          cleanup_build() {
+            if [[ -n "${build_pid:-}" ]] && kill -0 "$build_pid" 2>/dev/null; then
+              kill -TERM -- "-$build_pid" 2>/dev/null || kill -TERM "$build_pid" 2>/dev/null || true
+              wait "$build_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup_build EXIT
+
+          setsid make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" > >(tee "$build_log") 2>&1 &
+          build_pid=$!
+
+          while kill -0 "$build_pid" 2>/dev/null; do
+            if validate_runtime_candidate; then
+              echo "Validated real MAME runtime before full top-level build completion: $runtime"
+              cleanup_build
               break
             fi
+            sleep 10
           done
+
           if [[ -z "$runtime" ]]; then
-            echo "Could not find built MAME runtime executable for SUBTARGET=$subtarget" >&2
-            find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
-            exit 1
+            if wait "$build_pid"; then
+              validate_runtime_candidate || {
+                echo "MAME build completed but no valid runtime executable was found" >&2
+                find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
+                exit 1
+              }
+            else
+              status=$?
+              echo "MAME build exited with status $status before a valid runtime was available" >&2
+              echo "--- last MAME build log lines ---" >&2
+              tail -n 200 "$build_log" >&2 || true
+              echo "--- runner memory ---" >&2
+              free -h >&2 || true
+              echo "--- runner disk ---" >&2
+              df -h . "$RUNNER_TEMP" >&2 || true
+              echo "--- ccache stats ---" >&2
+              ccache -s >&2 || true
+              echo "--- partial runtime outputs ---" >&2
+              find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
+              exit "$status"
+            fi
           fi
-          ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
+
+          trap - EXIT
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
       - name: Stage release-qualified bundled runtime
