@@ -94,30 +94,33 @@ jobs:
             "./build/linux_gcc/bin/x64/Release/mame${subtarget}"
           )
 
-          probe_runtime_candidate() {
-            local candidate size_before size_after version_log
+          discover_runtime_candidates() {
+            local candidate
             for candidate in "${runtime_candidates[@]}"; do
+              [[ -f "$candidate" ]] && printf '%s\n' "$candidate"
+            done
+            find . -maxdepth 8 -type f \( -name "mame_${subtarget}" -o -name "mame${subtarget}" -o -name mame \) -perm -111 -print 2>/dev/null || true
+          }
+
+          probe_runtime_candidate() {
+            local candidate size_before size_after file_log
+            while IFS= read -r candidate; do
               [[ -x "$candidate" && -f "$candidate" ]] || continue
               size_before=$(stat -c '%s' "$candidate" 2>/dev/null || printf '0')
-              [[ "$size_before" -gt 0 ]] || continue
+              [[ "$size_before" -gt 1048576 ]] || continue
               sleep 2
               size_after=$(stat -c '%s' "$candidate" 2>/dev/null || printf '0')
               [[ "$size_before" == "$size_after" ]] || continue
 
-              version_log=$(mktemp)
-              if timeout 30s "$candidate" -noreadconfig -version >"$version_log" 2>&1; then
-                if grep -Eiq '(^|[[:space:]])(mame[[:space:]]*)?[0-9]+[.][0-9]+' "$version_log" && ! grep -Eiq 'synthetic|fixture payload|MT-1305' "$version_log"; then
-                  runtime="$candidate"
-                  echo "Validated linked MAME runtime candidate with -version: $runtime"
-                  cat "$version_log"
-                  rm -f "$version_log"
-                  return 0
-                fi
+              file_log=$(file "$candidate" 2>/dev/null || true)
+              echo "Runtime candidate file signature: $file_log"
+              if grep -Eq 'ELF .*(executable|shared object)' <<<"$file_log" && ! grep -Eiq 'shell script|text|synthetic|fixture|MT-1305' <<<"$file_log"; then
+                runtime="$candidate"
+                echo "Found linked real MAME runtime candidate: $runtime"
+                return 0
               fi
-              echo "Candidate did not yet pass direct -version probe: $candidate" >&2
-              cat "$version_log" >&2 || true
-              rm -f "$version_log"
-            done
+              echo "Candidate is not yet a linked real MAME runtime: $candidate" >&2
+            done < <(discover_runtime_candidates | awk '!seen[$0]++')
             return 1
           }
 
@@ -127,7 +130,17 @@ jobs:
           cleanup_build() {
             if [[ -n "${build_pid:-}" ]] && kill -0 "$build_pid" 2>/dev/null; then
               kill -TERM -- "-$build_pid" 2>/dev/null || kill -TERM "$build_pid" 2>/dev/null || true
+              for _ in {1..10}; do
+                if ! kill -0 "$build_pid" 2>/dev/null; then
+                  wait "$build_pid" 2>/dev/null || true
+                  build_pid=
+                  return 0
+                fi
+                sleep 1
+              done
+              kill -KILL -- "-$build_pid" 2>/dev/null || kill -KILL "$build_pid" 2>/dev/null || true
               wait "$build_pid" 2>/dev/null || true
+              build_pid=
             fi
           }
           trap cleanup_build EXIT
@@ -137,7 +150,7 @@ jobs:
 
           while kill -0 "$build_pid" 2>/dev/null; do
             if probe_runtime_candidate; then
-              echo "Stopping top-level MAME build after real runtime candidate validated: $runtime"
+              echo "Stopping top-level MAME build after linked runtime candidate appeared: $runtime"
               cleanup_build
               break
             fi
@@ -146,14 +159,16 @@ jobs:
 
           if [[ -z "$runtime" ]]; then
             if wait "$build_pid"; then
+              build_pid=
               probe_runtime_candidate || {
-                echo "MAME build completed but no valid runtime executable was found" >&2
-                find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
+                echo "MAME build completed but no linked runtime executable was found" >&2
+                find . -maxdepth 8 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
                 exit 1
               }
             else
               status=$?
-              echo "MAME build exited with status $status before a valid runtime was available" >&2
+              build_pid=
+              echo "MAME build exited with status $status before a linked runtime was available" >&2
               echo "--- last MAME build log lines ---" >&2
               tail -n 200 "$build_log" >&2 || true
               echo "--- runner memory ---" >&2
@@ -163,12 +178,13 @@ jobs:
               echo "--- ccache stats ---" >&2
               ccache -s >&2 || true
               echo "--- partial runtime outputs ---" >&2
-              find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
+              find . -maxdepth 8 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
               exit "$status"
             fi
           fi
 
           trap - EXIT
+          cleanup_build
           ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
