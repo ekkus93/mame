@@ -227,6 +227,50 @@ refresh_installed_paths() {
   runtime_root=${runtime_bin%/bin/mame}
 }
 
+assert_backend_resolves_installed_bundled_runtime() {
+  local runtime_root=$1
+  local runtime_bin="$runtime_root/bin/mame"
+  local resource_dir=${runtime_root%/mame-runtime}
+  local probe_root="$smoke_tmp/backend-bundled-runtime"
+  local probe_json="$probe_root/runtime-identity.json"
+  mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache"
+
+  env \
+    HOME="$probe_root/home" \
+    XDG_CONFIG_HOME="$probe_root/config" \
+    XDG_DATA_HOME="$probe_root/data" \
+    XDG_CACHE_HOME="$probe_root/cache" \
+    "$binary" --mame-tauri-verify-bundled-runtime "$resource_dir" >"$probe_json"
+
+  python3 - "$probe_json" "$runtime_bin" <<'PY'
+import json
+import os
+import sys
+
+probe_path, expected_runtime = sys.argv[1], os.path.realpath(sys.argv[2])
+with open(probe_path, encoding='utf-8') as handle:
+    identity = json.load(handle)
+
+errors = []
+if identity.get('source') != 'bundled':
+    errors.append(f"source={identity.get('source')!r}")
+if identity.get('trust') != 'qualifiedBundled':
+    errors.append(f"trust={identity.get('trust')!r}")
+actual_path = os.path.realpath(identity.get('path', ''))
+if actual_path != expected_runtime:
+    errors.append(f"path={actual_path!r} expected={expected_runtime!r}")
+if not identity.get('version'):
+    errors.append('missing version')
+if not identity.get('rawVersionLine'):
+    errors.append('missing rawVersionLine')
+
+if errors:
+    raise SystemExit('installed backend bundled-runtime identity mismatch: ' + ', '.join(errors))
+PY
+
+  printf 'Installed backend resolves default runtime as bundled: %s\n' "$runtime_bin"
+}
+
 frontend_rel=$(require_payload_match '^(\./)?usr/bin/[^/]+$' 'frontend executable')
 runtime_rel=$(require_payload_match '/mame-runtime/bin/mame$' 'bundled MAME executable')
 desktop_rel=$(require_payload_match '^(\./)?usr/share/applications/.*\.desktop$' 'desktop entry')
@@ -253,6 +297,7 @@ sudo apt-get install -y "$DEB"
 refresh_installed_paths
 
 assert_runtime_tree "$runtime_root"
+assert_backend_resolves_installed_bundled_runtime "$runtime_root"
 assert_deb_declares_runtime_library_dependencies "$runtime_bin" "$depends" "$smoke_tmp/declared-runtime-deps-ldd.log"
 
 readonly_probe_root="$smoke_tmp/readonly-runtime"
@@ -354,6 +399,7 @@ assert_package_reinstall_preserves_user_state() {
 
   refresh_installed_paths
   assert_runtime_tree "$runtime_root"
+  assert_backend_resolves_installed_bundled_runtime "$runtime_root"
   assert_deb_declares_runtime_library_dependencies "$runtime_bin" "$depends" "$smoke_tmp/reinstall-declared-runtime-deps-ldd.log"
 
   "$runtime_bin" -noreadconfig -version >"$smoke_tmp/reinstall-version.log" 2>&1
@@ -408,4 +454,4 @@ if [[ -n "$APPIMAGE" ]]; then
   assert_runtime_tree "${app_runtime_bin%/bin/mame}"
 fi
 
-printf 'Real-runtime Debian install/uninstall, bundled MAME execution, read-only runtime, declared shared-library dependencies, package reinstall/user-state preservation, desktop launch, and package dependency qualification passed\n'
+printf 'Real-runtime Debian install/uninstall, bundled MAME execution, backend bundled-source resolution, read-only runtime, declared shared-library dependencies, package reinstall/user-state preservation, desktop launch, and package dependency qualification passed\n'

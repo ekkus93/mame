@@ -1,5 +1,7 @@
 #![deny(unsafe_code)]
 
+use std::path::Path;
+
 pub mod app;
 pub mod artwork;
 pub mod artwork_assets;
@@ -32,6 +34,39 @@ pub mod save_state_records;
 pub mod sessions;
 pub mod software;
 pub mod storage;
+
+pub fn verify_bundled_runtime_resource_dir(
+    resource_dir: impl AsRef<Path>,
+) -> errors::AppResult<mame::MameExecutableIdentity> {
+    let source = effective_runtime::resolve_effective_mame_source(
+        &config::SettingsV2::default(),
+        resource_dir.as_ref(),
+    )?;
+
+    if source.kind() != mame::MameExecutableSourceKind::Bundled {
+        return Err(errors::AppError::new(
+            "MAME_BUNDLED_RUNTIME_SOURCE_UNEXPECTED",
+            "Default packaged runtime verification did not resolve the bundled MAME runtime.",
+        )
+        .with_details(serde_json::json!({
+            "source": source.kind(),
+            "path": source.path()
+        })));
+    }
+
+    let identity = mame::inspect_executable(source)?;
+    if identity.source != mame::MameExecutableSourceKind::Bundled
+        || identity.trust != mame::MameExecutableTrust::QualifiedBundled
+    {
+        return Err(errors::AppError::new(
+            "MAME_BUNDLED_RUNTIME_IDENTITY_UNEXPECTED",
+            "Default packaged runtime verification returned a non-bundled runtime identity.",
+        )
+        .with_details(serde_json::json!({ "identity": identity })));
+    }
+
+    Ok(identity)
+}
 
 pub fn run() -> Result<(), tauri::Error> {
     tauri::Builder::default()
