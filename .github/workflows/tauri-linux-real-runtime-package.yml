@@ -93,16 +93,30 @@ jobs:
             "./build/linux_gcc/bin/x64/Release/mame${subtarget}"
           )
 
-          validate_runtime_candidate() {
-            local candidate
+          probe_runtime_candidate() {
+            local candidate size_before size_after version_log version_line
             for candidate in "${runtime_candidates[@]}"; do
-              if [[ -x "$candidate" && -f "$candidate" ]]; then
-                if ./scripts/tauri/validate-real-mame-runtime.sh "$candidate" >/tmp/mame-runtime-validator.log 2>&1; then
+              [[ -x "$candidate" && -f "$candidate" ]] || continue
+              size_before=$(stat -c '%s' "$candidate" 2>/dev/null || printf '0')
+              [[ "$size_before" -gt 0 ]] || continue
+              sleep 2
+              size_after=$(stat -c '%s' "$candidate" 2>/dev/null || printf '0')
+              [[ "$size_before" == "$size_after" ]] || continue
+
+              version_log=$(mktemp)
+              if timeout 30s "$candidate" -noreadconfig -version >"$version_log" 2>&1; then
+                version_line=$(head -n 1 "$version_log" | tr -d '\r')
+                if grep -Eq '^[0-9]+[.][0-9]+' <<<"$version_line" && ! grep -Eiq 'synthetic|fixture payload|MT-1305' "$version_log"; then
                   runtime="$candidate"
-                  cat /tmp/mame-runtime-validator.log
+                  echo "Validated linked MAME runtime candidate with -version: $runtime"
+                  cat "$version_log"
+                  rm -f "$version_log"
                   return 0
                 fi
               fi
+              echo "Candidate did not yet pass direct -version probe: $candidate" >&2
+              cat "$version_log" >&2 || true
+              rm -f "$version_log"
             done
             return 1
           }
@@ -122,17 +136,17 @@ jobs:
           build_pid=$!
 
           while kill -0 "$build_pid" 2>/dev/null; do
-            if validate_runtime_candidate; then
-              echo "Validated real MAME runtime before full top-level build completion: $runtime"
+            if probe_runtime_candidate; then
+              echo "Stopping top-level MAME build after real runtime candidate validated: $runtime"
               cleanup_build
               break
             fi
-            sleep 10
+            sleep 5
           done
 
           if [[ -z "$runtime" ]]; then
             if wait "$build_pid"; then
-              validate_runtime_candidate || {
+              probe_runtime_candidate || {
                 echo "MAME build completed but no valid runtime executable was found" >&2
                 find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
                 exit 1
@@ -155,6 +169,7 @@ jobs:
           fi
 
           trap - EXIT
+          ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
       - name: Stage release-qualified bundled runtime
