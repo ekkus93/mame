@@ -6,12 +6,13 @@ if [[ $# -ne 1 ]]; then
   exit 64
 fi
 
-mame=$1
+mame_input=$1
 smoke_machine=${MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE:-pacman}
-[[ -f "$mame" && -x "$mame" ]] || {
-  echo "real MAME executable is missing or non-executable: $mame" >&2
+[[ -f "$mame_input" && -x "$mame_input" ]] || {
+  echo "real MAME executable is missing or non-executable: $mame_input" >&2
   exit 1
 }
+mame=$(realpath "$mame_input")
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
