@@ -1,17 +1,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{ffi::OsStr, path::PathBuf};
+use std::{
+    ffi::{OsStr, OsString},
+    path::PathBuf,
+};
 
 const VERIFY_BUNDLED_RUNTIME_ARG: &str = "--mame-tauri-verify-bundled-runtime";
+const VERIFY_METADATA_BOOTSTRAP_ARG: &str = "--mame-tauri-verify-bundled-metadata-bootstrap";
 
 fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
-    if args
-        .first()
-        .is_some_and(|arg| arg == OsStr::new(VERIFY_BUNDLED_RUNTIME_ARG))
-    {
-        verify_bundled_runtime(&args[1..]);
-        return;
+    if let Some(command) = args.first() {
+        if command == OsStr::new(VERIFY_BUNDLED_RUNTIME_ARG) {
+            verify_bundled_runtime(&args[1..]);
+            return;
+        }
+        if command == OsStr::new(VERIFY_METADATA_BOOTSTRAP_ARG) {
+            verify_metadata_bootstrap(&args[1..]);
+            return;
+        }
     }
 
     if let Err(error) = mame_tauri_lib::run() {
@@ -20,7 +27,7 @@ fn main() {
     }
 }
 
-fn verify_bundled_runtime(args: &[std::ffi::OsString]) {
+fn verify_bundled_runtime(args: &[OsString]) {
     if args.len() != 1 {
         eprintln!(
             "usage: mame-tauri {} <tauri-resource-dir>",
@@ -42,6 +49,51 @@ fn verify_bundled_runtime(args: &[std::ffi::OsString]) {
             eprintln!(
                 "{}",
                 serde_json::to_string_pretty(&error).expect("MAME runtime error must serialize")
+            );
+            std::process::exit(1);
+        }
+    }
+}
+
+fn verify_metadata_bootstrap(args: &[OsString]) {
+    if !(2..=3).contains(&args.len()) {
+        eprintln!(
+            "usage: mame-tauri {} <tauri-resource-dir> <catalog-path> [probe-machine]",
+            VERIFY_METADATA_BOOTSTRAP_ARG
+        );
+        std::process::exit(64);
+    }
+
+    let resource_dir = PathBuf::from(&args[0]);
+    let catalog_path = PathBuf::from(&args[1]);
+    let probe_machine = match args.get(2) {
+        Some(value) => match value.to_str() {
+            Some(value) => Some(value),
+            None => {
+                eprintln!("probe-machine must be valid UTF-8");
+                std::process::exit(64);
+            }
+        },
+        None => None,
+    };
+
+    match mame_tauri_lib::metadata::verify_bundled_metadata_bootstrap(
+        &resource_dir,
+        &catalog_path,
+        probe_machine,
+    ) {
+        Ok(report) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .expect("metadata bootstrap report must serialize")
+            );
+        }
+        Err(error) => {
+            eprintln!(
+                "{}",
+                serde_json::to_string_pretty(&error)
+                    .expect("metadata bootstrap error must serialize")
             );
             std::process::exit(1);
         }

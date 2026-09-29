@@ -19,15 +19,17 @@ mod performance;
 mod provenance_fixture;
 mod software;
 
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    config::{load_settings, settings_path},
+    config::{load_settings, settings_path, SettingsV2},
     diagnostics,
     effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
-    mame::MameExecutableSource,
+    mame::{MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust},
     storage,
 };
 
@@ -78,6 +80,15 @@ pub struct MetadataStatusRequest {
     pub executable: MetadataExecutableRequest,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PackagedMetadataBootstrapReport {
+    pub refresh: MetadataRefreshResult,
+    pub status: MetadataStatus,
+    pub query: MachinePage,
+    pub probe_machine: Option<String>,
+}
+
 #[tauri::command]
 pub async fn refresh_mame_metadata(
     request: RefreshMameMetadataRequest,
@@ -117,6 +128,81 @@ pub async fn get_mame_metadata_status(
     tauri::async_runtime::spawn_blocking(move || generator::metadata_status(source, &catalog_path))
         .await
         .map_err(metadata_worker_error)?
+}
+
+pub fn verify_bundled_metadata_bootstrap(
+    resource_dir: impl AsRef<Path>,
+    catalog_path: impl AsRef<Path>,
+    probe_machine: Option<&str>,
+) -> AppResult<PackagedMetadataBootstrapReport> {
+    let resource_dir = resource_dir.as_ref();
+    let catalog_path = catalog_path.as_ref();
+    let source = resolve_effective_mame_source(&SettingsV2::default(), resource_dir)?;
+    if source.kind() != MameExecutableSourceKind::Bundled
+        || source.trust() != MameExecutableTrust::QualifiedBundled
+    {
+        return Err(AppError::new(
+            "MAME_PACKAGED_METADATA_SOURCE_UNEXPECTED",
+            "Packaged metadata bootstrap verification did not resolve the bundled MAME runtime.",
+        )
+        .with_details(serde_json::json!({
+            "source": source.kind(),
+            "trust": source.trust(),
+            "path": source.path(),
+            "resourceDir": resource_dir,
+        })));
+    }
+
+    let refresh = generator::refresh_catalog(source.clone(), catalog_path)?;
+    if refresh.generation.source_kind != "bundled"
+        || refresh.generation.trust != "qualifiedBundled"
+        || refresh.generation.machine_count == 0
+    {
+        return Err(AppError::new(
+            "MAME_PACKAGED_METADATA_GENERATION_UNEXPECTED",
+            "Packaged metadata bootstrap produced an unexpected metadata generation.",
+        )
+        .with_details(serde_json::json!({ "generation": refresh.generation })));
+    }
+
+    let status = generator::metadata_status(source, catalog_path)?;
+    if status.freshness != MetadataFreshness::Fresh || status.active_generation.is_none() {
+        return Err(AppError::new(
+            "MAME_PACKAGED_METADATA_STATUS_UNEXPECTED",
+            "Packaged metadata bootstrap did not activate a fresh catalog for the bundled runtime.",
+        )
+        .with_details(serde_json::json!({ "status": status })));
+    }
+
+    let repository = CatalogRepository::open(catalog_path)?;
+    let query = repository.query_machines(&MachineQuery {
+        text: probe_machine.map(str::to_owned),
+        manufacturer: None,
+        year: None,
+        driver_status: None,
+        clone_filter: CloneFilter::All,
+        sort: MachineSort::DescriptionAsc,
+        include_devices: false,
+        limit: 25,
+        offset: 0,
+    })?;
+    if query.total == 0 || query.items.is_empty() {
+        return Err(AppError::new(
+            "MAME_PACKAGED_METADATA_QUERY_EMPTY",
+            "Packaged metadata bootstrap did not make the machine catalog queryable.",
+        )
+        .with_details(serde_json::json!({
+            "probeMachine": probe_machine,
+            "query": query,
+        })));
+    }
+
+    Ok(PackagedMetadataBootstrapReport {
+        refresh,
+        status,
+        query,
+        probe_machine: probe_machine.map(str::to_owned),
+    })
 }
 
 fn executable_source(

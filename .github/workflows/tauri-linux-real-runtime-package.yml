@@ -253,6 +253,7 @@ jobs:
           [[ -n "$deb" ]] || { echo "Debian package was not produced" >&2; exit 1; }
           [[ -n "$appimage" ]] || { echo "AppImage was not produced" >&2; exit 1; }
           ./scripts/tauri/test-real-linux-package.sh "$deb" "$appimage"
+          ./scripts/tauri/test-real-linux-package-metadata-bootstrap.sh "$deb"
 
       - name: Upload real runtime package artifacts
         uses: actions/upload-artifact@v6
