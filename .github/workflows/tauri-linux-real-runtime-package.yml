@@ -95,7 +95,7 @@ jobs:
           fi
           if [[ "$status" -eq 0 ]]; then
             phase="generate MAME layout/resource headers"
-            make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" generated || status=$?
+            make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" generate || status=$?
           fi
           if [[ "$status" -eq 0 ]]; then
             phase="build targeted runtime executable"
