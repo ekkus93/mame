@@ -83,16 +83,26 @@ jobs:
           set -euo pipefail
           jobs=${MAME_TAURI_MAME_BUILD_JOBS:-1}
           subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
-          echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
-          set +e
           project_dir="build/projects/sdl/mame${subtarget}/gmake-linux"
-          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" "$project_dir/Makefile"
-          make -j"$jobs" -C "$project_dir" config=release64 precompile
-          make -j"$jobs" -C "$project_dir" config=release64 "mame_${subtarget}"
-          status=$?
-          set -e
+          echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs project_dir=$project_dir"
+
+          status=0
+          phase="generate targeted gmake project"
+          make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" "$project_dir/Makefile" || status=$?
+          if [[ "$status" -eq 0 ]]; then
+            phase="precompile targeted project"
+            make -j"$jobs" -C "$project_dir" config=release64 precompile || status=$?
+          fi
+          if [[ "$status" -eq 0 ]]; then
+            phase="generate MAME layout/resource headers"
+            make -j"$jobs" NOWERROR=1 TOOLS=0 TESTS=0 USE_QTDEBUG=0 SUBTARGET="$subtarget" generated || status=$?
+          fi
+          if [[ "$status" -eq 0 ]]; then
+            phase="build targeted runtime executable"
+            make -j"$jobs" -C "$project_dir" config=release64 "mame_${subtarget}" || status=$?
+          fi
           if [[ "$status" -ne 0 ]]; then
-            echo "MAME build failed with status $status" >&2
+            echo "MAME build failed during phase '$phase' with status $status" >&2
             echo "--- runner memory ---" >&2
             free -h >&2 || true
             echo "--- runner disk ---" >&2
@@ -100,7 +110,7 @@ jobs:
             echo "--- ccache stats ---" >&2
             ccache -s >&2 || true
             echo "--- partial runtime outputs ---" >&2
-            find . -maxdepth 3 -type f \( -name 'mame' -o -name 'mame*' \) -perm -111 -print >&2 || true
+            find . -maxdepth 6 -type f \( -name 'mame' -o -name 'mame_*' -o -name 'mame*' \) -perm -111 -print >&2 || true
             exit "$status"
           fi
           runtime=
