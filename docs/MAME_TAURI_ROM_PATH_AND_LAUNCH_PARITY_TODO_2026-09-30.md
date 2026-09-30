@@ -1,7 +1,7 @@
 # MAME Tauri ROM Path and Launch Parity TODO
 
 **Date:** 2026-09-30  
-**Status:** Open  
+**Status:** In progress — baseline/source inventory recorded; audit/launch ROM-path parity gap confirmed.  
 **Specification:** `docs/MAME_TAURI_ROM_PATH_AND_LAUNCH_PARITY_SPEC_2026-09-30.md`  
 **Depends on completed roadmap:** `docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md`
 
@@ -9,15 +9,17 @@ This is the canonical checklist for the post-BMR ROM path, launch diagnostics, n
 
 Do not mark a checkbox complete unless the implementation, tests, and required qualification evidence exist on `master`. The bundled-runtime package roadmap is already complete; this TODO must not reopen packaging closure except by cross-reference.
 
+**Baseline evidence, 2026-09-30:** roadmap creation head `2e524aef61f17905fb406b3d96ea519d3662a0bb` added this TODO and `docs/MAME_TAURI_ROM_PATH_AND_LAUNCH_PARITY_SPEC_2026-09-30.md`. Baseline inventory is recorded in `docs/MAME_TAURI_ROM_PATH_AND_LAUNCH_PARITY_BASELINE_2026-09-30.md`. Source inspection confirmed that audit composes `-rompath` from configured `romPaths`/`softwarePaths`/`chdPaths`, while bundled Start launch appends package `hashpath`/`bgfx_path` and user-state directories but no `rompath`; the existing launch argv validator rejects semicolon path lists, so a safe fix requires an explicit effective content-path/path-list contract rather than stuffing a MAME path list into a single ordinary path field.
+
 ---
 
 ## RPL-000 — Baseline and reproduction evidence
 
-- [ ] Record the installed package/build used for reproduction, including exact commit SHA and package artifact identity when applicable.
-- [ ] Capture the current native MAME vs Tauri MAME visual differences: native `88 Games` count, Tauri `1-59 of 59` count, Tauri `Unknown` availability column, and the runtime-control launch error.
-- [ ] Record the current code paths for settings content paths, audit inputs, launch argv construction, bundled resource project paths, and runtime-control startup failure handling.
-- [ ] Confirm whether current bundled launch omits an explicit/default `rompath` when no Tauri content paths are configured.
-- [ ] Add a regression fixture or source-level inventory note tying this TODO to the observed failure class.
+- [x] Record the installed package/build used for reproduction, including exact commit SHA and package artifact identity when applicable.
+- [x] Capture the current native MAME vs Tauri MAME visual differences: native `88 Games` count, Tauri `1-59 of 59` count, Tauri `Unknown` availability column, and the runtime-control launch error.
+- [x] Record the current code paths for settings content paths, audit inputs, launch argv construction, bundled resource project paths, and runtime-control startup failure handling.
+- [x] Confirm whether current bundled launch omits an explicit/default `rompath` when no Tauri content paths are configured.
+- [x] Add a regression fixture or source-level inventory note tying this TODO to the observed failure class.
 
 **Required evidence:** current-source inventory plus a reproducible description of the installed-package behavior.
 
@@ -38,8 +40,8 @@ Do not mark a checkbox complete unless the implementation, tests, and required q
 
 ## RPL-002 — Audit and launch path parity
 
-- [ ] Audit the current ROM availability implementation and identify which paths it uses.
-- [ ] Audit the current Start/launch implementation and identify which `rompath` or project-path arguments it passes to MAME.
+- [x] Audit the current ROM availability implementation and identify which paths it uses.
+- [x] Audit the current Start/launch implementation and identify which `rompath` or project-path arguments it passes to MAME.
 - [ ] Refactor audit and launch to share the same effective ROM path contract.
 - [ ] Add or update launch argv construction so bundled MAME receives the intended ROM path set explicitly when required.
 - [ ] Add tests proving audit and launch use the same effective path list.
@@ -170,7 +172,7 @@ Do not mark a checkbox complete unless the implementation, tests, and required q
 
 ## Current suspected bugs to verify first
 
-1. Bundled-runtime launch appears not to seed or pass an explicit/default `rompath` when no Tauri ROM paths are configured.
+1. Verified: bundled-runtime launch currently does not pass configured ROM/software/CHD paths as an explicit `rompath`, while audit does use configured paths.
 2. Start is available for rows with `Unknown` ROM availability.
 3. Early MAME exit before runtime-control readiness exposes an internal control-channel message as the primary user-facing error.
 4. Native MAME reports `88 Games` while Tauri reports `59` in the observed comparable view.
