@@ -106,7 +106,7 @@ def main() -> int:
     require(software_metadata, "pub(crate) fn parse_software_item", "exact software-item parser")
     require(empty_launch_backend, "detail.can_start_empty", "Rust-authoritative Start Empty legality")
     require(empty_launch_backend, "validate_bios_selection", "Start Empty BIOS validation")
-    require(empty_launch_backend, "launch_mame_with_source_and_bios", "typed supervised Start Empty launch")
+    require(empty_launch_backend, "launch_catalog_mame_with_source_and_bios", "typed supervised gated Start Empty launch")
 
     for token in ("pauseMame", "resumeMame", "resetMame", "setMameMute", "stopMame", "SaveStateBrowser"):
         require(session, token, "contextual session capability")

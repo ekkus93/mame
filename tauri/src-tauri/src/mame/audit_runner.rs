@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn empty_configuration_keeps_mame_builtin_media_default() {
-        let paths = effective_content_paths(&ContentPathsV1::default());
+        let effective = effective_content_paths(&ContentPathsV1::default());
         let argv = build_machine_audit_argv("pacman", &effective).expect("audit argv");
         assert_eq!(
             argv,
@@ -283,7 +283,7 @@ mod tests {
         );
         assert_eq!(composed, OsString::from(expected));
 
-        let argv = build_machine_audit_argv("pacman", &paths).expect("audit argv");
+        let argv = build_machine_audit_argv("pacman", &effective).expect("audit argv");
         assert_eq!(argv[0], "-noreadconfig");
         assert_eq!(argv[1], "-rompath");
         assert_eq!(argv[2], composed);

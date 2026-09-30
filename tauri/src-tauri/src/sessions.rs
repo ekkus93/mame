@@ -290,8 +290,12 @@ fn launch_mame_with_source_and_bios_policy(
     let settings = load_settings(&settings_path(&app)?)?;
     let effective_content_paths = effective_content_paths(&settings.content_paths);
     if require_current_audit {
-        let classification =
-            current_machine_audit_classification(&app, &source, &machine, &effective_content_paths)?;
+        let classification = current_machine_audit_classification(
+            &app,
+            &source,
+            &machine,
+            &effective_content_paths,
+        )?;
         launch_after_audit_gate(&machine, classification, || Ok(()))?;
     }
     let project_paths =
@@ -498,6 +502,7 @@ fn append_effective_content_project_paths(
     });
     Ok(project_paths)
 }
+
 
 fn append_bundled_runtime_project_paths(
     app: &AppHandle,
