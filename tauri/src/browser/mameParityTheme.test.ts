@@ -86,8 +86,12 @@ describe("MAME visual parity tripwires", () => {
     expect(rightPanelSource).toContain("Images");
     expect(rightPanelSource).toContain("Infos");
     expect(rightPanelSource).toContain("Snapshots");
-    expect(rightPanelSource).toContain("No image Available");
+    expect(rightPanelSource).toContain("No optional artwork");
+    expect(rightPanelSource).toContain("Artwork/media is optional and not required to launch");
+    expect(rightPanelSource).toContain("availableArtworkKinds");
     expect(rightPanelSource).toContain("mame-no-image-placeholder");
+    expect(shellCss).toContain(".mame-artwork-note");
+    expect(shellCss).toContain(".mame-artwork-categories button:disabled");
   });
 
   it("de-emphasizes selected-machine secondary actions so Start remains primary", () => {

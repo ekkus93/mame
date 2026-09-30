@@ -31,6 +31,8 @@ import { nextPrimaryRightView, type PrimaryRightView } from "./rightPanelKeyboar
 
 export type MachineRightView = "images" | "info" | "audit" | "settings";
 
+const DEFAULT_ARTWORK_KIND: ArtworkKind = "screenshot";
+
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
   cabinet: "Cabinet",
@@ -95,14 +97,15 @@ export function EmptyMachineRightPanel({
         </button>
       </div>
       <div className="mame-artwork-pane">
+        <p className="mame-artwork-note">Artwork/media is optional and not required to launch.</p>
         <div className="mame-artwork-categories" aria-label="Artwork category">
-          <button type="button" className="is-selected" aria-pressed="true">
+          <button type="button" className="is-selected is-placeholder" aria-pressed="true" disabled>
             Snapshots
           </button>
         </div>
         <div className="mame-artwork-frame">
           <div className="mame-no-image-placeholder">
-            <strong>No image Available</strong>
+            <strong>No optional artwork</strong>
             <span>{emptyMachinePanelText(status, message)}</span>
           </div>
         </div>
@@ -270,18 +273,29 @@ function ArtworkPane({
       });
   }, [machine]);
 
-  const slot = useMemo(
-    () => artwork?.slots.find((candidate) => candidate.kind === selectedKind) ?? null,
-    [artwork, selectedKind],
-  );
-
-  const categoryKinds = useMemo<ArtworkKind[]>(() => {
+  const availableArtworkKinds = useMemo<ArtworkKind[]>(() => {
     const kinds = new Set<ArtworkKind>();
-    kinds.add("screenshot");
-    for (const candidate of artwork?.slots ?? []) kinds.add(candidate.kind);
-    kinds.add(selectedKind);
+    for (const candidate of artwork?.slots ?? []) {
+      if (candidate.asset) kinds.add(candidate.kind);
+    }
     return Array.from(kinds);
-  }, [artwork, selectedKind]);
+  }, [artwork]);
+  const hasOptionalArtwork = availableArtworkKinds.length > 0;
+  const categoryKinds = hasOptionalArtwork ? availableArtworkKinds : [DEFAULT_ARTWORK_KIND];
+  const effectiveSelectedKind = categoryKinds.includes(selectedKind)
+    ? selectedKind
+    : (categoryKinds[0] ?? DEFAULT_ARTWORK_KIND);
+
+  useEffect(() => {
+    if (hasOptionalArtwork && selectedKind !== effectiveSelectedKind) {
+      onSelectedKindChange(effectiveSelectedKind);
+    }
+  }, [effectiveSelectedKind, hasOptionalArtwork, onSelectedKindChange, selectedKind]);
+
+  const slot = useMemo(
+    () => artwork?.slots.find((candidate) => candidate.kind === effectiveSelectedKind) ?? null,
+    [artwork, effectiveSelectedKind],
+  );
 
   useEffect(() => {
     const descriptor = slot?.asset;
@@ -323,13 +337,20 @@ function ArtworkPane({
 
   return (
     <div className="mame-artwork-pane">
+      <p className="mame-artwork-note">Artwork/media is optional and not required to launch.</p>
       <div className="mame-artwork-categories" aria-label="Artwork category">
         {categoryKinds.map((kind) => (
           <button
             key={kind}
             type="button"
-            className={selectedKind === kind ? "is-selected" : ""}
-            aria-pressed={selectedKind === kind}
+            className={[
+              effectiveSelectedKind === kind ? "is-selected" : "",
+              hasOptionalArtwork ? "" : "is-placeholder",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            aria-pressed={effectiveSelectedKind === kind}
+            disabled={!hasOptionalArtwork}
             onClick={() => onSelectedKindChange(kind)}
           >
             {ARTWORK_LABELS[kind]}
@@ -338,8 +359,14 @@ function ArtworkPane({
       </div>
       <ArtworkAssetFrame
         state={assetState}
-        label={ARTWORK_LABELS[selectedKind]}
+        label={ARTWORK_LABELS[effectiveSelectedKind]}
         machine={slot?.asset?.machine ?? machine}
+        missingTitle={hasOptionalArtwork ? undefined : "No optional artwork configured"}
+        missingMessage={
+          hasOptionalArtwork
+            ? undefined
+            : "Artwork/media directories are optional and not required to launch this machine."
+        }
       />
     </div>
   );

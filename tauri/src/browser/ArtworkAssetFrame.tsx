@@ -5,10 +5,14 @@ export function ArtworkAssetFrame({
   state,
   label,
   machine,
+  missingTitle = "Optional artwork not found",
+  missingMessage = `${label} artwork/media is optional and not required to launch this machine.`,
 }: {
   state: ArtworkAssetState<ArtworkAssetPayload>;
   label: string;
   machine: string;
+  missingTitle?: string;
+  missingMessage?: string;
 }) {
   return (
     <div className="mame-artwork-frame">
@@ -22,8 +26,8 @@ export function ArtworkAssetFrame({
       {state.status === "ready" && <img src={state.asset.dataUrl} alt={`${machine} ${label}`} />}
       {state.status === "missing" && (
         <div className="mame-no-image-placeholder">
-          <strong>No image Available</strong>
-          <span>{label}</span>
+          <strong>{missingTitle}</strong>
+          <span>{missingMessage}</span>
         </div>
       )}
     </div>

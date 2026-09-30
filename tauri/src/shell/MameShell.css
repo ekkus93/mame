@@ -344,8 +344,17 @@
 
 .mame-artwork-pane {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
+}
+
+.mame-artwork-note {
+  margin: 0;
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid var(--mame-border-muted);
+  color: var(--mame-muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 .mame-artwork-categories {
@@ -354,6 +363,12 @@
   padding: 0.35rem;
   overflow-x: auto;
   border-bottom: 1px solid var(--mame-border-muted);
+}
+
+.mame-artwork-categories button:disabled,
+.mame-artwork-categories button.is-placeholder {
+  color: var(--mame-disabled);
+  background: var(--mame-surface);
 }
 
 .mame-artwork-frame {

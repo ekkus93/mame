@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** In progress — RESET-000 through RESET-002 are complete; the reset plan is frozen, self-contained runtime/default path is inventoried, and the native-MAME UI parity inventory is now the implementation map for RESET-003.  
+**Status:** In progress — RESET-000 through RESET-002 are complete; RESET-003 has landed the first semantic UI cleanup slices for availability/driver-status labels, selected-machine secondary-action de-emphasis, and optional-artwork de-emphasis.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -15,6 +15,8 @@ This TODO exists because the project drifted from the intended product goal: a T
 **RESET-001 evidence, 2026-09-30:** `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md` records the current source/test/package inventory for self-contained packaged runtime behavior. It maps backend default runtime resolution, frontend settings/catalog behavior, catalog-backed launch trust boundaries, external/development runtime escape hatches, and BMR package workflow evidence to the RESET-001 acceptance criteria. Existing source and tests already enforce that bundled runtime resolution is backend/package-owned, external runtime selection is explicit/advanced, and persisted/frontend data cannot self-assert `qualifiedBundled` trust.
 
 **RESET-002 evidence, 2026-09-30:** `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md` records the native-MAME/Tauri reference view facts, current source-level UI inventory, visible Tauri-only controls, list/filter/status semantics, artwork/media issues, intended primary UI shape, and RESET-003 dispositions.
+
+**RESET-003 partial evidence, 2026-09-30:** head `e757d757368a0acd301cdf59d7bde2b7553780ec` renamed local availability and driver-status labels so `Available locally`, `Missing content`, `Not audited`, `Driver Working`, `Driver Not Working`, and `Driver status` no longer confuse ROM availability with emulation-driver state; exact-head `Tauri project` run `36764890153` passed its core quality jobs, and Linux/macOS/Windows packaging plus security also passed for that head. Head `135315f998d87e12fd9eadbb9ea70a59117a48e3` de-emphasized secondary selected-machine actions while keeping `Start` primary and passed exact-head `Tauri project` run `36769119025`, Linux packaging run `36769118944`, macOS packaging run `36769118948`, Windows packaging run `36769119026`, and security run `36769118974`; the long real-runtime package workflow for that head was still running at the most recent observation. The optional-artwork/media slice is pending exact-head CI for this TODO update.
 
 ---
 
@@ -66,13 +68,13 @@ This TODO exists because the project drifted from the intended product goal: a T
 
 - [ ] Remove or hide Tauri-only buttons/controls from the primary path unless justified by RESET-002.
 - [ ] Move advanced/debug runtime controls out of the normal user path.
-- [ ] Rename or annotate `Working`/driver-status filters so they are not confused with local ROM availability.
-- [ ] Make `Available` clearly mean locally playable content after audit.
-- [ ] Ensure `Unknown` availability is not styled as playable.
-- [ ] Hide, disable, or de-emphasize empty artwork/media categories.
-- [ ] Label optional artwork/media as optional, not launch requirements.
+- [x] Rename or annotate `Working`/driver-status filters so they are not confused with local ROM availability.
+- [x] Make `Available` clearly mean locally playable content after audit.
+- [x] Ensure `Unknown` availability is not styled as playable.
+- [x] Hide, disable, or de-emphasize empty artwork/media categories.
+- [x] Label optional artwork/media as optional, not launch requirements.
 - [ ] Prioritize ROM availability and audit/configuration guidance in the details panel.
-- [ ] Add frontend/component tests for the revised primary UI behavior.
+- [x] Add frontend/component tests for the revised primary UI behavior.
 
 **Acceptance:** the primary UI no longer looks like a custom control panel unrelated to native MAME, and optional artwork/media does not look required for launching.
 
@@ -203,6 +205,6 @@ This TODO exists because the project drifted from the intended product goal: a T
 - Current reset creation baseline head: `893084ed72a41774929c560778edcb7a28e6f96b`.
 - RESET-000 execution head: `ea1482445351b234345fdc535cbdb51ae55c5faa`; Build documentation run `36760131526` passed on that exact head.
 - RESET-001 inventory head: `39172ed8cb3f0e6e4da2d7027e838952368b3d9a`; `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md` records the self-contained runtime/default-path inventory.
-- RESET-002 inventory head: pending this TODO update plus `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md`.
-- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work. Linux, macOS, and Windows packaging workflows for that head also reached success; the Linux real-runtime package workflow remained in progress at the most recent observation.
+- RESET-002 inventory head: `e428e1060024d68effdde574400eb8489e1ad918`; `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md` records the native UI parity inventory.
+- RESET-003 semantic-label/action-de-emphasis head: `135315f998d87e12fd9eadbb9ea70a59117a48e3`; exact-head `Tauri project`, Linux packaging, macOS packaging, Windows packaging, and security workflows passed as recorded above. Linux real-runtime package remained in progress at the most recent observation.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.
