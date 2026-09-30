@@ -21,13 +21,14 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::{
     bundled_runtime::BundledRuntimeLayout,
     config::{load_settings, settings_path, LaunchPreferencesV1},
+    content_paths::{effective_content_paths, EffectiveContentPaths},
     diagnostics,
     errors::{AppError, AppResult},
     event_names::{external_session_lifecycle_event, SESSION_PAUSED_EVENT, SESSION_RESUMED_EVENT},
     history, machine_settings,
     mame::{
-        build_launch_argv, inspect_executable, MameExecutableIdentity, MameExecutableSource,
-        MameExecutableSourceKind, MameLaunchTarget, ProjectPathArgument,
+        build_launch_argv, compose_mame_path_list, inspect_executable, MameExecutableIdentity,
+        MameExecutableSource, MameExecutableSourceKind, MameLaunchTarget, ProjectPathArgument,
     },
     storage,
 };
@@ -213,8 +214,11 @@ pub(crate) fn launch_mame_with_source_and_bios(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
+    let settings = load_settings(&settings_path(&app)?)?;
+    let effective_content_paths = effective_content_paths(&settings.content_paths);
+    let project_paths = append_effective_content_project_paths(project_paths, &effective_content_paths)?;
     let project_paths = append_bundled_runtime_project_paths(&app, &source, project_paths)?;
-    let general_launch_preferences = load_settings(&settings_path(&app)?)?.launch_preferences;
+    let general_launch_preferences = settings.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
         project_paths: project_paths
             .iter()
@@ -247,7 +251,8 @@ pub(crate) fn launch_mame_with_source_and_bios(
         serde_json::json!({
             "machine": &target.machine,
             "software": &target.software,
-            "bios": &target.bios
+            "bios": &target.bios,
+            "effectiveProjectPaths": &effective_config.project_paths
         }),
     );
     let catalog_path = storage::catalog_path(&app)?;
@@ -346,6 +351,23 @@ pub(crate) fn launch_mame_with_source_and_bios(
             Err(launch_error)
         }
     }
+}
+
+fn append_effective_content_project_paths(
+    mut project_paths: Vec<ProjectPathRequest>,
+    effective_content_paths: &EffectiveContentPaths,
+) -> AppResult<Vec<ProjectPathRequest>> {
+    let media_paths = effective_content_paths.media_search_paths();
+    if let Some(media_path) =
+        compose_mame_path_list(media_paths.into_iter().map(|path| path.as_path()))?
+    {
+        project_paths.retain(|project_path| project_path.option != "rompath");
+        project_paths.push(ProjectPathRequest {
+            option: "rompath".to_owned(),
+            path: media_path.to_string_lossy().into_owned(),
+        });
+    }
+    Ok(project_paths)
 }
 
 fn append_bundled_runtime_project_paths(
@@ -518,11 +540,13 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{
-        bundled_runtime_project_paths, executable_source, MameExecutableRequest,
-        MameExecutableSelectionKind,
+        append_effective_content_project_paths, bundled_runtime_project_paths, executable_source,
+        MameExecutableRequest, MameExecutableSelectionKind,
     };
     use crate::{
         bundled_runtime::BundledRuntimeLayout,
+        config::{ContentPathsV1, PlatformPath},
+        content_paths::effective_content_paths,
         mame::{MameExecutableSourceKind, MameExecutableTrust},
     };
 
@@ -566,6 +590,30 @@ mod tests {
             state_root.join("snap")
         );
         assert!(paths.iter().all(|path| path.option != "rompath"));
+    }
+
+    #[test]
+    fn effective_content_paths_append_authoritative_rompath() {
+        let rom_a = PathBuf::from("/rom-a");
+        let rom_b = PathBuf::from("/rom-b");
+        let configured = ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&rom_a), PlatformPath::new(&rom_b)],
+            software_paths: Vec::new(),
+            chd_paths: Vec::new(),
+        };
+        let effective = effective_content_paths(&configured);
+        let paths = append_effective_content_project_paths(
+            vec![super::ProjectPathRequest {
+                option: "rompath".to_owned(),
+                path: "/stale-rom".to_owned(),
+            }],
+            &effective,
+        )
+        .expect("append effective paths");
+
+        let expected = format!("{};{}", rom_a.display(), rom_b.display());
+        assert_eq!(option_path(&paths, "rompath"), PathBuf::from(expected));
+        assert_eq!(paths.iter().filter(|path| path.option == "rompath").count(), 1);
     }
 
     fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {

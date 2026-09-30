@@ -8,11 +8,12 @@ use std::{
 
 use crate::{
     config::ContentPathsV1,
+    content_paths::effective_content_paths,
     errors::{AppError, AppResult},
 };
 
 use super::{
-    parse_mame_audit_output, validate_executable_path, validate_project_controlled_path,
+    compose_mame_path_list, parse_mame_audit_output, validate_executable_path,
     validate_short_identifier, MameAuditParseResult, MameExecutableSource,
 };
 
@@ -58,38 +59,24 @@ fn build_machine_audit_argv(
 }
 
 fn compose_media_search_path(content_paths: &ContentPathsV1) -> AppResult<Option<OsString>> {
-    let paths = content_paths
-        .rom_paths
-        .iter()
-        .chain(content_paths.software_paths.iter())
-        .chain(content_paths.chd_paths.iter());
-
-    let mut media_path = OsString::new();
-    let mut count = 0_usize;
-    for path in paths {
-        validate_project_controlled_path(path.as_path()).map_err(|error| {
-            AppError::new(
-                "MAME_AUDIT_CONTENT_PATH_INVALID",
-                "A configured MAME content path cannot be used for auditing.",
-            )
-            .with_details(serde_json::json!({
-                "causeCode": error.code,
-                "causeMessage": error.message,
-                "causeDetails": error.details
-            }))
-        })?;
-        if count != 0 {
-            media_path.push(";");
-        }
-        media_path.push(path.as_path().as_os_str());
-        count += 1;
-    }
-
-    if count == 0 {
-        Ok(None)
-    } else {
-        Ok(Some(media_path))
-    }
+    let effective_paths = effective_content_paths(content_paths);
+    compose_mame_path_list(
+        effective_paths
+            .media_search_paths()
+            .into_iter()
+            .map(|path| path.as_path()),
+    )
+    .map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_CONTENT_PATH_INVALID",
+            "A configured MAME content path cannot be used for auditing.",
+        )
+        .with_details(serde_json::json!({
+            "causeCode": error.code,
+            "causeMessage": error.message,
+            "causeDetails": error.details
+        }))
+    })
 }
 
 #[derive(Debug)]

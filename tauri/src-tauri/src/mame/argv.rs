@@ -62,7 +62,7 @@ pub fn build_launch_argv(target: &MameLaunchTarget) -> AppResult<MameArgv> {
 
     for project_path in &target.project_paths {
         validate_option_name(&project_path.option)?;
-        validate_project_controlled_path(&project_path.path)?;
+        validate_project_path_argument(&project_path.option, &project_path.path)?;
         args.push(OsString::from(format!("-{}", project_path.option)));
         args.push(project_path.path.as_os_str().to_owned());
     }
@@ -97,6 +97,29 @@ pub fn build_launch_argv_with_preferences(
     }
 
     Ok(MameArgv { args })
+}
+
+pub fn compose_mame_path_list<'a, I>(paths: I) -> AppResult<Option<OsString>>
+where
+    I: IntoIterator<Item = &'a Path>,
+{
+    let mut path_list = OsString::new();
+    let mut count = 0_usize;
+
+    for path in paths {
+        validate_project_controlled_path(path)?;
+        if count != 0 {
+            path_list.push(";");
+        }
+        path_list.push(path.as_os_str());
+        count += 1;
+    }
+
+    if count == 0 {
+        Ok(None)
+    } else {
+        Ok(Some(path_list))
+    }
 }
 
 fn push_option(args: &mut Vec<OsString>, option: &str, value: &str) {
@@ -140,6 +163,14 @@ pub fn validate_software_identifier(value: &str) -> AppResult<()> {
     }
 
     Ok(())
+}
+
+fn validate_project_path_argument(option: &str, path: &Path) -> AppResult<()> {
+    if option == "rompath" {
+        validate_project_controlled_path_list(path)
+    } else {
+        validate_project_controlled_path(path)
+    }
 }
 
 pub fn validate_project_controlled_path(path: &Path) -> AppResult<()> {
@@ -194,6 +225,26 @@ pub fn validate_project_controlled_path(path: &Path) -> AppResult<()> {
             "Project-controlled MAME paths must not contain MAME environment-variable expressions.",
         )
         .with_details(serde_json::json!({ "path": path })));
+    }
+
+    Ok(())
+}
+
+fn validate_project_controlled_path_list(path_list: &Path) -> AppResult<()> {
+    let path_text = path_list.to_string_lossy();
+    if !path_text.contains(';') {
+        return validate_project_controlled_path(path_list);
+    }
+
+    for segment in path_text.split(';') {
+        if segment.is_empty() {
+            return Err(AppError::new(
+                "MAME_PROJECT_PATH_LIST_EMPTY_SEGMENT",
+                "A MAME path list must not contain an empty path segment.",
+            )
+            .with_details(serde_json::json!({ "pathList": path_text })));
+        }
+        validate_project_controlled_path(Path::new(segment))?;
     }
 
     Ok(())
@@ -267,9 +318,9 @@ mod tests {
     };
 
     use super::{
-        build_launch_argv, build_launch_argv_with_preferences, validate_project_controlled_path,
-        validate_short_identifier, validate_software_identifier, validate_software_list_identifier,
-        MameLaunchTarget, ProjectPathArgument,
+        build_launch_argv, build_launch_argv_with_preferences, compose_mame_path_list,
+        validate_project_controlled_path, validate_short_identifier, validate_software_identifier,
+        validate_software_list_identifier, MameLaunchTarget, ProjectPathArgument,
     };
 
     #[test]
@@ -291,6 +342,55 @@ mod tests {
         assert_eq!(argv.as_slice()[1], "list_name:item_name:cart");
         assert_eq!(argv.as_slice()[2], "-rompath");
         assert_eq!(PathBuf::from(&argv.as_slice()[3]), path);
+    }
+
+    #[test]
+    fn rompath_option_accepts_valid_mame_path_list() {
+        let rom_a = absolute_test_path("rom-a");
+        let rom_b = absolute_test_path("rom-b");
+        let path_list = format!("{};{}", rom_a.display(), rom_b.display());
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            bios: None,
+            project_paths: vec![ProjectPathArgument {
+                option: "rompath".to_owned(),
+                path: PathBuf::from(&path_list),
+            }],
+        };
+
+        let argv = build_launch_argv(&target).expect("rompath path list must validate");
+        assert_eq!(argv.as_slice(), ["pacman", "-rompath", &path_list]);
+    }
+
+    #[test]
+    fn non_rompath_options_still_reject_path_lists() {
+        let rom_a = absolute_test_path("rom-a");
+        let rom_b = absolute_test_path("rom-b");
+        let path_list = format!("{};{}", rom_a.display(), rom_b.display());
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            bios: None,
+            project_paths: vec![ProjectPathArgument {
+                option: "snapshot_directory".to_owned(),
+                path: PathBuf::from(path_list),
+            }],
+        };
+
+        let error = build_launch_argv(&target).expect_err("non-rompath list must fail");
+        assert_eq!(error.code, "MAME_PROJECT_PATH_LIST_SEPARATOR");
+    }
+
+    #[test]
+    fn composed_mame_path_list_preserves_order() {
+        let rom_a = absolute_test_path("rom-a");
+        let rom_b = absolute_test_path("rom-b");
+        let composed = compose_mame_path_list([rom_a.as_path(), rom_b.as_path()])
+            .expect("compose path list")
+            .expect("non-empty path list");
+        let expected = format!("{};{}", rom_a.display(), rom_b.display());
+        assert_eq!(composed, OsString::from(expected));
     }
 
     #[test]
