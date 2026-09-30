@@ -10,6 +10,7 @@ pub mod bundled_runtime;
 pub mod collections;
 pub mod config;
 pub mod config_persistence;
+pub mod content_paths;
 pub mod configuration_explainability;
 pub mod configuration_precedence;
 pub mod controller_profiles;
