@@ -36,6 +36,11 @@ body {
   margin: 0;
 }
 
+/* Export remains implemented for advanced workflows but is not a native-MAME primary action. */
+.mame-browser-toolbar > button[aria-label="Export displayed machine list"] {
+  display: none;
+}
+
 ::selection {
   color: var(--mame-selected-text);
   background: var(--mame-selected);

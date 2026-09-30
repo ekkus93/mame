@@ -94,6 +94,14 @@ describe("MAME visual parity tripwires", () => {
     expect(shellCss).toContain(".mame-artwork-categories button:disabled");
   });
 
+  it("keeps Tauri-only export support out of the primary machine path", () => {
+    expect(browserSource).toContain('aria-label="Export displayed machine list"');
+    expect(themeCss).toContain(
+      '.mame-browser-toolbar > button[aria-label="Export displayed machine list"]',
+    );
+    expect(themeCss).toContain("display: none");
+  });
+
   it("de-emphasizes selected-machine secondary actions so Start remains primary", () => {
     expect(browserSource).toContain("mame-start-button");
     expect(browserSource).toContain("mame-software-list-button");
