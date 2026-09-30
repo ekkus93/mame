@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import browserSource from "./MameBrowser.tsx?raw";
 import filterSource from "./MachineFilterPanel.tsx?raw";
 import rightPanelSource from "./MachineRightPanel.tsx?raw";
+import softwareSource from "./SoftwareBrowser.tsx?raw";
 import { nextBrowserIndex } from "./model";
 
 describe("MAME command and interaction parity tripwires", () => {
@@ -53,6 +54,13 @@ describe("MAME command and interaction parity tripwires", () => {
       browserSource.indexOf('aria-label="Export displayed machine list"'),
     );
     expect(browserSource).toContain('selectedAvailability !== "available"');
+  });
+
+  it("gates software Start and Start Empty on the same audited availability policy", () => {
+    expect(browserSource).toContain("availability={selectedAvailability}");
+    expect(softwareSource).toContain('availability !== "available"');
+    expect(softwareSource).toContain("Run an audit before starting");
+    expect(softwareSource).toContain("Required ROM/content is missing or incorrect");
   });
 
   it("keeps launch errors inside the MAME browser surface instead of a generic page", () => {

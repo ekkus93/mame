@@ -498,6 +498,7 @@ export function MameBrowser({
         if (result.canceled) {
           setExportState({ status: "idle" });
           return;
+
         }
         setExportState({
 
@@ -676,6 +677,7 @@ export function MameBrowser({
     return (
       <SoftwareBrowser
         detail={detail as SoftwareCapableMachineDetail}
+        availability={selectedAvailability}
         gameplayInputOwned={gameplayInputOwned}
         launchOverrides={pendingLaunchOverrides}
         panelMode={softwareRightPanelMode}

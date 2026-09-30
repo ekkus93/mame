@@ -20,8 +20,9 @@ import {
   type SoftwareListFilter,
 } from "../backend/mameSoftware";
 import type { MameUiPanelMode } from "../backend/mameUiState";
-import type { MachineDetail, SessionSnapshot } from "../backend/types";
+import type { MachineAvailability, MachineDetail, SessionSnapshot } from "../backend/types";
 import { isEditableElement } from "../library/keyboardNavigation";
+import { machineAvailabilityLabel } from "../library/libraryQuery";
 import {
   buildEmptyLaunchRequest,
   buildSoftwareLaunchRequest,
@@ -105,6 +106,7 @@ export function SoftwareResultsList({
 
 export function SoftwareBrowser({
   detail,
+  availability,
   gameplayInputOwned,
   launchOverrides,
   panelMode,
@@ -113,6 +115,7 @@ export function SoftwareBrowser({
   onSessionStarted,
 }: {
   detail: MachineDetail;
+  availability: MachineAvailability;
   gameplayInputOwned: boolean;
   launchOverrides: LaunchPreferences | null;
   panelMode: MameUiPanelMode;
@@ -229,7 +232,7 @@ export function SoftwareBrowser({
 
   const launchItem = useCallback(
     (item: MameSoftwareItem, part: string | null) => {
-      if (!listName || launchInFlight.current) return;
+      if (availability !== "available" || !listName || launchInFlight.current) return;
       if (item.parts.length > 1 && !part) return;
       launchInFlight.current = true;
       setLaunch({ status: "launching", target: item.shortName });
@@ -252,7 +255,7 @@ export function SoftwareBrowser({
           launchInFlight.current = false;
         });
     },
-    [detail.shortName, launchOverrides, listName, onSessionStarted, selectedBios],
+    [availability, detail.shortName, launchOverrides, listName, onSessionStarted, selectedBios],
   );
 
   const launchSelected = useCallback(() => {
@@ -261,7 +264,7 @@ export function SoftwareBrowser({
   }, [launchItem, selected, selectedPart]);
 
   const startEmpty = useCallback(() => {
-    if (!detail.canStartEmpty || launchInFlight.current) return;
+    if (availability !== "available" || !detail.canStartEmpty || launchInFlight.current) return;
     launchInFlight.current = true;
     setLaunch({ status: "launching", target: "empty" });
     void launchMameEmpty(
@@ -279,11 +282,20 @@ export function SoftwareBrowser({
       .finally(() => {
         launchInFlight.current = false;
       });
-  }, [detail.canStartEmpty, detail.shortName, launchOverrides, onSessionStarted, selectedBios]);
+  }, [
+    availability,
+    detail.canStartEmpty,
+    detail.shortName,
+    launchOverrides,
+    onSessionStarted,
+    selectedBios,
+  ]);
 
   function activateItem(item: MameSoftwareItem) {
     setSelected(item);
-    if (item.parts.length <= 1) launchItem(item, selectedPartForSoftware(item));
+    if (availability === "available" && item.parts.length <= 1) {
+      launchItem(item, selectedPartForSoftware(item));
+    }
   }
 
   function handleRowKey(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
@@ -367,7 +379,19 @@ export function SoftwareBrowser({
           </label>
         )}
         {detail.canStartEmpty && (
-          <button type="button" className="secondary-button" onClick={startEmpty}>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={availability !== "available" || launch.status === "launching"}
+            title={
+              availability === "unknown"
+                ? "Run an audit before starting"
+                : availability === "missing"
+                  ? "Required ROM/content is missing or incorrect"
+                  : undefined
+            }
+            onClick={startEmpty}
+          >
             Start Empty
           </button>
         )}
@@ -375,15 +399,32 @@ export function SoftwareBrowser({
           type="button"
           className="mame-start-button"
           disabled={
+            availability !== "available" ||
             !selected ||
             (selected.parts.length > 1 && !selectedPart) ||
             launch.status === "launching"
+          }
+          title={
+            availability === "unknown"
+              ? "Run an audit before starting"
+              : availability === "missing"
+                ? "Required ROM/content is missing or incorrect"
+                : undefined
           }
           onClick={launchSelected}
         >
           {launch.status === "launching" ? "Starting…" : "Start"}
         </button>
       </div>
+
+      {availability !== "available" && (
+        <div className="mame-browser-banner" role="status">
+          <strong>{machineAvailabilityLabel(availability)}</strong>{" "}
+          {availability === "missing"
+            ? "Required machine content is missing or incorrect. Configure content paths and audit again before starting software."
+            : "Machine content is not audited for the current content paths. Audit before starting software."}
+        </div>
+      )}
 
       {biosError && (
         <div className="mame-browser-banner is-error" role="status">
@@ -498,6 +539,7 @@ export function SoftwareBrowser({
             </nav>
           )}
         </section>
+
 
         <aside className="mame-right-panel" aria-label="Selected software context">
           <div className="mame-right-tabs" role="tablist" aria-label="Software detail view">
