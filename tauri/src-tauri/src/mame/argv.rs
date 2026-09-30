@@ -311,7 +311,10 @@ fn validate_option_name(option: &str) -> AppResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
+    use std::{
+        ffi::OsString,
+        path::{Path, PathBuf},
+    };
 
     use crate::config::{
         AudioPreference, LaunchPreferencesV1, RendererPreference, WindowPreference,
@@ -360,7 +363,9 @@ mod tests {
         };
 
         let argv = build_launch_argv(&target).expect("rompath path list must validate");
-        assert_eq!(argv.as_slice(), ["pacman", "-rompath", &path_list]);
+        assert_eq!(argv.as_slice()[0], "pacman");
+        assert_eq!(argv.as_slice()[1], "-rompath");
+        assert_eq!(argv.as_slice()[2], OsString::from(&path_list));
     }
 
     #[test]
