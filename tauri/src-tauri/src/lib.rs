@@ -50,7 +50,7 @@ pub fn verify_bundled_runtime_resource_dir(
         )
         .with_details(serde_json::json!({
             "source": source.kind(),
-            "path": source.path()
+            "path": source.path(),
         })));
     }
 
@@ -86,7 +86,7 @@ pub fn verify_runtime_override_reset(
     {
         return Err(errors::AppError::new(
             "MAME_OVERRIDE_SOURCE_UNEXPECTED",
-            "Explicit packaged runtime override did not resolve as a user-configured external runtime.",
+            "External override did not resolve as a user-configured runtime.",
         )
         .with_details(serde_json::json!({ "identity": override_identity })));
     }
@@ -108,7 +108,7 @@ pub fn verify_runtime_override_reset(
 
     Ok(serde_json::json!({
         "overrideIdentity": override_identity,
-        "resetIdentity": reset_identity
+        "resetIdentity": reset_identity,
     }))
 }
 

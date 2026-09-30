@@ -47,13 +47,13 @@ fn verify_bundled_runtime(args: &[OsString]) {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&identity)
-                    .expect("MAME runtime identity must serialize")
+                    .expect("MAME runtime identity must serialize"),
             );
         }
         Err(error) => {
             eprintln!(
                 "{}",
-                serde_json::to_string_pretty(&error).expect("MAME runtime error must serialize")
+                serde_json::to_string_pretty(&error).expect("MAME runtime error must serialize"),
             );
             std::process::exit(1);
         }
@@ -91,14 +91,14 @@ fn verify_metadata_bootstrap(args: &[OsString]) {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&report)
-                    .expect("metadata bootstrap report must serialize")
+                    .expect("metadata bootstrap report must serialize"),
             );
         }
         Err(error) => {
             eprintln!(
                 "{}",
                 serde_json::to_string_pretty(&error)
-                    .expect("metadata bootstrap error must serialize")
+                    .expect("metadata bootstrap error must serialize"),
             );
             std::process::exit(1);
         }
@@ -121,14 +121,14 @@ fn verify_override_reset(args: &[OsString]) {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&report)
-                    .expect("override/reset report must serialize")
+                    .expect("override/reset report must serialize"),
             );
         }
         Err(error) => {
             eprintln!(
                 "{}",
                 serde_json::to_string_pretty(&error)
-                    .expect("override/reset error must serialize")
+                    .expect("override/reset error must serialize"),
             );
             std::process::exit(1);
         }
