@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** New reset checklist — created to force the project back to self-contained packaged behavior and native-MAME UI parity.  
+**Status:** In progress — RESET-000 is complete; the reset spec is now the controlling execution plan and older BMR/RPL ledgers are cross-referenced as evidence/mapping only.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -10,16 +10,18 @@ Do not mark an item complete unless the implementation, tests, documentation/TOD
 
 This TODO exists because the project drifted from the intended product goal: a Tauri replacement UI for MAME that is self-contained in the packaged app, sane to run in place, and recognizably aligned with native MAME.
 
+**RESET-000 evidence, 2026-09-30:** reset execution was frozen on current `master` head `ea1482445351b234345fdc535cbdb51ae55c5faa` (`docs: add self-contained parity reset plan`). Exact-head documentation CI for that reset-start head passed: Build documentation run `36760131526`. The older bundled-runtime roadmap now points here as completed evidence, and the older ROM-path/launch-parity roadmap now points here as superseded execution mapping. Deferred feature-growth areas before reset acceptance are: new primary UI controls unrelated to native-MAME parity, additional catalog/filter features outside count/filter parity, new artwork/media behavior outside de-emphasis/clarification, and normal-flow external-MAME configuration work beyond preserving it as advanced/debug behavior.
+
 ---
 
 ## RESET-000 — Freeze product invariants and stop scope drift
 
-- [ ] Treat `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md` as the controlling product spec for this reset.
-- [ ] Add a short note to the older BMR/RPL TODOs pointing to this reset spec/TODO as the current execution priority.
-- [ ] Identify open TODO items that are now deferred because they add feature growth before self-contained parity.
-- [ ] Stop adding new primary UI controls, catalog features, artwork/media behavior, or external-MAME configuration features until the reset acceptance criteria are met.
-- [ ] Record the current `master` SHA at reset start.
-- [ ] Record current exact-head CI state at reset start.
+- [x] Treat `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md` as the controlling product spec for this reset.
+- [x] Add a short note to the older BMR/RPL TODOs pointing to this reset spec/TODO as the current execution priority.
+- [x] Identify open TODO items that are now deferred because they add feature growth before self-contained parity.
+- [x] Stop adding new primary UI controls, catalog features, artwork/media behavior, or external-MAME configuration features until the reset acceptance criteria are met.
+- [x] Record the current `master` SHA at reset start.
+- [x] Record current exact-head CI state at reset start.
 
 **Acceptance:** there is one clear execution target: self-contained packaged Tauri MAME with native-ish UI behavior.
 
@@ -195,5 +197,6 @@ This TODO exists because the project drifted from the intended product goal: a T
 ## Current known facts at creation time
 
 - Current reset creation baseline head: `893084ed72a41774929c560778edcb7a28e6f96b`.
-- The `Tauri project` workflow for that head had passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work.
+- RESET-000 execution head: `ea1482445351b234345fdc535cbdb51ae55c5faa`; Build documentation run `36760131526` passed on that exact head.
+- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` had passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.

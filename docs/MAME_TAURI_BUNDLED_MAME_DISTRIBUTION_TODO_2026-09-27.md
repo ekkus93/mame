@@ -4,6 +4,8 @@
 **Status:** Complete — real bundled-MAME Linux package qualification, installed external-override/reset qualification, final evidence reconciliation, and post-reconciliation CI are green.  
 **Canonical specification:** `docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_SPEC_2026-09-27.md`
 
+**Reset priority note, 2026-09-30:** This completed BMR ledger remains the evidence base for bundled-runtime/package behavior. Current execution priority is now `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md` and `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_TODO_2026-09-30.md`; do not reopen or extend this BMR roadmap except as evidence for the reset's self-contained packaged-runtime and package-qualification items.
+
 This is the canonical implementation and completion ledger for making the Debian/Ubuntu MAME Tauri distribution a single complete installation containing both the frontend and a functional MAME runtime.
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.

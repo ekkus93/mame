@@ -1,9 +1,11 @@
 # MAME Tauri ROM Path and Launch Parity TODO
 
 **Date:** 2026-09-30  
-**Status:** In progress — baseline/source inventory recorded; audit/launch ROM-path parity gap confirmed.  
+**Status:** Superseded for execution priority by the self-contained UI parity reset; use this roadmap as evidence/mapping only unless the reset TODO explicitly re-enters a matching item.  
 **Specification:** `docs/MAME_TAURI_ROM_PATH_AND_LAUNCH_PARITY_SPEC_2026-09-30.md`  
 **Depends on completed roadmap:** `docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_TODO_2026-09-27.md`
+
+**Reset priority note, 2026-09-30:** Current execution priority is `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md` and `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_TODO_2026-09-30.md`. Unfinished RPL work is mapped into the reset sequence: effective content paths into RESET-004, Start gating into RESET-005, missing-ROM diagnostics into RESET-006, native-count/filter parity into RESET-007, package smokes into RESET-008, and documentation into RESET-009. Do not add new RPL feature growth outside that reset order.
 
 This is the canonical checklist for the post-BMR ROM path, launch diagnostics, native-MAME parity, and artwork/details-panel UX work.
 
