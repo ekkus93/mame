@@ -35,7 +35,10 @@ function detail(): MachineDetail {
   };
 }
 
-function render(view: "images" | "info", availability: "available" | "missing" | "unknown" = "unknown") {
+function render(
+  view: "images" | "info",
+  availability: "available" | "missing" | "unknown" = "unknown",
+) {
   return renderToStaticMarkup(
     <MachineRightPanel
       detail={detail()}

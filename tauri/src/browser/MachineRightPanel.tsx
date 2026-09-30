@@ -188,7 +188,11 @@ export function MachineRightPanel({
               <button type="button" className="secondary-button" onClick={onConfigureContent}>
                 Configure content
               </button>
-              <button type="button" className="secondary-button" onClick={() => onViewChange("audit")}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => onViewChange("audit")}
+              >
                 Audit
               </button>
             </div>
@@ -203,7 +207,11 @@ export function MachineRightPanel({
               <button type="button" className="secondary-button" onClick={onConfigureContent}>
                 Configure content
               </button>
-              <button type="button" className="secondary-button" onClick={() => onViewChange("audit")}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => onViewChange("audit")}
+              >
                 Audit
               </button>
             </div>

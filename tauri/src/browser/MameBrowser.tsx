@@ -433,7 +433,9 @@ export function MameBrowser({
 
   const page = loadState.status === "ready" ? loadState.page : null;
   const selectedAvailability: MachineAvailability =
-    selected && page ? (page.availabilityByShortName[selected.shortName] ?? "unknown") : "unknown";
+    selected && page
+      ? (page.availabilityByShortName[selected.shortName] ?? "unknown")
+      : "unknown";
   const catalogReady = catalogCanQuery(catalogState);
   const availabilityNotice = catalogReady ? machineAvailabilityNotice(page) : null;
   const range =
@@ -498,6 +500,7 @@ export function MameBrowser({
           return;
         }
         setExportState({
+
           status: "success",
           message: `Exported ${result.rows.toLocaleString()} machine${result.rows === 1 ? "" : "s"}.`,
         });
