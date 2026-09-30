@@ -53,21 +53,13 @@ impl EffectiveContentPaths {
 
 pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentPaths {
     let mut entries = Vec::new();
-    append_configured_paths(
-        &mut entries,
-        ContentPathKind::Rom,
-        &configured.rom_paths,
-    );
+    append_configured_paths(&mut entries, ContentPathKind::Rom, &configured.rom_paths);
     append_configured_paths(
         &mut entries,
         ContentPathKind::Software,
         &configured.software_paths,
     );
-    append_configured_paths(
-        &mut entries,
-        ContentPathKind::Chd,
-        &configured.chd_paths,
-    );
+    append_configured_paths(&mut entries, ContentPathKind::Chd, &configured.chd_paths);
 
     EffectiveContentPaths {
         schema_version: 1,
