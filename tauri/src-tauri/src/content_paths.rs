@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use serde::Serialize;
 
 use crate::config::{
@@ -81,6 +79,7 @@ fn effective_entry(kind: ContentPathKind, path: &PlatformPath) -> EffectiveConte
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::config::{ContentPathKind, ContentPathsV1, PathValidationStatus, PlatformPath};
