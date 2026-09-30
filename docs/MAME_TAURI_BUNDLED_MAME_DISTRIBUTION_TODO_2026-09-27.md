@@ -261,4 +261,4 @@ The canonical BMR checklist is complete. The following are explicitly outside th
 
 ## Completion rule
 
-This effort is complete: a normal Debian/Ubuntu user can install one production `.deb`, launch the application without supplying or locating MAME, automatically use the package-owned real MAME runtime, initialize/refresh metadata, reach the MAME-style machine browser, and retain an optional advanced external-runtime override. Synthetic package fixtures alone were not used for closure; the required behavior is covered by the exact-head real-runtime package workflow and final reconciliation evidence above.
+Synthetic package fixtures alone are never sufficient for closure. This effort is complete: a normal Debian/Ubuntu user can install one production `.deb`, launch the application without supplying or locating MAME, automatically use the package-owned real MAME runtime, initialize/refresh metadata, reach the MAME-style machine browser, and retain an optional advanced external-runtime override. The required behavior is covered by the exact-head real-runtime package workflow and final reconciliation evidence above.
