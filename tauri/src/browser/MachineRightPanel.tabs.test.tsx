@@ -35,10 +35,11 @@ function detail(): MachineDetail {
   };
 }
 
-function render(view: "images" | "info") {
+function render(view: "images" | "info", availability: "available" | "missing" | "unknown" = "unknown") {
   return renderToStaticMarkup(
     <MachineRightPanel
       detail={detail()}
+      availability={availability}
       view={view}
       onViewChange={() => undefined}
       artworkKind="screenshot"
@@ -46,6 +47,7 @@ function render(view: "images" | "info") {
       pendingLaunchOverrides={null}
       onPendingLaunchOverridesChanged={() => undefined}
       onAuditResultChanged={() => undefined}
+      onConfigureContent={() => undefined}
       firstTabRef={createRef<HTMLButtonElement>()}
       onNavigateToMachines={() => undefined}
       onSettingsClose={() => undefined}
@@ -74,5 +76,25 @@ describe("MachineRightPanel primary tabs", () => {
     const html = render("info");
     expect(html).toContain('aria-selected="false" tabindex="-1" class=""');
     expect(html).toContain('aria-selected="true" tabindex="0" class="is-selected"');
+  });
+
+  it("prioritizes unaudited content guidance before optional media", () => {
+    const html = render("images", "unknown");
+    expect(html).toContain("Not audited");
+    expect(html).toContain("Audit before");
+    expect(html).toContain("Configure content");
+  });
+
+  it("explains missing content without presenting artwork as the blocker", () => {
+    const html = render("images", "missing");
+    expect(html).toContain("Missing content");
+    expect(html).toContain("Required ROM/content is missing or incorrect");
+    expect(html).toContain("Artwork/media is optional");
+  });
+
+  it("reports audited content as ready to start", () => {
+    const html = render("info", "available");
+    expect(html).toContain("Available locally");
+    expect(html).toContain("Audited content is ready to start");
   });
 });

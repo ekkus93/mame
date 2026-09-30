@@ -46,6 +46,15 @@ describe("MAME command and interaction parity tripwires", () => {
     expect(rightPanelSource).toContain('onClick={() => onViewChange("info")}');
   });
 
+  it("keeps maintenance controls out of the primary launch cluster", () => {
+    expect(browserSource).toContain("<summary>Machine options</summary>");
+    expect(browserSource).toContain('aria-label="Export displayed machine list"');
+    expect(browserSource.indexOf("mame-utility-menu")).toBeLessThan(
+      browserSource.indexOf('aria-label="Export displayed machine list"'),
+    );
+    expect(browserSource).toContain('selectedAvailability !== "available"');
+  });
+
   it("keeps launch errors inside the MAME browser surface instead of a generic page", () => {
     expect(browserSource).toContain("mame-browser-banner is-error");
     expect(browserSource).toContain('role="alert"');

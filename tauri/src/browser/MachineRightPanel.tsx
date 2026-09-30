@@ -16,9 +16,9 @@ import {
 } from "../backend/artwork";
 import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
-import type { MachineDetail } from "../backend/types";
+import type { MachineAvailability, MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
-import { machineStatusLabel } from "../library/libraryQuery";
+import { machineAvailabilityLabel, machineStatusLabel } from "../library/libraryQuery";
 import { MachineSettingsPanel } from "../settings/MachineSettingsPanel";
 import { ArtworkAssetFrame } from "./ArtworkAssetFrame";
 import {
@@ -116,6 +116,7 @@ export function EmptyMachineRightPanel({
 
 export function MachineRightPanel({
   detail,
+  availability,
   view,
   onViewChange,
   artworkKind,
@@ -123,12 +124,14 @@ export function MachineRightPanel({
   pendingLaunchOverrides,
   onPendingLaunchOverridesChanged,
   onAuditResultChanged,
+  onConfigureContent,
   firstTabRef,
   onNavigateToMachines,
   onSettingsClose,
   gameplayInputOwned,
 }: {
   detail: MachineDetail;
+  availability: MachineAvailability;
   view: MachineRightView;
   onViewChange: (view: MachineRightView) => void;
   artworkKind: ArtworkKind;
@@ -136,6 +139,7 @@ export function MachineRightPanel({
   pendingLaunchOverrides: LaunchPreferences | null;
   onPendingLaunchOverridesChanged: (preferences: LaunchPreferences | null) => void;
   onAuditResultChanged: () => void;
+  onConfigureContent: () => void;
   firstTabRef: RefObject<HTMLButtonElement | null>;
   onNavigateToMachines: () => void;
   onSettingsClose: () => void;
@@ -170,6 +174,42 @@ export function MachineRightPanel({
       data-view={panelDataView(view)}
       aria-label="Selected machine context"
     >
+      <div className={`mame-content-guidance availability-${availability}`} role="status">
+        <strong>{machineAvailabilityLabel(availability)}</strong>
+        {availability === "available" ? (
+          <span>Audited content is ready to start with the current content paths.</span>
+        ) : availability === "missing" ? (
+          <>
+            <span>
+              Required ROM/content is missing or incorrect. Fix the configured content paths or
+              content files, then audit again.
+            </span>
+            <div className="mame-content-guidance-actions">
+              <button type="button" className="secondary-button" onClick={onConfigureContent}>
+                Configure content
+              </button>
+              <button type="button" className="secondary-button" onClick={() => onViewChange("audit")}>
+                Audit
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span>
+              Availability has not been verified for the current content paths. Audit before
+              starting this machine.
+            </span>
+            <div className="mame-content-guidance-actions">
+              <button type="button" className="secondary-button" onClick={onConfigureContent}>
+                Configure content
+              </button>
+              <button type="button" className="secondary-button" onClick={() => onViewChange("audit")}>
+                Audit
+              </button>
+            </div>
+          </>
+        )}
+      </div>
       <div className="mame-right-tabs" role="tablist" aria-label="Machine Images and Infos">
         <button
           ref={firstTabRef}

@@ -21,6 +21,7 @@ import { exportMameUiDisplayedList, queryMameUiLibrary } from "../backend/mameUi
 import { getMameUiState, setMameUiState, type MameUiPanelMode } from "../backend/mameUiState";
 import type {
   MameVersionReport,
+  MachineAvailability,
   MachineDetail,
   MachineListItem,
   MachinePage,
@@ -431,6 +432,8 @@ export function MameBrowser({
   }, [selected]);
 
   const page = loadState.status === "ready" ? loadState.page : null;
+  const selectedAvailability: MachineAvailability =
+    selected && page ? (page.availabilityByShortName[selected.shortName] ?? "unknown") : "unknown";
   const catalogReady = catalogCanQuery(catalogState);
   const availabilityNotice = catalogReady ? machineAvailabilityNotice(page) : null;
   const range =
@@ -451,7 +454,13 @@ export function MameBrowser({
 
   const launchDetail = useCallback(
     (detail: MachineDetail) => {
-      if (!detail.runnable || launchState.status === "launching") return;
+      if (
+        !detail.runnable ||
+        selectedAvailability !== "available" ||
+        launchState.status === "launching"
+      ) {
+        return;
+      }
       setLaunchState({ status: "launching" });
       void launchLibraryMachine({
         shortName: detail.shortName,
@@ -466,7 +475,7 @@ export function MameBrowser({
           setLaunchState({ status: "error", message: errorMessage(reason) });
         });
     },
-    [launchState.status, onSessionStarted, pendingLaunchOverrides],
+    [launchState.status, onSessionStarted, pendingLaunchOverrides, selectedAvailability],
   );
 
   const exportDisplayedList = useCallback(() => {
@@ -507,7 +516,11 @@ export function MameBrowser({
 
   const activateMachine = useCallback(
     (machine: MachineListItem) => {
-      if (!machine.runnable || selectedRef.current?.shortName !== machine.shortName) {
+      if (
+        !machine.runnable ||
+        page?.availabilityByShortName[machine.shortName] !== "available" ||
+        selectedRef.current?.shortName !== machine.shortName
+      ) {
         return;
       }
       const activation = ++activationSequence.current;
@@ -546,7 +559,7 @@ export function MameBrowser({
           }
         });
     },
-    [detailState, launchDetail],
+    [detailState, launchDetail, page],
   );
 
   function handleMachineRowKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
@@ -698,19 +711,6 @@ export function MameBrowser({
         </span>
         <button
           type="button"
-          className="secondary-button"
-          aria-label="Export displayed machine list"
-          disabled={
-            !catalogReady ||
-            exportState.status === "exporting" ||
-            (valueRequired && !debouncedFilterValue)
-          }
-          onClick={exportDisplayedList}
-        >
-          {exportState.status === "exporting" ? "Exporting…" : "Export"}
-        </button>
-        <button
-          type="button"
           className="secondary-button mame-narrow-details-toggle"
           aria-expanded={showNarrowDetails}
           onClick={() => setShowNarrowDetails((current) => !current)}
@@ -720,6 +720,18 @@ export function MameBrowser({
         <details className="mame-utility-menu">
           <summary>More</summary>
           <div className="mame-utility-menu-items" aria-label="Secondary MAME tools">
+            <button
+              type="button"
+              aria-label="Export displayed machine list"
+              disabled={
+                !catalogReady ||
+                exportState.status === "exporting" ||
+                (valueRequired && !debouncedFilterValue)
+              }
+              onClick={exportDisplayedList}
+            >
+              {exportState.status === "exporting" ? "Exporting…" : "Export"}
+            </button>
             <button type="button" onClick={onOpenSession}>
               {sessionLabel}
             </button>
@@ -746,25 +758,23 @@ export function MameBrowser({
               type="button"
               className="mame-start-button"
               aria-label={primaryLaunchButtonAriaLabel(detail)}
-              disabled={!detail.runnable || launchState.status === "launching"}
-              title={!detail.runnable ? "Machine is unavailable" : undefined}
+              disabled={
+                !detail.runnable ||
+                selectedAvailability !== "available" ||
+                launchState.status === "launching"
+              }
+              title={
+                !detail.runnable
+                  ? "Machine is not runnable"
+                  : selectedAvailability === "unknown"
+                    ? "Run an audit before starting"
+                    : selectedAvailability === "missing"
+                      ? "Required ROM/content is missing or incorrect"
+                      : undefined
+              }
               onClick={() => launchDetail(detail)}
             >
               {primaryLaunchButtonLabel(detail, launchState)}
-            </button>
-            <FavoriteToggleButton
-              shortName={detail.shortName}
-              revision={favoriteRevision}
-              onChanged={bumpFavoriteRevision}
-            />
-            <button
-              ref={configureButtonRef}
-              type="button"
-              className="secondary-button mame-configure-machine-button"
-              aria-label={`Configure Machine for ${detail.description}`}
-              onClick={() => changeRightView("settings")}
-            >
-              {MAME_MACHINE_ACTION_LABELS.configureMachine}
             </button>
             {detail.softwareLists.length > 0 && (
               <button
@@ -776,14 +786,33 @@ export function MameBrowser({
                 {MAME_MACHINE_ACTION_LABELS.softwareList}
               </button>
             )}
-            <button
-              type="button"
-              className="secondary-button mame-audit-button"
-              aria-label={`Audit ${detail.description}`}
-              onClick={() => changeRightView("audit")}
-            >
-              {MAME_MACHINE_ACTION_LABELS.audit}
-            </button>
+            <details className="mame-machine-options">
+              <summary>Machine options</summary>
+              <div className="mame-machine-options-items">
+                <FavoriteToggleButton
+                  shortName={detail.shortName}
+                  revision={favoriteRevision}
+                  onChanged={bumpFavoriteRevision}
+                />
+                <button
+                  ref={configureButtonRef}
+                  type="button"
+                  className="secondary-button mame-configure-machine-button"
+                  aria-label={`Configure Machine for ${detail.description}`}
+                  onClick={() => changeRightView("settings")}
+                >
+                  {MAME_MACHINE_ACTION_LABELS.configureMachine}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button mame-audit-button"
+                  aria-label={`Audit ${detail.description}`}
+                  onClick={() => changeRightView("audit")}
+                >
+                  {MAME_MACHINE_ACTION_LABELS.audit}
+                </button>
+              </div>
+            </details>
           </div>
         )}
       </div>
@@ -931,6 +960,7 @@ export function MameBrowser({
         {detail ? (
           <MachineRightPanel
             detail={detail}
+            availability={selectedAvailability}
             view={rightView}
             onViewChange={changeRightView}
             artworkKind={artworkKind}
@@ -938,6 +968,7 @@ export function MameBrowser({
             pendingLaunchOverrides={pendingLaunchOverrides}
             onPendingLaunchOverridesChanged={setPendingLaunchOverrides}
             onAuditResultChanged={onAuditResultsChanged}
+            onConfigureContent={onConfigureOptions}
             firstTabRef={rightPanelFirstTabRef}
             onNavigateToMachines={focusSelectedMachine}
             gameplayInputOwned={gameplayInputOwned}
