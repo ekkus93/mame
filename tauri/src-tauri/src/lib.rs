@@ -68,6 +68,48 @@ pub fn verify_bundled_runtime_resource_dir(
     Ok(identity)
 }
 
+pub fn verify_runtime_override_reset(
+    resource_dir: impl AsRef<Path>,
+    external_path: impl AsRef<Path>,
+) -> errors::AppResult<serde_json::Value> {
+    let override_settings = config::SettingsV2 {
+        mame_executable: Some(external_path.as_ref().to_string_lossy().into_owned()),
+        ..config::SettingsV2::default()
+    };
+    let override_source =
+        effective_runtime::resolve_effective_mame_source(&override_settings, resource_dir.as_ref())?;
+    let override_identity = mame::inspect_executable(override_source)?;
+    if override_identity.source != mame::MameExecutableSourceKind::External
+        || override_identity.trust != mame::MameExecutableTrust::UserConfigured
+    {
+        return Err(errors::AppError::new(
+            "MAME_OVERRIDE_SOURCE_UNEXPECTED",
+            "Explicit packaged runtime override did not resolve as a user-configured external runtime.",
+        )
+        .with_details(serde_json::json!({ "identity": override_identity })));
+    }
+
+    let reset_source = effective_runtime::resolve_effective_mame_source(
+        &config::SettingsV2::default(),
+        resource_dir.as_ref(),
+    )?;
+    let reset_identity = mame::inspect_executable(reset_source)?;
+    if reset_identity.source != mame::MameExecutableSourceKind::Bundled
+        || reset_identity.trust != mame::MameExecutableTrust::QualifiedBundled
+    {
+        return Err(errors::AppError::new(
+            "MAME_OVERRIDE_RESET_SOURCE_UNEXPECTED",
+            "Clearing the external override did not restore the qualified bundled runtime.",
+        )
+        .with_details(serde_json::json!({ "identity": reset_identity })));
+    }
+
+    Ok(serde_json::json!({
+        "overrideIdentity": override_identity,
+        "resetIdentity": reset_identity
+    }))
+}
+
 pub fn run() -> Result<(), tauri::Error> {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())

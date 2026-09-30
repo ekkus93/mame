@@ -7,6 +7,7 @@ use std::{
 
 const VERIFY_BUNDLED_RUNTIME_ARG: &str = "--mame-tauri-verify-bundled-runtime";
 const VERIFY_METADATA_BOOTSTRAP_ARG: &str = "--mame-tauri-verify-bundled-metadata-bootstrap";
+const VERIFY_OVERRIDE_RESET_ARG: &str = "--mame-tauri-verify-runtime-override-reset";
 
 fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -17,6 +18,10 @@ fn main() {
         }
         if command == OsStr::new(VERIFY_METADATA_BOOTSTRAP_ARG) {
             verify_metadata_bootstrap(&args[1..]);
+            return;
+        }
+        if command == OsStr::new(VERIFY_OVERRIDE_RESET_ARG) {
+            verify_override_reset(&args[1..]);
             return;
         }
     }
@@ -94,6 +99,35 @@ fn verify_metadata_bootstrap(args: &[OsString]) {
                 "{}",
                 serde_json::to_string_pretty(&error)
                     .expect("metadata bootstrap error must serialize")
+            );
+            std::process::exit(1);
+        }
+    }
+}
+
+fn verify_override_reset(args: &[OsString]) {
+    if args.len() != 2 {
+        eprintln!(
+            "usage: mame-tauri {} <tauri-resource-dir> <external-mame-path>",
+            VERIFY_OVERRIDE_RESET_ARG
+        );
+        std::process::exit(64);
+    }
+
+    let resource_dir = PathBuf::from(&args[0]);
+    let external_path = PathBuf::from(&args[1]);
+    match mame_tauri_lib::verify_runtime_override_reset(&resource_dir, &external_path) {
+        Ok(report) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .expect("override/reset report must serialize")
+            );
+        }
+        Err(error) => {
+            eprintln!(
+                "{}",
+                serde_json::to_string_pretty(&error).expect("override/reset error must serialize")
             );
             std::process::exit(1);
         }
