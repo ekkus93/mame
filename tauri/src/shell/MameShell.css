@@ -89,6 +89,18 @@
   background: var(--mame-toolbar-strong);
 }
 
+.mame-context-actions .mame-configure-machine-button,
+.mame-context-actions .mame-audit-button,
+.mame-context-actions > .secondary-button:not(.mame-software-list-button) {
+  font-size: 0.72rem;
+  color: var(--mame-muted);
+  background: var(--mame-toolbar);
+}
+
+.mame-context-actions .mame-software-list-button {
+  font-weight: 700;
+}
+
 .mame-context-actions button:disabled,
 .mame-pager button:disabled,
 .mame-right-tabs button:disabled {
