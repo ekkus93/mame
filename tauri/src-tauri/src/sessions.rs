@@ -289,14 +289,18 @@ fn launch_mame_with_source_and_bios_policy(
 ) -> AppResult<SessionSnapshot> {
     let settings = load_settings(&settings_path(&app)?)?;
     let effective_content_paths = effective_content_paths(&settings.content_paths);
-    if require_current_audit {
-        let classification = current_machine_audit_classification(
+    let audit_classification = if require_current_audit {
+        current_machine_audit_classification(
             &app,
             &source,
             &machine,
             &effective_content_paths,
-        )?;
-        launch_after_audit_gate(&machine, classification, || Ok(()))?;
+        )?
+    } else {
+        None
+    };
+    if require_current_audit {
+        launch_after_audit_gate(&machine, audit_classification, || Ok(()))?;
     }
     let project_paths =
         append_effective_content_project_paths(project_paths, &effective_content_paths)?;
@@ -323,6 +327,14 @@ fn launch_mame_with_source_and_bios_policy(
             })
             .collect(),
     };
+
+    let launch_context = serde_json::json!({
+        "machine": &target.machine,
+        "software": &target.software,
+        "bios": &target.bios,
+        "auditState": audit_state_label(audit_classification, require_current_audit),
+        "effectiveContentPaths": diagnostics::summarize_content_paths(&effective_content_paths)
+    });
 
     // Validate identifiers and project-controlled paths before persisting an
     // attempt, so invalid frontend input never becomes durable user history.
@@ -421,6 +433,11 @@ fn launch_mame_with_source_and_bios_policy(
             Ok(session)
         }
         Err(mut launch_error) => {
+            let runtime_details = launch_error.details.clone();
+            launch_error.details = serde_json::json!({
+                "launchContext": launch_context,
+                "runtime": runtime_details
+            });
             if let Err(history_error) = history::finish_launch_history(&app, history_id, false) {
                 launch_error.details = serde_json::json!({
                     "launch": launch_error.details,
@@ -433,6 +450,23 @@ fn launch_mame_with_source_and_bios_policy(
             }
             Err(launch_error)
         }
+    }
+}
+
+fn audit_state_label(
+    classification: Option<MameAuditClassification>,
+    required: bool,
+) -> &'static str {
+    if !required {
+        return "notRequired";
+    }
+    match classification {
+        Some(MameAuditClassification::Complete) => "available",
+        Some(MameAuditClassification::BestAvailable) => "bestAvailable",
+        Some(MameAuditClassification::MissingRequired) => "missingRequired",
+        Some(MameAuditClassification::Incorrect) => "incorrect",
+        Some(MameAuditClassification::MixedFailure) => "mixedFailure",
+        Some(MameAuditClassification::Unknown) | None => "unknownOrStale",
     }
 }
 
@@ -498,6 +532,7 @@ fn append_effective_content_project_paths(
     project_paths.retain(|project_path| project_path.option != "rompath");
     project_paths.push(ProjectPathRequest {
         option: "rompath".to_owned(),
+
         path: media_path.to_string_lossy().into_owned(),
     });
     Ok(project_paths)

@@ -295,7 +295,7 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
     })
 }
 
-fn summarize_content_paths(paths: &EffectiveContentPaths) -> ContentPathDiagnostics {
+pub(crate) fn summarize_content_paths(paths: &EffectiveContentPaths) -> ContentPathDiagnostics {
     let mut summary = ContentPathDiagnostics {
         schema_version: 1,
         resolution_policy: "configuredOnly".to_owned(),
@@ -498,6 +498,7 @@ fn load_recent_entries(path: &Path) -> VecDeque<DiagnosticLogEntry> {
         return VecDeque::new();
     };
     let mut entries = contents
+
         .lines()
         .rev()
         .filter_map(|line| serde_json::from_str::<DiagnosticLogEntry>(line).ok())

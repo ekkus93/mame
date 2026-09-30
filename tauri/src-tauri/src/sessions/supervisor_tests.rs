@@ -72,6 +72,71 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn pre_ready_missing_content_exit_is_actionable_and_preserves_bounded_tails() {
+        let root = unique_temp_dir("pre-ready-missing-content");
+        let executable = write_pre_ready_fake_mame(
+            &root,
+            "printf '%s\\n' 'Required files are missing, the machine cannot be run.' >&2\nexit 2\n",
+        );
+        let supervisor = SessionSupervisor::default();
+
+        let error = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect_err("pre-ready missing content must fail launch");
+
+        assert_eq!(error.code, "MAME_CONTENT_LAUNCH_FAILED");
+        assert!(error.message.contains("required ROM/content"));
+        assert!(!error.message.contains("control channel"));
+        assert_eq!(error.details["earlyExit"], true);
+        assert_eq!(error.details["contentFailure"], true);
+        assert_eq!(error.details["runtimeControlCode"], "CONTROL_CHANNEL_CLOSED");
+        assert!(error.details["stderrTail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Required files are missing"));
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unrelated_pre_ready_exit_is_not_misreported_as_protocol_failure() {
+        let root = unique_temp_dir("pre-ready-generic-exit");
+        let executable =
+            write_pre_ready_fake_mame(&root, "printf '%s\\n' 'startup failed' >&2\nexit 9\n");
+        let supervisor = SessionSupervisor::default();
+
+        let error = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect_err("pre-ready process exit must fail launch");
+
+        assert_eq!(error.code, "MAME_EARLY_EXIT");
+        assert_eq!(error.details["exitCode"], 9);
+        assert_eq!(error.details["runtimeControlCode"], "CONTROL_CHANNEL_CLOSED");
+        assert!(error.details["stderrTail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("startup failed"));
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn nonzero_exit_is_reported_as_crash() {
         let root = unique_temp_dir("crash-exit");
         let executable =
@@ -232,6 +297,29 @@ mod tests {
         assert!(stopped.session.forced_termination);
 
         fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    fn write_pre_ready_fake_mame(root: &PathBuf, launch_body: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::create_dir_all(root).expect("create fake MAME directory");
+        let executable = root.join("fake pre-ready mame");
+        let script = format!(
+            r#"#!/bin/sh
+if [ "$1" = '-noreadconfig' ] && [ "$2" = '-version' ]; then
+  printf '%s\n' '0.288 test-build'
+  exit 0
+fi
+{launch_body}"#
+        );
+        fs::write(&executable, script).expect("write pre-ready fake MAME executable");
+        let mut permissions = fs::metadata(&executable)
+            .expect("read fake MAME metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable, permissions).expect("mark fake MAME executable");
+        executable
     }
 
     #[cfg(unix)]

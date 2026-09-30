@@ -187,6 +187,117 @@ fn wait_for_control_ready(
     }
 }
 
+fn classify_pre_ready_failure(
+    inner: &Arc<Mutex<SupervisorInner>>,
+    session_id: &str,
+    child: &Arc<Mutex<Child>>,
+    capture_done: &AtomicU8,
+    cause: AppError,
+) -> AppError {
+    let status = {
+        let mut child = recover_lock(child);
+        match child.try_wait() {
+            Ok(status) => status,
+            Err(error) => {
+                return cause.with_details(serde_json::json!({
+                    "sessionId": session_id,
+                    "childStatusError": error.to_string()
+                }))
+            }
+        }
+    };
+
+    let Some(status) = status else {
+        return cause.with_details(serde_json::json!({ "sessionId": session_id }));
+    };
+
+    wait_for_capture_completion(capture_done);
+
+    let (machine, software, stdout_tail, stderr_tail, stdout_truncated, stderr_truncated, path_count, path_options) = {
+        let mut inner = recover_lock(inner);
+        let current = match current_session_mut(&mut inner, session_id) {
+            Ok(current) => current,
+            Err(_) => {
+                return cause.with_details(serde_json::json!({
+                    "sessionId": session_id,
+                    "exitCode": status.code(),
+                    "terminationSignal": termination_signal(&status)
+                }))
+            }
+        };
+        current.snapshot.exit_code = status.code();
+        current.snapshot.termination_signal = termination_signal(&status);
+        let snapshot = snapshot_with_diagnostics(current);
+        let path_options = snapshot
+            .effective_config
+            .project_paths
+            .iter()
+            .map(|entry| entry.option.clone())
+            .collect::<Vec<_>>();
+        (
+            snapshot.machine,
+            snapshot.software,
+            snapshot.stdout_tail,
+            snapshot.stderr_tail,
+            snapshot.stdout_truncated,
+            snapshot.stderr_truncated,
+            path_options.len(),
+            path_options,
+        )
+    };
+
+    let runtime_control_code = cause.code.clone();
+    let content_failure = output_indicates_content_failure(&stdout_tail, &stderr_tail);
+    let (code, message) = if content_failure {
+        (
+            "MAME_CONTENT_LAUNCH_FAILED",
+            "MAME exited before startup because required ROM/content is missing or incorrect. Check the configured content paths and audit this machine again.",
+        )
+    } else {
+        (
+            "MAME_EARLY_EXIT",
+            "MAME exited before the runtime session became ready. Review the launch diagnostics for the underlying startup error.",
+        )
+    };
+
+    AppError::new(code, message).with_details(serde_json::json!({
+        "sessionId": session_id,
+        "machine": machine,
+        "software": software,
+        "exitCode": status.code(),
+        "terminationSignal": termination_signal(&status),
+        "stdoutTail": stdout_tail,
+        "stderrTail": stderr_tail,
+        "stdoutTruncated": stdout_truncated,
+        "stderrTruncated": stderr_truncated,
+        "effectivePathSummary": {
+            "count": path_count,
+            "options": path_options
+        },
+        "runtimeControlCode": runtime_control_code,
+        "earlyExit": true,
+        "contentFailure": content_failure
+    }))
+}
+
+fn output_indicates_content_failure(stdout: &str, stderr: &str) -> bool {
+    let output = format!("{stdout}\n{stderr}").to_ascii_lowercase();
+    [
+        "required files are missing",
+        "required rom",
+        "missing one or more required rom",
+        "rom/disk images for the selected system are missing or incorrect",
+        "one or more roms/chds for this machine are incorrect",
+        "romset ",
+        "not found",
+        "wrong length",
+        "wrong checksum",
+        "incorrect checksum",
+    ]
+    .iter()
+    .any(|pattern| output.contains(pattern))
+}
+
 fn fail_control_launch(
     inner: &Arc<Mutex<SupervisorInner>>,
     session_id: &str,
@@ -498,6 +609,7 @@ fn request_soft_stop(pid: u32) -> Result<(), String> {
 
 #[cfg(not(any(unix, windows)))]
 fn request_soft_stop(_pid: u32) -> Result<(), String> {
+
     Err("soft process termination is not implemented for this platform".to_owned())
 }
 

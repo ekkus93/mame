@@ -402,8 +402,15 @@ impl SessionSupervisor {
             &ready_observed,
             Duration::from_millis(CONTROL_READY_TIMEOUT_MS),
         ) {
+            let error = classify_pre_ready_failure(
+                &self.inner,
+                &session_id,
+                &child,
+                &capture_done,
+                error,
+            );
             fail_control_launch(&self.inner, &session_id, &child, &error);
-            return Err(error.with_details(serde_json::json!({ "sessionId": session_id })));
+            return Err(error);
         }
 
         let started_at_epoch_ms = match epoch_millis() {
@@ -498,6 +505,7 @@ impl SessionSupervisor {
 
         let mut status = if soft_stop_requested {
             wait_for_child(&child, SOFT_STOP_TIMEOUT).map_err(|error| {
+
                 AppError::new(
                     "MAME_STOP_WAIT_FAILED",
                     "The MAME process could not be observed during shutdown.",
