@@ -131,10 +131,12 @@ mod tests {
         assert_eq!(effective.media_search_paths()[1].as_path(), rom_b);
         assert_eq!(effective.media_search_paths()[2].as_path(), software);
         assert_eq!(effective.media_search_paths()[3].as_path(), chd);
-        assert!(effective
-            .entries
-            .iter()
-            .all(|entry| entry.validation.status == PathValidationStatus::Accessible));
+        assert!(
+            effective
+                .entries
+                .iter()
+                .all(|entry| entry.validation.status == PathValidationStatus::Accessible)
+        );
 
         fs::remove_dir_all(root).expect("cleanup");
     }
