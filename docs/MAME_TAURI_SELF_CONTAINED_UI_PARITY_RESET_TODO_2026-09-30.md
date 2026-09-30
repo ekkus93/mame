@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** In progress — RESET-000 and RESET-001 are complete; the controlling reset plan is frozen and the self-contained runtime/default path has been inventoried against current source, tests, and package evidence.  
+**Status:** In progress — RESET-000 through RESET-002 are complete; the reset plan is frozen, self-contained runtime/default path is inventoried, and the native-MAME UI parity inventory is now the implementation map for RESET-003.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -13,6 +13,8 @@ This TODO exists because the project drifted from the intended product goal: a T
 **RESET-000 evidence, 2026-09-30:** reset execution was frozen on current `master` head `ea1482445351b234345fdc535cbdb51ae55c5faa` (`docs: add self-contained parity reset plan`). Exact-head documentation CI for that reset-start head passed: Build documentation run `36760131526`. The older bundled-runtime roadmap now points here as completed evidence, and the older ROM-path/launch-parity roadmap now points here as superseded execution mapping. Deferred feature-growth areas before reset acceptance are: new primary UI controls unrelated to native-MAME parity, additional catalog/filter features outside count/filter parity, new artwork/media behavior outside de-emphasis/clarification, and normal-flow external-MAME configuration work beyond preserving it as advanced/debug behavior.
 
 **RESET-001 evidence, 2026-09-30:** `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md` records the current source/test/package inventory for self-contained packaged runtime behavior. It maps backend default runtime resolution, frontend settings/catalog behavior, catalog-backed launch trust boundaries, external/development runtime escape hatches, and BMR package workflow evidence to the RESET-001 acceptance criteria. Existing source and tests already enforce that bundled runtime resolution is backend/package-owned, external runtime selection is explicit/advanced, and persisted/frontend data cannot self-assert `qualifiedBundled` trust.
+
+**RESET-002 evidence, 2026-09-30:** `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md` records the native-MAME/Tauri reference view facts, current source-level UI inventory, visible Tauri-only controls, list/filter/status semantics, artwork/media issues, intended primary UI shape, and RESET-003 dispositions.
 
 ---
 
@@ -46,15 +48,15 @@ This TODO exists because the project drifted from the intended product goal: a T
 
 ## RESET-002 — Native-MAME UI parity inventory
 
-- [ ] Capture current native MAME reference screenshots/views for the target baseline.
-- [ ] Capture current Tauri UI screenshots/views for the comparable state.
-- [ ] Inventory every visible Tauri-only control in the primary library/list/detail/start path.
-- [ ] Classify each Tauri-only control as: remove, hide, advanced/debug, de-emphasize, or justified intentional addition.
-- [ ] Inventory current list columns, labels, filters, status indicators, and details panel sections.
-- [ ] Compare Tauri list/filter/status labels against native-MAME semantics.
-- [ ] Identify UI elements that confuse driver/emulation status with ROM availability.
-- [ ] Identify UI elements that make optional artwork/media look like required launch controls.
-- [ ] Document the intended primary UI shape after reset.
+- [x] Capture current native MAME reference screenshots/views for the target baseline.
+- [x] Capture current Tauri UI screenshots/views for the comparable state.
+- [x] Inventory every visible Tauri-only control in the primary library/list/detail/start path.
+- [x] Classify each Tauri-only control as: remove, hide, advanced/debug, de-emphasize, or justified intentional addition.
+- [x] Inventory current list columns, labels, filters, status indicators, and details panel sections.
+- [x] Compare Tauri list/filter/status labels against native-MAME semantics.
+- [x] Identify UI elements that confuse driver/emulation status with ROM availability.
+- [x] Identify UI elements that make optional artwork/media look like required launch controls.
+- [x] Document the intended primary UI shape after reset.
 
 **Acceptance:** there is a concrete UI parity inventory that drives implementation instead of ad hoc feature growth.
 
@@ -196,10 +198,11 @@ This TODO exists because the project drifted from the intended product goal: a T
 6. RESET-007: resolve native-vs-Tauri list/count parity.
 7. RESET-008 through RESET-010: qualify, document, and close.
 
-## Current known facts at creation time
+## Current known facts
 
 - Current reset creation baseline head: `893084ed72a41774929c560778edcb7a28e6f96b`.
 - RESET-000 execution head: `ea1482445351b234345fdc535cbdb51ae55c5faa`; Build documentation run `36760131526` passed on that exact head.
-- RESET-001 inventory head: pending this TODO update plus `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md`.
-- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` had passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work. Linux, macOS, and Windows packaging workflows for that head also reached success; the Linux real-runtime package workflow remained in progress at the most recent observation.
+- RESET-001 inventory head: `39172ed8cb3f0e6e4da2d7027e838952368b3d9a`; `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md` records the self-contained runtime/default-path inventory.
+- RESET-002 inventory head: pending this TODO update plus `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md`.
+- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work. Linux, macOS, and Windows packaging workflows for that head also reached success; the Linux real-runtime package workflow remained in progress at the most recent observation.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.
