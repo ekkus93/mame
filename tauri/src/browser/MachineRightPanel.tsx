@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from "react";
 
 import {
@@ -13,6 +14,7 @@ import {
   type ArtworkKind,
   type MachineArtwork,
 } from "../backend/artwork";
+import { errorMessage } from "../backend/errors";
 import type { LaunchPreferences } from "../backend/generalSettings";
 import type { MachineDetail } from "../backend/types";
 import { MachineAuditPanel } from "../library/MachineAuditPanel";
@@ -25,6 +27,9 @@ import {
   isCurrentArtworkRequest,
   type ArtworkAssetState,
 } from "./artworkState";
+import { nextPrimaryRightView, type PrimaryRightView } from "./rightPanelKeyboard";
+
+export type MachineRightView = "images" | "info" | "audit" | "settings";
 
 const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   screenshot: "Snapshots",
@@ -33,39 +38,52 @@ const ARTWORK_LABELS: Record<ArtworkKind, string> = {
   pcb: "PCB",
   flyer: "Flyer",
   titleScreen: "Title Screen",
+  ending: "Ending",
   artworkPreview: "Artwork Preview",
+  bosses: "Bosses",
+  logo: "Logo",
+  versus: "Versus",
+  gameOver: "Game Over",
+  howTo: "HowTo",
+  scores: "Scores",
+  select: "Select",
+  marquee: "Marquee",
+  cover: "Covers",
+  icon: "Icon",
+  systemImage: "System image",
 };
 
-type PrimaryRightView = "images" | "info";
-
-type DetailView = PrimaryRightView | "audit" | "settings";
-
-function nextPrimaryRightView(current: PrimaryRightView, key: string): PrimaryRightView | null {
-  if (key === "ArrowRight" && current === "images") return "info";
-  if (key === "ArrowLeft" && current === "info") return "images";
-  return null;
-}
-
-function panelDataView(view: DetailView): string {
+function panelDataView(view: MachineRightView): string {
   switch (view) {
     case "images":
       return "artwork";
     case "info":
-      return "info";
+      return "details";
+    case "settings":
+      return "configure";
     case "audit":
       return "audit";
-    case "settings":
-      return "settings";
   }
 }
 
-function errorMessage(reason: unknown): string {
-  if (reason instanceof Error) return reason.message;
-  if (typeof reason === "string") return reason;
-  return "Unknown error";
+function emptyMachinePanelText(status: "idle" | "loading" | "error", message?: string): string {
+  switch (status) {
+    case "loading":
+      return "Loading machine details…";
+    case "error":
+      return message ?? "Machine details unavailable.";
+    case "idle":
+      return "Select a machine.";
+  }
 }
 
-export function StaticMachineRightPanelFixture() {
+export function EmptyMachineRightPanel({
+  status,
+  message,
+}: {
+  status: "idle" | "loading" | "error";
+  message?: string;
+}) {
   return (
     <aside className="mame-right-panel" data-view="artwork" aria-label="Selected machine context">
       <div className="mame-right-tabs" role="tablist" aria-label="Machine Images and Infos">
@@ -85,7 +103,7 @@ export function StaticMachineRightPanelFixture() {
         <div className="mame-artwork-frame">
           <div className="mame-no-image-placeholder">
             <strong>No image Available</strong>
-            <span>Snapshots</span>
+            <span>{emptyMachinePanelText(status, message)}</span>
           </div>
         </div>
       </div>
@@ -96,41 +114,36 @@ export function StaticMachineRightPanelFixture() {
 export function MachineRightPanel({
   detail,
   view,
-  artworkKind,
-  pendingLaunchOverrides,
-  gameplayInputOwned,
-  firstTabRef,
   onViewChange,
+  artworkKind,
   onArtworkKindChange,
-  onNavigateToMachines,
+  pendingLaunchOverrides,
   onPendingLaunchOverridesChanged,
   onAuditResultChanged,
+  firstTabRef,
+  onNavigateToMachines,
   onSettingsClose,
+  gameplayInputOwned,
 }: {
   detail: MachineDetail;
-  view: DetailView;
+  view: MachineRightView;
+  onViewChange: (view: MachineRightView) => void;
   artworkKind: ArtworkKind;
-  pendingLaunchOverrides: LaunchPreferences | null;
-  gameplayInputOwned: boolean;
-  firstTabRef: React.RefObject<HTMLButtonElement | null>;
-  onViewChange: (view: DetailView) => void;
   onArtworkKindChange: (kind: ArtworkKind) => void;
-  onNavigateToMachines: () => void;
+  pendingLaunchOverrides: LaunchPreferences | null;
   onPendingLaunchOverridesChanged: (preferences: LaunchPreferences | null) => void;
   onAuditResultChanged: () => void;
+  firstTabRef: RefObject<HTMLButtonElement | null>;
+  onNavigateToMachines: () => void;
   onSettingsClose: () => void;
+  gameplayInputOwned: boolean;
 }) {
   const infoTabRef = useRef<HTMLButtonElement | null>(null);
 
   const selectPrimaryTab = (next: PrimaryRightView) => {
     onViewChange(next);
-    requestAnimationFrame(() => {
-      if (next === "images") {
-        firstTabRef.current?.focus();
-      } else {
-        infoTabRef.current?.focus();
-      }
-    });
+    if (next === "images") firstTabRef.current?.focus();
+    else infoTabRef.current?.focus();
   };
 
   const handlePrimaryTabKey = (
