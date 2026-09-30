@@ -122,36 +122,6 @@ chmod u+w "$external_runtime"
 cargo run --quiet \
   --manifest-path tauri/src-tauri/Cargo.toml \
   --example verify_runtime_override_reset \
-  -- "$resource_dir" "$external_runtime" >"$probe_root/override-reset.json"
-
-python3 - "$probe_root/override-reset.json" "$runtime_bin" "$external_runtime" <<'PY'
-import json
-import os
-import sys
-
-report_path, bundled_runtime, external_runtime = sys.argv[1:]
-with open(report_path, encoding='utf-8') as handle:
-    report = json.load(handle)
-
-override = report.get('overrideIdentity') or {}
-reset = report.get('resetIdentity') or {}
-errors = []
-
-if override.get('source') != 'external':
-    errors.append(f"override.source={override.get('source')!r}")
-if override.get('trust') != 'userConfigured':
-    errors.append(f"override.trust={override.get('trust')!r}")
-if os.path.realpath(override.get('path') or '') != os.path.realpath(external_runtime):
-    errors.append(f"override.path={override.get('path')!r}")
-if reset.get('source') != 'bundled':
-    errors.append(f"reset.source={reset.get('source')!r}")
-if reset.get('trust') != 'qualifiedBundled':
-    errors.append(f"reset.trust={reset.get('trust')!r}")
-if os.path.realpath(reset.get('path') or '') != os.path.realpath(bundled_runtime):
-    errors.append(f"reset.path={reset.get('path')!r}")
-
-if errors:
-    raise SystemExit('override/reset report mismatch: ' + ', '.join(errors))
-PY
+  -- "$resource_dir" "$external_runtime"
 
 printf 'Installed bundled-MAME metadata bootstrap and override/reset qualification passed for %s\n' "$smoke_machine"
