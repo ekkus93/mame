@@ -55,7 +55,10 @@ pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentP
     let mut entries = Vec::new();
     let groups = [
         (ContentPathKind::Rom, configured.rom_paths.as_slice()),
-        (ContentPathKind::Software, configured.software_paths.as_slice()),
+        (
+            ContentPathKind::Software,
+            configured.software_paths.as_slice(),
+        ),
         (ContentPathKind::Chd, configured.chd_paths.as_slice()),
     ];
     for (kind, paths) in groups {
