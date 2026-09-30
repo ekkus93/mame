@@ -49,6 +49,11 @@ impl EffectiveContentPaths {
     }
 }
 
+/// Resolve the one effective content-path contract used by the reset.
+///
+/// RESET-004 intentionally limits this contract to explicit user configuration. Automatic
+/// discovery/default MAME-compatible ROM locations are deferred until after reset acceptance so
+/// audit, launch, and diagnostics cannot silently disagree about an implicit search path.
 pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentPaths {
     let mut entries = Vec::new();
 
@@ -153,5 +158,29 @@ mod tests {
             effective.entries[0].validation.status,
             PathValidationStatus::Missing
         );
+    }
+
+    #[test]
+    fn non_directory_configured_paths_remain_visible_as_invalid() {
+        let root = temp_root("not-directory");
+        fs::create_dir_all(&root).expect("create test root");
+        let file = root.join("roms.zip");
+        fs::write(&file, b"not a directory").expect("create configured file path");
+        let configured = ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&file)],
+            software_paths: Vec::new(),
+            chd_paths: Vec::new(),
+        };
+
+        let effective = effective_content_paths(&configured);
+
+        assert_eq!(effective.entries.len(), 1);
+        assert_eq!(effective.entries[0].validation.path.as_path(), file);
+        assert_eq!(
+            effective.entries[0].validation.status,
+            PathValidationStatus::NotDirectory
+        );
+
+        fs::remove_dir_all(root).expect("cleanup");
     }
 }
