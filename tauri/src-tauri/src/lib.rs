@@ -76,8 +76,10 @@ pub fn verify_runtime_override_reset(
         mame_executable: Some(external_path.as_ref().to_string_lossy().into_owned()),
         ..config::SettingsV2::default()
     };
-    let override_source =
-        effective_runtime::resolve_effective_mame_source(&override_settings, resource_dir.as_ref())?;
+    let override_source = effective_runtime::resolve_effective_mame_source(
+        &override_settings,
+        resource_dir.as_ref(),
+    )?;
     let override_identity = mame::inspect_executable(override_source)?;
     if override_identity.source != mame::MameExecutableSourceKind::External
         || override_identity.trust != mame::MameExecutableTrust::UserConfigured

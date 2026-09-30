@@ -127,7 +127,8 @@ fn verify_override_reset(args: &[OsString]) {
         Err(error) => {
             eprintln!(
                 "{}",
-                serde_json::to_string_pretty(&error).expect("override/reset error must serialize")
+                serde_json::to_string_pretty(&error)
+                    .expect("override/reset error must serialize")
             );
             std::process::exit(1);
         }
