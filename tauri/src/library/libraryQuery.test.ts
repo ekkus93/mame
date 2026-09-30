@@ -56,9 +56,9 @@ describe("library query view model", () => {
   });
 
   it("keeps unverified availability distinct from confirmed content", () => {
-    expect(machineAvailabilityLabel("available")).toBe("Available");
-    expect(machineAvailabilityLabel("missing")).toBe("Missing");
-    expect(machineAvailabilityLabel("unknown")).toBe("Unknown");
+    expect(machineAvailabilityLabel("available")).toBe("Available locally");
+    expect(machineAvailabilityLabel("missing")).toBe("Missing content");
+    expect(machineAvailabilityLabel("unknown")).toBe("Not audited");
     expect(buildMachineSearchRequest(DEFAULT_LIBRARY_FILTERS).availability).toBeNull();
   });
 

@@ -48,11 +48,11 @@ export function buildMachineSearchRequest(
 export function machineAvailabilityLabel(availability: MachineAvailability): string {
   switch (availability) {
     case "available":
-      return "Available";
+      return "Available locally";
     case "missing":
-      return "Missing";
+      return "Missing content";
     case "unknown":
-      return "Unknown";
+      return "Not audited";
   }
 }
 

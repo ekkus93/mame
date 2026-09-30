@@ -23,17 +23,25 @@ export type MameBrowserFilterNavItem =
 
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
   { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
-  { id: "available", label: "Available", description: "Media verified as available" },
+  {
+    id: "available",
+    label: "Available Locally",
+    description: "Audited local content is available",
+  },
   {
     id: "unavailable",
-    label: "Unavailable",
-    description: "Required media is missing or incorrect",
+    label: "Missing Content",
+    description: "Audited local content is missing or incorrect",
   },
-  { id: "working", label: "Working", description: "Systems not marked not-working" },
+  {
+    id: "working",
+    label: "Driver Working",
+    description: "Driver/emulation status is not marked not-working",
+  },
   {
     id: "notWorking",
-    label: "Not Working",
-    description: "Systems marked preliminary / not working",
+    label: "Driver Not Working",
+    description: "Driver/emulation status is preliminary or not working",
   },
   { id: "mechanical", label: "Mechanical", description: "Mechanical systems" },
   {
