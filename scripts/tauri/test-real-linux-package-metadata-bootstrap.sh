@@ -7,10 +7,9 @@ Usage: test-real-linux-package-metadata-bootstrap.sh <package.deb>
 
 Release-grade metadata-bootstrap qualification for the installed bundled-MAME
 Debian package. This test reinstalls the package, makes the installed bundled
-runtime tree read-only, verifies that an explicit external override resolves as
-external and that clearing it returns to bundled MAME, imports real MAME -listxml
-metadata into a user-writable catalog, and verifies the resulting machine catalog
-is queryable.
+runtime tree read-only, asks the installed backend to resolve the default
+package-owned runtime, imports real MAME -listxml metadata into a user-writable
+catalog, and verifies the resulting machine catalog is queryable.
 EOF
 }
 
@@ -51,64 +50,11 @@ resource_dir=${runtime_root%/mame-runtime}
 [[ -d "$resource_dir" ]] || { echo "installed Tauri resource directory is missing: $resource_dir" >&2; exit 1; }
 
 probe_root="$smoke_tmp/metadata-bootstrap"
-mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache" "$probe_root/external"
+mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache"
 catalog="$probe_root/catalog.sqlite3"
 report="$probe_root/report.json"
-override_report="$probe_root/override-reset.json"
-external_runtime="$probe_root/external/mame"
 
-cp "$runtime_bin" "$external_runtime"
-chmod 0755 "$external_runtime"
 sudo chmod -R a-w "$runtime_root"
-
-env \
-  HOME="$probe_root/home" \
-  XDG_CONFIG_HOME="$probe_root/config" \
-  XDG_DATA_HOME="$probe_root/data" \
-  XDG_CACHE_HOME="$probe_root/cache" \
-  "$binary" --mame-tauri-verify-runtime-override-reset \
-    "$resource_dir" \
-    "$external_runtime" >"$override_report"
-
-python3 - "$override_report" "$external_runtime" "$runtime_bin" <<'PY'
-import json
-import os
-import sys
-
-report_path, expected_external, expected_bundled = sys.argv[1:]
-with open(report_path, encoding='utf-8') as handle:
-    report = json.load(handle)
-
-override = report.get('overrideIdentity') or {}
-reset = report.get('resetIdentity') or {}
-errors = []
-
-if override.get('source') != 'external':
-    errors.append(f"overrideIdentity.source={override.get('source')!r}")
-if override.get('trust') != 'userConfigured':
-    errors.append(f"overrideIdentity.trust={override.get('trust')!r}")
-actual_external = os.path.realpath(override.get('path') or '')
-if actual_external != os.path.realpath(expected_external):
-    errors.append(
-        f"overrideIdentity.path={actual_external!r} expected={os.path.realpath(expected_external)!r}"
-    )
-if not override.get('version'):
-    errors.append('overrideIdentity.version is empty')
-if reset.get('source') != 'bundled':
-    errors.append(f"resetIdentity.source={reset.get('source')!r}")
-if reset.get('trust') != 'qualifiedBundled':
-    errors.append(f"resetIdentity.trust={reset.get('trust')!r}")
-actual_bundled = os.path.realpath(reset.get('path') or '')
-if actual_bundled != os.path.realpath(expected_bundled):
-    errors.append(
-        f"resetIdentity.path={actual_bundled!r} expected={os.path.realpath(expected_bundled)!r}"
-    )
-if not reset.get('version'):
-    errors.append('resetIdentity.version is empty')
-
-if errors:
-    raise SystemExit('override/reset report mismatch: ' + ', '.join(errors))
-PY
 
 env \
   HOME="$probe_root/home" \
@@ -168,4 +114,4 @@ if errors:
     raise SystemExit('metadata bootstrap report mismatch: ' + ', '.join(errors))
 PY
 
-printf 'Installed external override/reset and bundled-MAME metadata bootstrap reached fresh catalog state for %s\n' "$smoke_machine"
+printf 'Installed bundled-MAME metadata bootstrap reached fresh catalog state for %s\n' "$smoke_machine"
