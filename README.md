@@ -156,7 +156,7 @@ Install:
 - npm matching the checked-in `tauri/package-lock.json` workflow;
 - Rust stable with `cargo`, `rustfmt`, and `clippy`;
 - the normal Tauri 2 platform toolchain;
-- a MAME executable for real interactive use.
+- a locally built or installed MAME executable only when testing development-tree/external-override flows. Normal Debian/Ubuntu production packages include a bundled package-owned MAME runtime and do not require users to supply an executable.
 
 The JavaScript dependency graph is locked by `tauri/package-lock.json`; the Rust graph is locked by `tauri/src-tauri/Cargo.lock`.
 
@@ -227,7 +227,7 @@ npm run tauri -- build
 
 ## Visual parity verification
 
-For a local visual/interaction check, start from a configured MAME executable and metadata catalog, then run:
+For a local visual/interaction check, start from a bundled/default runtime in an installed package or an explicit development/external MAME override plus a metadata catalog, then run:
 
 ```bash
 cd tauri
@@ -287,7 +287,8 @@ The Tauri/frontend CI matrix includes:
 
 - `Tauri project` — Linux quality, performance, regression, production build, and development-window qualification;
 - `Tauri security` — static security-policy and advisory checks;
-- `Tauri Linux packaging` — `.deb`/AppImage smoke;
+- `Tauri Linux packaging` — synthetic `.deb`/AppImage smoke for fast installer-topology regression;
+- `Tauri Linux real runtime package` — release-grade Linux `.deb` and AppImage qualification with a real bundled MAME runtime, package install/uninstall, installed bundled-source verification, read-only package resource checks, metadata bootstrap/catalog qualification, and uploaded package artifacts;
 - `Tauri Windows packaging` — NSIS build/install/payload/uninstall smoke;
 - `Tauri macOS packaging` — app/DMG layout, relocation/resource, ad-hoc signature, and signing-policy smoke;
 - `Build documentation` — documentation build.
@@ -296,9 +297,11 @@ Use exact-head CI evidence for release or closure claims. A green ancestor or un
 
 ## Packaging and release notes
 
-Packaging CI uses synthetic staged MAME runtime payloads to validate installer topology and bundled-resource mechanics. It does not certify a public redistributable MAME binary bundle.
+Fast packaging CI may use synthetic staged MAME runtime payloads to validate installer topology and bundled-resource mechanics only. Synthetic payloads do not certify a production bundled-MAME release.
 
-A public bundled-MAME release must separately qualify the real runtime binary/resources/licenses for each target platform. Public macOS signing/notarization likewise requires real Apple credentials.
+The release-grade Linux path is the `Tauri Linux real runtime package` workflow. It builds a real MAME runtime from the repository source, stages the runtime with `hash`, `bgfx`, COPYING, and legal resources, augments Debian shared-library dependencies, builds both `.deb` and AppImage bundles, installs and qualifies the `.deb`, extracts and qualifies the AppImage runtime tree, verifies installed backend bundled-source resolution, verifies installed metadata bootstrap/catalog readiness, verifies read-only package-resource behavior, and uploads the `real-bundled-mame-linux-packages` artifact.
+
+Public macOS signing/notarization requires real Apple credentials outside this repository.
 
 ## Upstream MAME
 

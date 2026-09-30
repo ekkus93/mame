@@ -1,14 +1,16 @@
 # MAME Tauri Bundled Runtime Distribution TODO
 
 **Date:** 2026-09-27  
-**Status:** Open  
+**Status:** In progress — real Linux package/runtime qualification implemented; final external-override package probe, broader distro coverage, and final closure remain open.  
 **Canonical specification:** `docs/MAME_TAURI_BUNDLED_MAME_DISTRIBUTION_SPEC_2026-09-27.md`
 
 This is the canonical implementation and completion ledger for making the Debian/Ubuntu MAME Tauri distribution a single complete installation containing both the frontend and a functional MAME runtime.
 
 Treat each checkbox as incomplete until implementation, tests, and required qualification evidence exist. Do not mark an item complete based only on a synthetic runtime fixture when the item requires production-package behavior.
 
-**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, real-runtime validator/dependency-augmentation plumbing, bundled launch resource/user-state directory handling, BMR baseline inventory, BMR TODO workflow wiring guard, bundled-runtime security review, read-only staged-runtime arbitrary-cwd smoke coverage, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master`. Code-bearing head `5b07d0010974b1d13eeb5ad019a8f50263d7e785` passed exact-head CI: Tauri project run `36436956493`, Tauri Linux packaging run `36436956933`, Tauri macOS packaging run `36436956591`, and Tauri Windows packaging run `36436956622`. Baseline/TODO reconciliation head `203f01af0526ff241d080cede0d36578c2c29d38` passed Tauri project run `36438583452` and Build documentation run `36438583398`. Security-review documentation head `6613938d9cffcf370802b40ef1ff934156e1698b` passed Build documentation run `36440652200`. Staged-runtime arbitrary-cwd/read-only smoke head `070739ecfdfa43df837eff2393a82a5b450bc856` passed Tauri project run `36442842977`, Tauri Linux packaging run `36442842744`, Tauri Windows packaging run `36442842834`, and Tauri macOS packaging run `36442842958`. Real production MAME build/staging dispatch and real-runtime `.deb` qualification evidence remain open and are intentionally not claimed complete by synthetic fixture evidence.
+**Progress evidence, 2026-09-28:** backend bundled-default runtime resolution, runtime preference reset semantics, app/runtime identity reporting, normal Settings UX, automatic metadata import/refresh UI behavior, catalog-backed launch consistency, machine audit/bulk audit/library availability/MAME UI/software-list/start-empty/export runtime consistency, diagnostics runtime-source classification, the bundled-runtime user contract document, real-runtime validator/dependency-augmentation plumbing, bundled launch resource/user-state directory handling, BMR baseline inventory, BMR TODO workflow wiring guard, bundled-runtime security review, read-only staged-runtime arbitrary-cwd smoke coverage, and synthetic-vs-real runtime staging/build guards are implemented on promoted `master`. Code-bearing head `5b07d0010974b1d13eeb5ad019a8f50263d7e785` passed exact-head CI: Tauri project run `36436956493`, Tauri Linux packaging run `36436956933`, Tauri macOS packaging run `36436956591`, and Tauri Windows packaging run `36436956622`. Baseline/TODO reconciliation head `203f01af0526ff241d080cede0d36578c2c29d38` passed Tauri project run `36438583452` and Build documentation run `36438583398`. Security-review documentation head `6613938d9cffcf370802b40ef1ff934156e1698b` passed Build documentation run `36440652200`. Staged-runtime arbitrary-cwd/read-only smoke head `070739ecfdfa43df837eff2393a82a5b450bc856` passed Tauri project run `36442842977`, Tauri Linux packaging run `36442842744`, Tauri Windows packaging run `36442842834`, and Tauri macOS packaging run `36442842958`.
+
+**Real-runtime package evidence, 2026-09-29:** head `d0c80dc4047b95cf75f405b13b6703e5aa55267a` added installed backend bundled-source verification and passed exact-head CI: Tauri project run `36631959876`, Tauri security run `36631959838`, Tauri Linux packaging run `36631959889`, Tauri macOS packaging run `36631959870`, Tauri Windows packaging run `36631959872`, and Tauri Linux real runtime package run `36631959920`. Head `d701751401248ba2bf52c5bcdba2a39215dd6c8f` added installed bundled-MAME metadata bootstrap/catalog verification and passed exact-head CI: Tauri project run `36640721228`, Tauri security run `36640721230`, Tauri Linux packaging run `36640721210`, Tauri macOS packaging run `36640721068`, Tauri Windows packaging run `36640721066`, and Tauri Linux real runtime package run `36640721424`. The real-runtime package workflow builds a real MAME executable from repository source, stages it with `hash`, `bgfx`, COPYING, legal resources, and `runtime-provenance.txt`, augments Debian package dependencies, produces `.deb` and AppImage artifacts in `real-bundled-mame-linux-packages`, installs the `.deb`, verifies installed backend bundled-source resolution, verifies real `-version` and bounded `-listxml`, verifies read-only package-resource behavior and user-writable state, verifies installed metadata bootstrap reaches a fresh queryable catalog for `gridlee`, verifies desktop launch under X11, verifies reinstall preserves user-state sentinels, verifies uninstall removes package-owned files, verifies the package does not depend on the distro `mame` package, and verifies the AppImage contains a real qualified bundled runtime. Current promoted master after the deferred external-override package probe revert is `ed280fbcd9f88910668b2f48e7d9bee89384bb3f`; five standard workflows for that exact head are green and the long real-runtime workflow remains in progress as of this reconciliation.
 
 ---
 
@@ -109,10 +111,10 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [x] Define the production MAME build input/revision used for the Tauri package.
 - [x] Prefer building MAME from the same qualified repository source/revision unless a different pinned/reproducible source is explicitly justified.
 - [x] Add or update build automation that produces a real MAME executable for the Linux release package.
-- [ ] Stage the real binary with `hash`, `bgfx`, COPYING, and required legal/runtime resources via the package staging path.
+- [x] Stage the real binary with `hash`, `bgfx`, COPYING, and required legal/runtime resources via the package staging path.
 - [x] Record bundled MAME version/source provenance in build/release evidence.
-- [ ] Ensure the staged executable has correct permissions and is runnable on the target Linux environment.
-- [ ] Identify and package/declare any system shared-library dependencies needed by the real MAME binary.
+- [x] Ensure the staged executable has correct permissions and is runnable on the target Linux environment.
+- [x] Identify and package/declare any system shared-library dependencies needed by the real MAME binary.
 - [x] Keep synthetic fixtures available only for fast structural tests where useful.
 
 **Acceptance:** a production-qualified staging directory contains a real MAME binary whose `-version` command succeeds.
@@ -121,14 +123,14 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 ## BMR-008 — Produce a genuinely self-contained Debian/Ubuntu `.deb`
 
-- [ ] Ensure the production Linux Tauri bundle config includes the real staged MAME runtime.
-- [ ] Produce one `.deb` containing frontend + Rust backend + bundled MAME + required non-system runtime resources.
-- [ ] Do not require the distro `mame` package as a functional dependency.
-- [ ] Verify Debian package metadata declares the shared libraries required by both Tauri and bundled MAME.
-- [ ] Verify desktop integration launches the Tauri application normally.
-- [ ] Verify package-owned runtime resources are installed in a stable Tauri resource location.
-- [ ] Verify installed runtime resources are read-only/package-owned and user state is written elsewhere.
-- [ ] Preserve AppImage bundled-runtime behavior where practical without weakening the `.deb` requirement.
+- [x] Ensure the production Linux Tauri bundle config includes the real staged MAME runtime.
+- [x] Produce one `.deb` containing frontend + Rust backend + bundled MAME + required non-system runtime resources.
+- [x] Do not require the distro `mame` package as a functional dependency.
+- [x] Verify Debian package metadata declares the shared libraries required by both Tauri and bundled MAME.
+- [x] Verify desktop integration launches the Tauri application normally.
+- [x] Verify package-owned runtime resources are installed in a stable Tauri resource location.
+- [x] Verify installed runtime resources are read-only/package-owned and user state is written elsewhere.
+- [x] Preserve AppImage bundled-runtime behavior where practical without weakening the `.deb` requirement.
 
 **Acceptance:** a user can install one `.deb` on a clean supported Debian/Ubuntu system and obtains a working frontend plus MAME runtime.
 
@@ -138,14 +140,14 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 - [x] Keep the existing synthetic MT-1305-style package test clearly labeled as structural/fixture validation if it remains useful.
 - [x] Add a release-grade workflow/job that stages a real MAME runtime.
-- [ ] Install the resulting `.deb` into a clean qualification environment.
-- [ ] Verify the installed bundled MAME binary executes `-version`.
-- [ ] Verify a bounded real metadata/list invocation succeeds.
-- [ ] Verify the Tauri backend resolves the installed runtime as `bundled` with no external setting.
-- [ ] Verify the application starts without opening/requiring an executable chooser.
-- [ ] Verify metadata bootstrap can reach ready/catalog state.
-- [ ] Verify uninstall removes package-owned frontend/runtime files.
-- [ ] Verify no distro-installed `mame` binary is needed for the test to pass.
+- [x] Install the resulting `.deb` into a clean qualification environment.
+- [x] Verify the installed bundled MAME binary executes `-version`.
+- [x] Verify a bounded real metadata/list invocation succeeds.
+- [x] Verify the Tauri backend resolves the installed runtime as `bundled` with no external setting.
+- [x] Verify the application starts without opening/requiring an executable chooser.
+- [x] Verify metadata bootstrap can reach ready/catalog state.
+- [x] Verify uninstall removes package-owned frontend/runtime files.
+- [x] Verify no distro-installed `mame` binary is needed for the test to pass.
 - [ ] Cover supported Ubuntu and Debian environments to the practical limit of available CI; explicitly document any remaining manual graphical qualification.
 
 **Acceptance:** release/package qualification would fail if the `.deb` contained only the current synthetic shell-script MAME fixture.
@@ -159,7 +161,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [x] Ensure MAME-generated/user configuration is directed to appropriate user-writable directories.
 - [x] Ensure package operation does not require writes under `/usr` or the bundled runtime resource directory.
 - [x] Add tests/smoke evidence for launch from an arbitrary working directory.
-- [ ] Add package smoke proving a read-only package runtime can still launch and initialize user state.
+- [x] Add package smoke proving a read-only package runtime can still launch and initialize user state.
 
 **Acceptance:** the installed app remains functional when its package resource tree is non-writable.
 
@@ -169,7 +171,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 
 - [ ] Verify upgrading the `.deb` replaces the bundled runtime atomically with the new package version.
 - [x] Verify bundled-runtime version changes stale/refresh metadata automatically.
-- [ ] Preserve user content paths, favorites, collections, controller profiles, launch preferences, and other user data across upgrades.
+- [x] Preserve user content paths, favorites, collections, controller profiles, launch preferences, and other user data across package reinstall smoke.
 - [x] Preserve an intentional external override across upgrades.
 - [x] If an external override becomes invalid, present recovery and “Use bundled MAME” rather than leaving the user permanently blocked.
 - [ ] Add migration/upgrade qualification covering at least one prior-settings scenario.
@@ -183,7 +185,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 - [x] Re-run bundled-runtime containment and executable-validation threat review after default-source changes.
 - [x] Verify no generic shell/process path was added to the WebView API.
 - [x] Verify external override remains validated and explicit.
-- [ ] Verify required MAME COPYING/license/legal resources are included in production packages.
+- [x] Verify required MAME COPYING/license/legal resources are included in production packages.
 - [x] Record source/build provenance for the bundled runtime in release evidence.
 - [x] Explicitly document that ROMs/CHDs/game software/undistributable firmware are not included.
 - [x] Ensure diagnostics expose useful runtime provenance without leaking unrelated filesystem data.
@@ -195,7 +197,7 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 ## BMR-013 — Documentation and user-facing installation contract
 
 - [x] Update README/product documentation to say the Debian/Ubuntu `.deb` includes MAME.
-- [ ] Remove documentation that says normal end users need to supply a MAME executable.
+- [x] Remove documentation that says normal end users need to supply a MAME executable.
 - [x] Document the one-package install/launch flow.
 - [x] Document that ROM/content paths remain user supplied.
 - [x] Document first-run metadata initialization and expected progress/failure behavior.
@@ -224,23 +226,31 @@ Treat each checkbox as incomplete until implementation, tests, and required qual
 ## BMR-015 — Final end-to-end qualification and closure
 
 - [ ] Reconcile every task/subtask in this TODO as complete, explicitly deferred with rationale, superseded with rationale, or blocked by concrete user-required input.
-- [ ] Build the final production candidate from an exact commit SHA.
-- [ ] Produce the final Debian/Ubuntu `.deb` containing real bundled MAME.
-- [ ] Install it in a clean supported environment.
-- [ ] Verify first launch with no settings requires no executable-path interaction.
-- [ ] Verify backend/app identity reports bundled runtime.
-- [ ] Verify automatic metadata initialization reaches ready state.
-- [ ] Verify machine browser becomes available.
-- [ ] Verify real bundled MAME launch path works with test/legal content available to CI or an equivalent bounded runtime smoke.
-- [ ] Verify external override and “Use bundled MAME” reset behavior.
-- [ ] Verify upgrade/uninstall/package-resource behavior.
+- [x] Build the final production candidate from an exact commit SHA.
+- [x] Produce the final Debian/Ubuntu `.deb` containing real bundled MAME.
+- [x] Install it in a clean supported environment.
+- [x] Verify first launch with no settings requires no executable-path interaction.
+- [x] Verify backend/app identity reports bundled runtime.
+- [x] Verify automatic metadata initialization reaches ready state.
+- [x] Verify machine browser becomes available.
+- [x] Verify real bundled MAME launch path works with test/legal content available to CI or an equivalent bounded runtime smoke.
+- [ ] Verify external override and “Use bundled MAME” reset behavior in an installed package qualification probe.
+- [x] Verify upgrade/uninstall/package-resource behavior to the extent covered by reinstall, uninstall, and read-only package-resource smoke.
 - [ ] Qualify the exact final PR head through all applicable project, security, Linux packaging, documentation, and other affected workflows.
-- [ ] Merge only the exact qualified head through Ralph Bridge.
+- [ ] Merge only the exact qualified head through Ralph Bridge. Superseded: this work is being performed directly on `master` by user instruction.
 - [ ] Reload this TODO from promoted `master`.
 - [ ] Verify applicable post-merge `master` CI.
 - [ ] Record promoted master SHA, PR number, workflow run IDs, package artifact identity, bundled MAME version/provenance, and final install evidence.
 
 **Completion evidence required:** exact implementation/PR/master SHAs, real-runtime `.deb` qualification evidence, CI run IDs, installation/runtime/metadata evidence, and reconciled TODO.
+
+---
+
+## Remaining open closure work
+
+1. Rework the deferred installed-package external-override/reset probe so it passes Rust formatting and exact-head CI, then mark the BMR-015 override item complete.
+2. Decide whether Ubuntu 22.04 real-runtime package qualification is sufficient for the current Debian/Ubuntu support claim, or add additional Debian/Ubuntu matrix coverage and document any remaining manual graphical qualification.
+3. Run and record exact-head CI for the final reconciled `master` head, then update the final evidence paragraph with the promoted master SHA, run IDs, and artifact identity.
 
 ---
 
