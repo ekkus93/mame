@@ -17,7 +17,9 @@ describe("ArtworkAssetFrame", () => {
       <ArtworkAssetFrame state={{ status: "missing" }} label="Cabinet" machine="pacman" />,
     );
     expect(html).toContain("Optional artwork not found");
-    expect(html).toContain("Cabinet artwork/media is optional and not required to launch this machine.");
+    expect(html).toContain(
+      "Cabinet artwork/media is optional and not required to launch this machine.",
+    );
     expect(html).not.toContain("Loading Cabinet");
   });
 
