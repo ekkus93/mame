@@ -216,7 +216,8 @@ pub(crate) fn launch_mame_with_source_and_bios(
 ) -> AppResult<SessionSnapshot> {
     let settings = load_settings(&settings_path(&app)?)?;
     let effective_content_paths = effective_content_paths(&settings.content_paths);
-    let project_paths = append_effective_content_project_paths(project_paths, &effective_content_paths)?;
+    let project_paths =
+        append_effective_content_project_paths(project_paths, &effective_content_paths)?;
     let project_paths = append_bundled_runtime_project_paths(&app, &source, project_paths)?;
     let general_launch_preferences = settings.launch_preferences;
     let effective_config = EffectiveLaunchConfig {
@@ -358,15 +359,16 @@ fn append_effective_content_project_paths(
     effective_content_paths: &EffectiveContentPaths,
 ) -> AppResult<Vec<ProjectPathRequest>> {
     let media_paths = effective_content_paths.media_search_paths();
-    if let Some(media_path) =
-        compose_mame_path_list(media_paths.into_iter().map(|path| path.as_path()))?
-    {
-        project_paths.retain(|project_path| project_path.option != "rompath");
-        project_paths.push(ProjectPathRequest {
-            option: "rompath".to_owned(),
-            path: media_path.to_string_lossy().into_owned(),
-        });
-    }
+    let media_path = compose_mame_path_list(media_paths.into_iter().map(|path| path.as_path()))?;
+    let Some(media_path) = media_path else {
+        return Ok(project_paths);
+    };
+
+    project_paths.retain(|project_path| project_path.option != "rompath");
+    project_paths.push(ProjectPathRequest {
+        option: "rompath".to_owned(),
+        path: media_path.to_string_lossy().into_owned(),
+    });
     Ok(project_paths)
 }
 
@@ -613,7 +615,10 @@ mod tests {
 
         let expected = format!("{};{}", rom_a.display(), rom_b.display());
         assert_eq!(option_path(&paths, "rompath"), PathBuf::from(expected));
-        assert_eq!(paths.iter().filter(|path| path.option == "rompath").count(), 1);
+        assert_eq!(
+            paths.iter().filter(|path| path.option == "rompath").count(),
+            1
+        );
     }
 
     fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {
