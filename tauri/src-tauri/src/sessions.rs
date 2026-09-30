@@ -359,11 +359,7 @@ fn append_effective_content_project_paths(
     effective_content_paths: &EffectiveContentPaths,
 ) -> AppResult<Vec<ProjectPathRequest>> {
     let media_paths = effective_content_paths.media_search_paths();
-    let media_path = compose_mame_path_list(
-        media_paths
-            .into_iter()
-            .map(|path| path.as_path()),
-    )?;
+    let media_path = compose_mame_path_list(media_paths.into_iter().map(|path| path.as_path()))?;
     let Some(media_path) = media_path else {
         return Ok(project_paths);
     };
@@ -619,7 +615,10 @@ mod tests {
 
         let expected = format!("{};{}", rom_a.display(), rom_b.display());
         assert_eq!(option_path(&paths, "rompath"), PathBuf::from(expected));
-        assert_eq!(paths.iter().filter(|path| path.option == "rompath").count(), 1);
+        assert_eq!(
+            paths.iter().filter(|path| path.option == "rompath").count(),
+            1
+        );
     }
 
     fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {
