@@ -95,9 +95,7 @@ describe("MAME visual parity tripwires", () => {
     expect(browserSource).toContain("mame-software-list-button");
     expect(browserSource).toContain("mame-configure-machine-button");
     expect(browserSource).toContain("mame-audit-button");
-    expect(shellCss).toContain(
-      ".mame-context-actions .mame-configure-machine-button",
-    );
+    expect(shellCss).toContain(".mame-context-actions .mame-configure-machine-button");
     expect(shellCss).toContain(".mame-context-actions .mame-audit-button");
     expect(shellCss).toContain(
       ".mame-context-actions > .secondary-button:not(.mame-software-list-button)",
