@@ -160,6 +160,37 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn inaccessible_configured_paths_remain_visible_with_permission_status() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("permission-denied");
+        fs::create_dir_all(&root).expect("create configured directory");
+        let mut permissions = fs::metadata(&root).expect("metadata").permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&root, permissions).expect("remove directory permissions");
+
+        let configured = ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&root)],
+            software_paths: Vec::new(),
+            chd_paths: Vec::new(),
+        };
+        let effective = effective_content_paths(&configured);
+
+        let mut restore = fs::metadata(&root).expect("metadata for cleanup").permissions();
+        restore.set_mode(0o700);
+        fs::set_permissions(&root, restore).expect("restore directory permissions");
+
+        assert_eq!(effective.entries.len(), 1);
+        assert_eq!(
+            effective.entries[0].validation.status,
+            PathValidationStatus::PermissionDenied
+        );
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
     #[test]
     fn non_directory_configured_paths_remain_visible_as_invalid() {
         let root = temp_root("not-directory");

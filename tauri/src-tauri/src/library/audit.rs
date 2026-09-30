@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    config::{load_settings, settings_path, ContentPathsV1},
+    config::{load_settings, settings_path},
+    content_paths::{effective_content_paths, EffectiveContentPaths},
     effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
     mame::{
@@ -40,7 +41,7 @@ pub struct MachineAuditResponse {
 pub(crate) struct AuditContext {
     pub(crate) source: MameExecutableSource,
     pub(crate) identity: MameExecutableIdentity,
-    pub(crate) content_paths: ContentPathsV1,
+    pub(crate) content_paths: EffectiveContentPaths,
 }
 
 #[tauri::command]
@@ -190,7 +191,8 @@ fn resolve_bulk_audit_context_with_effective_source(
     let source = launch_source_from_generation(&generation, effective_source)?;
     let identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(&generation, &identity)?;
-    let content_paths = load_settings(settings_path)?.content_paths;
+    let settings = load_settings(settings_path)?;
+    let content_paths = effective_content_paths(&settings.content_paths);
 
     Ok(AuditContext {
         source,

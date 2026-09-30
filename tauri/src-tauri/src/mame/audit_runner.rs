@@ -7,8 +7,7 @@ use std::{
 };
 
 use crate::{
-    config::ContentPathsV1,
-    content_paths::effective_content_paths,
+    content_paths::EffectiveContentPaths,
     errors::{AppError, AppResult},
 };
 
@@ -23,7 +22,7 @@ const AUDIT_STREAM_LIMIT: usize = 256 * 1024;
 pub(crate) fn audit_machine(
     source: &MameExecutableSource,
     machine: &str,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<MameAuditParseResult> {
     let executable_path = validate_executable_path(source.path())?;
     let argv = build_machine_audit_argv(machine, content_paths)?;
@@ -44,7 +43,7 @@ pub(crate) fn audit_machine(
 
 fn build_machine_audit_argv(
     machine: &str,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<Vec<OsString>> {
     validate_short_identifier("machine", machine)?;
 
@@ -58,10 +57,9 @@ fn build_machine_audit_argv(
     Ok(argv)
 }
 
-fn compose_media_search_path(content_paths: &ContentPathsV1) -> AppResult<Option<OsString>> {
-    let effective_paths = effective_content_paths(content_paths);
+fn compose_media_search_path(content_paths: &EffectiveContentPaths) -> AppResult<Option<OsString>> {
     compose_mame_path_list(
-        effective_paths
+        content_paths
             .media_search_paths()
             .into_iter()
             .map(|path| path.as_path()),
@@ -227,7 +225,10 @@ fn terminate_child(child: &mut Child) {
 mod tests {
     use std::{ffi::OsString, path::PathBuf};
 
-    use crate::config::{ContentPathsV1, PlatformPath};
+    use crate::{
+        config::{ContentPathsV1, PlatformPath},
+        content_paths::effective_content_paths,
+    };
 
     use super::{audit_machine, build_machine_audit_argv, compose_media_search_path};
     use crate::mame::{MameAuditClassification, MameExecutableSource};
@@ -245,8 +246,8 @@ mod tests {
 
     #[test]
     fn empty_configuration_keeps_mame_builtin_media_default() {
-        let argv =
-            build_machine_audit_argv("pacman", &ContentPathsV1::default()).expect("audit argv");
+        let paths = effective_content_paths(&ContentPathsV1::default());
+        let argv = build_machine_audit_argv("pacman", &effective).expect("audit argv");
         assert_eq!(
             argv,
             vec![
@@ -269,7 +270,8 @@ mod tests {
             chd_paths: vec![PlatformPath::new(&chd)],
         };
 
-        let composed = compose_media_search_path(&paths)
+        let effective = effective_content_paths(&paths);
+        let composed = compose_media_search_path(&effective)
             .expect("composed path")
             .expect("non-empty path");
         let expected = format!(
@@ -296,8 +298,9 @@ mod tests {
             software_paths: Vec::new(),
             chd_paths: Vec::new(),
         };
-        let error =
-            compose_media_search_path(&paths).expect_err("ambiguous multipath must be rejected");
+        let effective = effective_content_paths(&paths);
+        let error = compose_media_search_path(&effective)
+            .expect_err("ambiguous multipath must be rejected");
         assert_eq!(error.code, "MAME_AUDIT_CONTENT_PATH_INVALID");
     }
 
@@ -318,7 +321,8 @@ mod tests {
             )))],
         };
 
-        let composed = compose_media_search_path(&paths)
+        let effective = effective_content_paths(&paths);
+        let composed = compose_media_search_path(&effective)
             .expect("composed path")
             .expect("non-empty path");
         let mut expected = first;
@@ -352,10 +356,11 @@ mod tests {
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).expect("executable permissions");
 
+        let effective = effective_content_paths(&ContentPathsV1::default());
         let result = audit_machine(
             &MameExecutableSource::external(&executable),
             "pacman",
-            &ContentPathsV1::default(),
+            &effective,
         )
         .expect("exit 2 is an audit result");
         assert_eq!(

@@ -4,7 +4,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::ContentPathsV1,
+    content_paths::EffectiveContentPaths,
     errors::{AppError, AppResult},
     storage,
 };
@@ -24,7 +24,7 @@ pub fn save_machine_audit_result(
     machine_short_name: &str,
     result: &MameAuditParseResult,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
     audited_at_epoch_ms: u64,
 ) -> AppResult<()> {
     let connection = storage::open_catalog_connection(catalog_path)?;
@@ -42,7 +42,7 @@ pub fn load_current_machine_audit_result(
     catalog_path: &Path,
     machine_short_name: &str,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<Option<StoredMachineAuditResult>> {
     let connection = storage::open_catalog_connection(catalog_path)?;
     load_current_machine_audit_result_with_connection(
@@ -56,7 +56,7 @@ pub fn load_current_machine_audit_result(
 pub fn invalidate_stale_machine_audit_results(
     catalog_path: &Path,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<u64> {
     let connection = storage::open_catalog_connection(catalog_path)?;
     invalidate_stale_with_connection(&connection, mame_identity, content_paths)
@@ -67,7 +67,7 @@ fn save_machine_audit_result_with_connection(
     machine_short_name: &str,
     result: &MameAuditParseResult,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
     audited_at_epoch_ms: u64,
 ) -> AppResult<()> {
     if machine_short_name.trim().is_empty() {
@@ -117,7 +117,7 @@ fn load_current_machine_audit_result_with_connection(
     connection: &Connection,
     machine_short_name: &str,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<Option<StoredMachineAuditResult>> {
     let identity_json = serialize_json(mame_identity, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
     let content_paths_json =
@@ -183,7 +183,7 @@ fn load_current_machine_audit_result_with_connection(
 fn invalidate_stale_with_connection(
     connection: &Connection,
     mame_identity: &MameExecutableIdentity,
-    content_paths: &ContentPathsV1,
+    content_paths: &EffectiveContentPaths,
 ) -> AppResult<u64> {
     let identity_json = serialize_json(mame_identity, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
     let content_paths_json =
@@ -249,6 +249,7 @@ fn database_error(code: &str, error: rusqlite::Error) -> AppError {
 mod tests {
     use crate::{
         config::{ContentPathsV1, PlatformPath},
+        content_paths::{effective_content_paths, EffectiveContentPaths},
         mame::{
             parse_mame_audit_output, MameExecutableIdentity, MameExecutableSourceKind,
             MameExecutableTrust,
@@ -272,12 +273,12 @@ mod tests {
         }
     }
 
-    fn paths(first: &str, second: &str) -> ContentPathsV1 {
-        ContentPathsV1 {
+    fn paths(first: &str, second: &str) -> EffectiveContentPaths {
+        effective_content_paths(&ContentPathsV1 {
             rom_paths: vec![PlatformPath::new(first), PlatformPath::new(second)],
             software_paths: vec![PlatformPath::new("/software")],
             chd_paths: vec![PlatformPath::new("/chd")],
-        }
+        })
     }
 
     #[test]
@@ -427,20 +428,20 @@ mod tests {
 
         let connection = storage::open_catalog_memory().expect("catalog");
         let current_identity = identity("0.280");
-        let original = ContentPathsV1 {
+        let original = effective_content_paths(&ContentPathsV1 {
             rom_paths: vec![PlatformPath::new(PathBuf::from(OsString::from_vec(vec![
                 b'/', b'r', b'o', b'm', 0xff,
             ])))],
             software_paths: Vec::new(),
             chd_paths: Vec::new(),
-        };
-        let changed = ContentPathsV1 {
+        });
+        let changed = effective_content_paths(&ContentPathsV1 {
             rom_paths: vec![PlatformPath::new(PathBuf::from(OsString::from_vec(vec![
                 b'/', b'r', b'o', b'm', 0xfe,
             ])))],
             software_paths: Vec::new(),
             chd_paths: Vec::new(),
-        };
+        });
         let result = parse_mame_audit_output("romset pacman is good\n", "", Some(0));
 
         save_machine_audit_result_with_connection(
