@@ -53,13 +53,16 @@ impl EffectiveContentPaths {
 
 pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentPaths {
     let mut entries = Vec::new();
-    append_configured_paths(&mut entries, ContentPathKind::Rom, &configured.rom_paths);
-    append_configured_paths(
-        &mut entries,
-        ContentPathKind::Software,
-        &configured.software_paths,
-    );
-    append_configured_paths(&mut entries, ContentPathKind::Chd, &configured.chd_paths);
+
+    for path in &configured.rom_paths {
+        entries.push(effective_entry(ContentPathKind::Rom, path));
+    }
+    for path in &configured.software_paths {
+        entries.push(effective_entry(ContentPathKind::Software, path));
+    }
+    for path in &configured.chd_paths {
+        entries.push(effective_entry(ContentPathKind::Chd, path));
+    }
 
     EffectiveContentPaths {
         schema_version: 1,
@@ -67,16 +70,12 @@ pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentP
     }
 }
 
-fn append_configured_paths(
-    entries: &mut Vec<EffectiveContentPathEntry>,
-    kind: ContentPathKind,
-    paths: &[PlatformPath],
-) {
-    entries.extend(paths.iter().map(|path| EffectiveContentPathEntry {
+fn effective_entry(kind: ContentPathKind, path: &PlatformPath) -> EffectiveContentPathEntry {
+    EffectiveContentPathEntry {
         kind,
         source: EffectiveContentPathSource::Configured,
         validation: validate_content_path(path),
-    }));
+    }
 }
 
 #[cfg(test)]
