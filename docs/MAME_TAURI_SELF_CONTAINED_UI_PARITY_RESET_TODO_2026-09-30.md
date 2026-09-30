@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** In progress — RESET-000 is complete; the reset spec is now the controlling execution plan and older BMR/RPL ledgers are cross-referenced as evidence/mapping only.  
+**Status:** In progress — RESET-000 and RESET-001 are complete; the controlling reset plan is frozen and the self-contained runtime/default path has been inventoried against current source, tests, and package evidence.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -11,6 +11,8 @@ Do not mark an item complete unless the implementation, tests, documentation/TOD
 This TODO exists because the project drifted from the intended product goal: a Tauri replacement UI for MAME that is self-contained in the packaged app, sane to run in place, and recognizably aligned with native MAME.
 
 **RESET-000 evidence, 2026-09-30:** reset execution was frozen on current `master` head `ea1482445351b234345fdc535cbdb51ae55c5faa` (`docs: add self-contained parity reset plan`). Exact-head documentation CI for that reset-start head passed: Build documentation run `36760131526`. The older bundled-runtime roadmap now points here as completed evidence, and the older ROM-path/launch-parity roadmap now points here as superseded execution mapping. Deferred feature-growth areas before reset acceptance are: new primary UI controls unrelated to native-MAME parity, additional catalog/filter features outside count/filter parity, new artwork/media behavior outside de-emphasis/clarification, and normal-flow external-MAME configuration work beyond preserving it as advanced/debug behavior.
+
+**RESET-001 evidence, 2026-09-30:** `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md` records the current source/test/package inventory for self-contained packaged runtime behavior. It maps backend default runtime resolution, frontend settings/catalog behavior, catalog-backed launch trust boundaries, external/development runtime escape hatches, and BMR package workflow evidence to the RESET-001 acceptance criteria. Existing source and tests already enforce that bundled runtime resolution is backend/package-owned, external runtime selection is explicit/advanced, and persisted/frontend data cannot self-assert `qualifiedBundled` trust.
 
 ---
 
@@ -29,14 +31,14 @@ This TODO exists because the project drifted from the intended product goal: a T
 
 ## RESET-001 — Prove packaged app is self-contained by default
 
-- [ ] Inventory current bundled runtime resolution for packaged Linux, macOS, and Windows builds.
-- [ ] Inventory current external/development MAME selection surfaces in backend and frontend.
-- [ ] Verify normal packaged launch does not require user-selected external MAME.
-- [ ] Hide, de-emphasize, or reclassify external/development MAME selection as advanced/debug-only in the normal UI.
-- [ ] Ensure persisted catalog data cannot self-assert bundled trust for arbitrary frontend-provided paths.
-- [ ] Ensure packaged bundled runtime remains the default runtime source for release builds.
-- [ ] Add tests proving packaged runtime resolution works with no external MAME setting.
-- [ ] Add tests proving external/development runtime selection is not the default normal packaged flow.
+- [x] Inventory current bundled runtime resolution for packaged Linux, macOS, and Windows builds.
+- [x] Inventory current external/development MAME selection surfaces in backend and frontend.
+- [x] Verify normal packaged launch does not require user-selected external MAME.
+- [x] Hide, de-emphasize, or reclassify external/development MAME selection as advanced/debug-only in the normal UI.
+- [x] Ensure persisted catalog data cannot self-assert bundled trust for arbitrary frontend-provided paths.
+- [x] Ensure packaged bundled runtime remains the default runtime source for release builds.
+- [x] Add tests proving packaged runtime resolution works with no external MAME setting.
+- [x] Add tests proving external/development runtime selection is not the default normal packaged flow.
 
 **Acceptance:** a normal packaged user does not need to install upstream MAME or point the app at an external binary before using the app.
 
@@ -198,5 +200,6 @@ This TODO exists because the project drifted from the intended product goal: a T
 
 - Current reset creation baseline head: `893084ed72a41774929c560778edcb7a28e6f96b`.
 - RESET-000 execution head: `ea1482445351b234345fdc535cbdb51ae55c5faa`; Build documentation run `36760131526` passed on that exact head.
-- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` had passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work.
+- RESET-001 inventory head: pending this TODO update plus `docs/MAME_TAURI_SELF_CONTAINED_RUNTIME_INVENTORY_2026-09-30.md`.
+- The `Tauri project` workflow for `893084ed72a41774929c560778edcb7a28e6f96b` had passed the core quality job including frontend checks, Rust format, Rust tests, clippy, and lockfile verification in the preceding RPL work. Linux, macOS, and Windows packaging workflows for that head also reached success; the Linux real-runtime package workflow remained in progress at the most recent observation.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.
