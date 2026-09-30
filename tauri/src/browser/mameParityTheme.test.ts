@@ -90,13 +90,14 @@ describe("MAME visual parity tripwires", () => {
     expect(rightPanelSource).toContain("mame-no-image-placeholder");
   });
 
-
   it("de-emphasizes selected-machine secondary actions so Start remains primary", () => {
     expect(browserSource).toContain("mame-start-button");
     expect(browserSource).toContain("mame-software-list-button");
     expect(browserSource).toContain("mame-configure-machine-button");
     expect(browserSource).toContain("mame-audit-button");
-    expect(shellCss).toContain(".mame-context-actions .mame-configure-machine-button");
+    expect(shellCss).toContain(
+      ".mame-context-actions .mame-configure-machine-button",
+    );
     expect(shellCss).toContain(".mame-context-actions .mame-audit-button");
     expect(shellCss).toContain(
       ".mame-context-actions > .secondary-button:not(.mame-software-list-button)",
