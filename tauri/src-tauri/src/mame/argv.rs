@@ -311,10 +311,8 @@ fn validate_option_name(option: &str) -> AppResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        ffi::OsString,
-        path::{Path, PathBuf},
-    };
+    use std::ffi::OsString;
+    use std::path::{Path, PathBuf};
 
     use crate::config::{
         AudioPreference, LaunchPreferencesV1, RendererPreference, WindowPreference,
