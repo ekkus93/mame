@@ -221,7 +221,7 @@ pub fn launch_library_software(
         None => format!("{software_list}:{software_item}"),
     };
     validate_software_identifier(&software)?;
-    sessions::launch_mame_with_source_and_bios(
+    sessions::launch_catalog_mame_with_source_and_bios(
         source,
         short_name,
         Some(software),

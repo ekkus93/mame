@@ -57,7 +57,7 @@ pub fn launch_mame_empty(
         }
     };
 
-    sessions::launch_mame_with_source_and_bios(
+    sessions::launch_catalog_mame_with_source_and_bios(
         source,
         short_name,
         None,

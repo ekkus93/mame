@@ -27,7 +27,8 @@ use crate::{
     event_names::{external_session_lifecycle_event, SESSION_PAUSED_EVENT, SESSION_RESUMED_EVENT},
     history, machine_settings,
     mame::{
-        build_launch_argv, compose_mame_path_list, inspect_executable, MameExecutableIdentity,
+        build_launch_argv, compose_mame_path_list, inspect_executable,
+        load_current_machine_audit_result, MameAuditClassification, MameExecutableIdentity,
         MameExecutableSource, MameExecutableSourceKind, MameLaunchTarget, ProjectPathArgument,
     },
     storage,
@@ -189,13 +190,36 @@ pub(crate) fn launch_mame_with_source(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
-    launch_mame_with_source_and_bios(
+    launch_mame_with_source_and_bios_policy(
         source,
         machine,
         software,
         None,
         project_paths,
         transient_launch_overrides,
+        false,
+        supervisor,
+        app,
+    )
+}
+
+pub(crate) fn launch_catalog_mame_with_source(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
+    launch_mame_with_source_and_bios_policy(
+        source,
+        machine,
+        software,
+        None,
+        project_paths,
+        transient_launch_overrides,
+        true,
         supervisor,
         app,
     )
@@ -214,8 +238,62 @@ pub(crate) fn launch_mame_with_source_and_bios(
     supervisor: State<'_, SessionSupervisor>,
     app: AppHandle,
 ) -> AppResult<SessionSnapshot> {
+    launch_mame_with_source_and_bios_policy(
+        source,
+        machine,
+        software,
+        bios,
+        project_paths,
+        transient_launch_overrides,
+        false,
+        supervisor,
+        app,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn launch_catalog_mame_with_source_and_bios(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    bios: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
+    launch_mame_with_source_and_bios_policy(
+        source,
+        machine,
+        software,
+        bios,
+        project_paths,
+        transient_launch_overrides,
+        true,
+        supervisor,
+        app,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn launch_mame_with_source_and_bios_policy(
+    source: MameExecutableSource,
+    machine: String,
+    software: Option<String>,
+    bios: Option<String>,
+    project_paths: Vec<ProjectPathRequest>,
+    transient_launch_overrides: Option<LaunchPreferencesV1>,
+    require_current_audit: bool,
+    supervisor: State<'_, SessionSupervisor>,
+    app: AppHandle,
+) -> AppResult<SessionSnapshot> {
     let settings = load_settings(&settings_path(&app)?)?;
     let effective_content_paths = effective_content_paths(&settings.content_paths);
+    if require_current_audit {
+        let classification =
+            current_machine_audit_classification(&app, &source, &machine, &effective_content_paths)?;
+        launch_after_audit_gate(&machine, classification, || Ok(()))?;
+    }
     let project_paths =
         append_effective_content_project_paths(project_paths, &effective_content_paths)?;
     let project_paths = append_bundled_runtime_project_paths(&app, &source, project_paths)?;
@@ -351,6 +429,55 @@ pub(crate) fn launch_mame_with_source_and_bios(
             }
             Err(launch_error)
         }
+    }
+}
+
+fn current_machine_audit_classification(
+    app: &AppHandle,
+    source: &MameExecutableSource,
+    machine: &str,
+    effective_content_paths: &EffectiveContentPaths,
+) -> AppResult<Option<MameAuditClassification>> {
+    let catalog_path = storage::catalog_path(app)?;
+    let identity = inspect_executable(source.clone())?;
+    Ok(load_current_machine_audit_result(
+        &catalog_path,
+        machine,
+        &identity,
+        effective_content_paths,
+    )?
+    .map(|stored| stored.result.classification))
+}
+
+fn launch_after_audit_gate<T>(
+    machine: &str,
+    classification: Option<MameAuditClassification>,
+    launch: impl FnOnce() -> AppResult<T>,
+) -> AppResult<T> {
+    match classification {
+        Some(MameAuditClassification::Complete | MameAuditClassification::BestAvailable) => {
+            launch()
+        }
+        Some(
+            MameAuditClassification::MissingRequired
+            | MameAuditClassification::Incorrect
+            | MameAuditClassification::MixedFailure,
+        ) => Err(AppError::new(
+            "MAME_CONTENT_UNAVAILABLE",
+            "Required ROM/content is missing or incorrect. Configure content paths, fix the content, and run an audit before starting.",
+        )
+        .with_details(serde_json::json!({
+            "machine": machine,
+            "availability": "missingContent"
+        }))),
+        Some(MameAuditClassification::Unknown) | None => Err(AppError::new(
+            "MAME_CONTENT_AUDIT_REQUIRED",
+            "This machine has not been verified against the current content paths. Run an audit before starting.",
+        )
+        .with_details(serde_json::json!({
+            "machine": machine,
+            "availability": "notAudited"
+        }))),
     }
 }
 
@@ -543,13 +670,14 @@ mod tests {
 
     use super::{
         append_effective_content_project_paths, bundled_runtime_project_paths, executable_source,
-        MameExecutableRequest, MameExecutableSelectionKind,
+        launch_after_audit_gate, MameExecutableRequest, MameExecutableSelectionKind,
     };
     use crate::{
         bundled_runtime::BundledRuntimeLayout,
         config::{ContentPathsV1, PlatformPath},
         content_paths::effective_content_paths,
-        mame::{MameExecutableSourceKind, MameExecutableTrust},
+        errors::AppResult,
+        mame::{MameAuditClassification, MameExecutableSourceKind, MameExecutableTrust},
     };
 
     #[test]
@@ -619,6 +747,53 @@ mod tests {
             paths.iter().filter(|path| path.option == "rompath").count(),
             1
         );
+    }
+
+    #[test]
+    fn gated_catalog_launch_never_reaches_spawn_closure_for_unknown_or_missing_content() {
+        for classification in [
+            None,
+            Some(MameAuditClassification::Unknown),
+            Some(MameAuditClassification::MissingRequired),
+            Some(MameAuditClassification::Incorrect),
+            Some(MameAuditClassification::MixedFailure),
+        ] {
+            let mut spawned = false;
+            let result: AppResult<()> = launch_after_audit_gate("pacman", classification, || {
+                spawned = true;
+                Ok(())
+            });
+            assert!(result.is_err());
+            assert!(!spawned, "gated launch must not invoke the spawn boundary");
+        }
+    }
+
+    #[test]
+    fn complete_and_best_available_audits_reach_spawn_closure() {
+        for classification in [
+            MameAuditClassification::Complete,
+            MameAuditClassification::BestAvailable,
+        ] {
+            let mut spawned = false;
+            launch_after_audit_gate("pacman", Some(classification), || {
+                spawned = true;
+                Ok(())
+            })
+            .expect("playable audit classification");
+            assert!(spawned);
+        }
+    }
+
+    #[test]
+    fn catalog_gate_is_evaluated_before_session_spawn_in_source() {
+        let source = include_str!("sessions.rs");
+        let gate = source
+            .find("launch_after_audit_gate(&machine, classification")
+            .expect("catalog audit gate source");
+        let spawn = source
+            .find("supervisor.launch_with_preferences")
+            .expect("session spawn source");
+        assert!(gate < spawn, "catalog audit gate must run before session spawn");
     }
 
     fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {

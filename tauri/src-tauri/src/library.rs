@@ -231,7 +231,7 @@ pub fn launch_library_machine(
     let current_identity = inspect_executable(source.clone())?;
     ensure_generation_matches_executable(&generation, &current_identity)?;
 
-    sessions::launch_mame_with_source(
+    sessions::launch_catalog_mame_with_source(
         source,
         short_name,
         None,
