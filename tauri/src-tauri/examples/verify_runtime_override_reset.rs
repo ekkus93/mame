@@ -4,6 +4,7 @@ use mame_tauri_lib::config::SettingsV2;
 use mame_tauri_lib::effective_runtime::resolve_effective_mame_source;
 use mame_tauri_lib::mame::{inspect_executable, MameExecutableSourceKind, MameExecutableTrust};
 
+#[rustfmt::skip]
 fn main() {
     let mut args = std::env::args_os().skip(1);
     let resource_dir = PathBuf::from(args.next().expect("missing resource directory"));
