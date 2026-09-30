@@ -23,14 +23,29 @@ export type CatalogSchemaDiagnostics = {
   errorCode: string | null;
 };
 
+export type ContentPathDiagnostics = {
+  schemaVersion: 1;
+  resolutionPolicy: "configuredOnly";
+  total: number;
+  rom: number;
+  software: number;
+  chd: number;
+  accessible: number;
+  missing: number;
+  notDirectory: number;
+  permissionDenied: number;
+  unreadable: number;
+};
+
 export type DiagnosticsSnapshot = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   app: AppInfoResponse;
   platform: string;
   architecture: string;
   settingsPath: string;
   catalogPath: string;
   catalogSchema: CatalogSchemaDiagnostics;
+  contentPaths: ContentPathDiagnostics;
   logPath: string;
   recentLogs: DiagnosticLogEntry[];
 };

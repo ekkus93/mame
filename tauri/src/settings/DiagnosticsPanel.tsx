@@ -113,6 +113,17 @@ export function DiagnosticsPanel() {
               </dd>
             </div>
             <div>
+              <dt>Content paths</dt>
+              <dd>
+                {snapshot.contentPaths.total} configured · {snapshot.contentPaths.accessible}{" "}
+                accessible · {snapshot.contentPaths.missing} missing ·{" "}
+                {snapshot.contentPaths.notDirectory +
+                  snapshot.contentPaths.permissionDenied +
+                  snapshot.contentPaths.unreadable}{" "}
+                invalid/inaccessible
+              </dd>
+            </div>
+            <div>
               <dt>Log</dt>
               <dd>
                 <code>{snapshot.logPath}</code>

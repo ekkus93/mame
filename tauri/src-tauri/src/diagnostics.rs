@@ -20,7 +20,8 @@ use tauri::{AppHandle, Manager, Runtime};
 
 use crate::{
     app::{self, AppInfoRequest, AppInfoResponse, APP_PROTOCOL_VERSION},
-    config::settings_path,
+    config::{load_settings, settings_path, ContentPathKind, PathValidationStatus},
+    content_paths::{effective_content_paths, EffectiveContentPaths},
     errors::{AppError, AppResult},
     mame::{MameExecutableSourceKind, MameExecutableTrust},
     storage,
@@ -62,6 +63,22 @@ pub struct RuntimeDiagnostics {
     pub message: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentPathDiagnostics {
+    pub schema_version: u32,
+    pub resolution_policy: String,
+    pub total: u32,
+    pub rom: u32,
+    pub software: u32,
+    pub chd: u32,
+    pub accessible: u32,
+    pub missing: u32,
+    pub not_directory: u32,
+    pub permission_denied: u32,
+    pub unreadable: u32,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticsSnapshot {
@@ -73,6 +90,7 @@ pub struct DiagnosticsSnapshot {
     pub settings_path: String,
     pub catalog_path: String,
     pub catalog_schema: CatalogSchemaDiagnostics,
+    pub content_paths: ContentPathDiagnostics,
     pub log_path: String,
     pub recent_logs: Vec<DiagnosticLogEntry>,
 }
@@ -253,6 +271,9 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         handle.clone(),
     )?;
     let runtime = runtime_diagnostics(&app.mame);
+    let configured_settings = load_settings(&settings)?;
+    let content_paths =
+        summarize_content_paths(&effective_content_paths(&configured_settings.content_paths));
     let log_path = RECORDER
         .get()
         .and_then(|recorder| recorder.lock().ok())
@@ -268,9 +289,52 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         settings_path: settings.to_string_lossy().into_owned(),
         catalog_path: catalog.to_string_lossy().into_owned(),
         catalog_schema: inspect_catalog_schema(&catalog),
+        content_paths,
         log_path: log_path.to_string_lossy().into_owned(),
         recent_logs: recent_logs(),
     })
+}
+
+fn summarize_content_paths(paths: &EffectiveContentPaths) -> ContentPathDiagnostics {
+    let mut summary = ContentPathDiagnostics {
+        schema_version: 1,
+        resolution_policy: "configuredOnly".to_owned(),
+        total: 0,
+        rom: 0,
+        software: 0,
+        chd: 0,
+        accessible: 0,
+        missing: 0,
+        not_directory: 0,
+        permission_denied: 0,
+        unreadable: 0,
+    };
+
+    for entry in &paths.entries {
+        summary.total = summary.total.saturating_add(1);
+        match entry.kind {
+            ContentPathKind::Rom => summary.rom = summary.rom.saturating_add(1),
+            ContentPathKind::Software => summary.software = summary.software.saturating_add(1),
+            ContentPathKind::Chd => summary.chd = summary.chd.saturating_add(1),
+        }
+        match entry.validation.status {
+            PathValidationStatus::Accessible => {
+                summary.accessible = summary.accessible.saturating_add(1)
+            }
+            PathValidationStatus::Missing => summary.missing = summary.missing.saturating_add(1),
+            PathValidationStatus::NotDirectory => {
+                summary.not_directory = summary.not_directory.saturating_add(1)
+            }
+            PathValidationStatus::PermissionDenied => {
+                summary.permission_denied = summary.permission_denied.saturating_add(1)
+            }
+            PathValidationStatus::Unreadable => {
+                summary.unreadable = summary.unreadable.saturating_add(1)
+            }
+        }
+    }
+
+    summary
 }
 
 fn runtime_diagnostics(report: &app::MameVersionReport) -> RuntimeDiagnostics {
@@ -491,12 +555,48 @@ mod tests {
     use serde_json::json;
     use tempfile::tempdir;
 
-    use super::{error_category, inspect_catalog_schema, runtime_diagnostics, sanitize_context};
+    use super::{
+        error_category, inspect_catalog_schema, runtime_diagnostics, sanitize_context,
+        summarize_content_paths,
+    };
     use crate::{
         app::MameVersionReport,
+        config::{ContentPathsV1, PlatformPath},
+        content_paths::effective_content_paths,
         mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
         storage::CATALOG_SCHEMA_VERSION,
     };
+
+
+    #[test]
+    fn content_path_diagnostics_use_effective_contract_without_exposing_paths() {
+        let root = tempdir().expect("temporary content directory");
+        let rom = root.path().join("roms");
+        fs::create_dir_all(&rom).expect("create ROM directory");
+        let invalid = root.path().join("not-a-directory");
+        fs::write(&invalid, b"file").expect("create invalid content path");
+        let missing = root.path().join("missing");
+
+        let effective = effective_content_paths(&ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&rom), PlatformPath::new(&missing)],
+            software_paths: vec![PlatformPath::new(&invalid)],
+            chd_paths: Vec::new(),
+        });
+        let summary = summarize_content_paths(&effective);
+
+        assert_eq!(summary.resolution_policy, "configuredOnly");
+        assert_eq!(summary.total, 3);
+        assert_eq!(summary.rom, 2);
+        assert_eq!(summary.software, 1);
+        assert_eq!(summary.chd, 0);
+        assert_eq!(summary.accessible, 1);
+        assert_eq!(summary.missing, 1);
+        assert_eq!(summary.not_directory, 1);
+
+        let json = serde_json::to_string(&summary).expect("serialize safe diagnostics");
+        assert!(!json.contains(&rom.to_string_lossy().to_string()));
+        assert!(!json.contains(&missing.to_string_lossy().to_string()));
+    }
 
     #[test]
     fn maps_stable_error_codes_to_support_categories() {
