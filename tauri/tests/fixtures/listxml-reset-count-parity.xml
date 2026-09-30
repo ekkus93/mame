@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<mame build="0.288 reset-count-parity" debug="no" mameconfig="10">
+  <machine name="parentgood" sourcefile="reset.cpp">
+    <description>Parent Good</description>
+    <year>1980</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="supported"/>
+  </machine>
+  <machine name="clonegood" sourcefile="reset.cpp" cloneof="parentgood" romof="parentgood">
+    <description>Clone Good</description>
+    <year>1980</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="supported"/>
+  </machine>
+  <machine name="biosroot" sourcefile="reset.cpp" isbios="yes">
+    <description>BIOS Root</description>
+    <year>1981</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="unsupported"/>
+  </machine>
+  <machine name="biosclone" sourcefile="reset.cpp" cloneof="biosroot" romof="biosroot">
+    <description>BIOS Child</description>
+    <year>1981</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="unsupported"/>
+  </machine>
+  <machine name="mechanical" sourcefile="reset.cpp" ismechanical="yes">
+    <description>Mechanical Game</description>
+    <year>1982</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="unsupported"/>
+  </machine>
+  <machine name="preliminary" sourcefile="reset.cpp">
+    <description>Preliminary Game</description>
+    <year>1983</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="preliminary" emulation="preliminary" savestate="unsupported"/>
+  </machine>
+  <machine name="chdgame" sourcefile="reset.cpp">
+    <description>CHD Game</description>
+    <year>1984</year>
+    <manufacturer>Reset</manufacturer>
+    <disk name="disk0" sha1="0123456789012345678901234567890123456789" region="cdrom" index="0"/>
+    <driver status="good" emulation="good" savestate="supported"/>
+  </machine>
+  <machine name="nonrunnable" sourcefile="reset.cpp" runnable="no">
+    <description>Non-runnable System</description>
+    <year>1985</year>
+    <manufacturer>Reset</manufacturer>
+    <driver status="good" emulation="good" savestate="unsupported"/>
+  </machine>
+  <machine name="deviceonly" sourcefile="reset.cpp" isdevice="yes" runnable="no">
+    <description>Device Only</description>
+    <driver status="good" emulation="good" savestate="unsupported"/>
+  </machine>
+</mame>

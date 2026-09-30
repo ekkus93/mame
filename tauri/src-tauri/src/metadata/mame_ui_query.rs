@@ -429,7 +429,98 @@ fn database_error(error: rusqlite::Error) -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::{filter_predicate, like_pattern, MameUiMachineFilter};
+    use std::io::Cursor;
+
+    use crate::mame::{
+        MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust,
+    };
+
+    use super::{
+        filter_predicate, like_pattern, CatalogRepository, MameUiMachineFilter,
+        MameUiMachineQuery,
+    };
+
+    const RESET_COUNT_FIXTURE: &str =
+        include_str!("../../../tests/fixtures/listxml-reset-count-parity.xml");
+
+    fn query(filter: MameUiMachineFilter) -> MameUiMachineQuery {
+        MameUiMachineQuery {
+            text: None,
+            filter,
+            filter_value: None,
+            preferred_machine: None,
+            limit: 100,
+            offset: 0,
+            audit_identity_json: None,
+            audit_content_paths_json: None,
+        }
+    }
+
+    fn reset_count_repository() -> CatalogRepository {
+        let mut repository = CatalogRepository::memory().expect("catalog repository");
+        let identity = MameExecutableIdentity {
+            source: MameExecutableSourceKind::External,
+            trust: MameExecutableTrust::UserConfigured,
+            path: "/fixture/mame".to_owned(),
+            version: "0.288".to_owned(),
+            build: Some("reset-count-parity".to_owned()),
+            raw_version_line: "0.288 reset-count-parity".to_owned(),
+        };
+        let mut import = repository
+            .begin_import(&identity, 100)
+            .expect("begin reset count fixture import");
+        let summary = import
+            .import_listxml(Cursor::new(RESET_COUNT_FIXTURE.as_bytes()))
+            .expect("import reset count fixture");
+        import.finish(summary, 200).expect("finish reset count fixture");
+        repository
+    }
+
+    #[test]
+    fn reset_count_baseline_excludes_devices_but_has_no_hidden_game_filters() {
+        let repository = reset_count_repository();
+        let generation = repository
+            .active_generation()
+            .expect("active generation")
+            .expect("fixture generation");
+        assert_eq!(generation.machine_count, 9);
+
+        let all = repository
+            .query_mame_ui_machines(&query(MameUiMachineFilter::All))
+            .expect("unfiltered MAME UI query");
+        assert_eq!(all.total, 8);
+        assert!(all.items.iter().all(|item| !item.is_device));
+        assert!(all.items.iter().any(|item| item.short_name == "clonegood"));
+        assert!(all.items.iter().any(|item| item.short_name == "biosroot"));
+        assert!(all.items.iter().any(|item| item.short_name == "mechanical"));
+        assert!(all.items.iter().any(|item| item.short_name == "preliminary"));
+        assert!(all.items.iter().any(|item| item.short_name == "chdgame"));
+        assert!(all.items.iter().any(|item| item.short_name == "nonrunnable"));
+    }
+
+    #[test]
+    fn reset_count_dimensions_are_explicit_filters_not_implicit_base_count_changes() {
+        let repository = reset_count_repository();
+        let cases = [
+            (MameUiMachineFilter::Parents, 7),
+            (MameUiMachineFilter::Clones, 1),
+            (MameUiMachineFilter::Bios, 1),
+            (MameUiMachineFilter::NotBios, 7),
+            (MameUiMachineFilter::Working, 7),
+            (MameUiMachineFilter::NotWorking, 1),
+            (MameUiMachineFilter::Mechanical, 1),
+            (MameUiMachineFilter::NotMechanical, 7),
+            (MameUiMachineFilter::ChdRequired, 1),
+            (MameUiMachineFilter::NoChdRequired, 7),
+        ];
+
+        for (filter, expected) in cases {
+            let page = repository
+                .query_mame_ui_machines(&query(filter))
+                .expect("dimension query");
+            assert_eq!(page.total, expected, "unexpected count for {filter:?}");
+        }
+    }
 
     #[test]
     fn every_canonical_filter_has_a_nonempty_predicate() {

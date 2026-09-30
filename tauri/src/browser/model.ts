@@ -22,7 +22,7 @@ export type MameBrowserFilterNavItem =
   MameBrowserFilterDefinition | MameBrowserDeferredFilterDefinition;
 
 export const MAME_BROWSER_FILTERS: MameBrowserFilterDefinition[] = [
-  { id: "all", label: "Unfiltered", description: "All runnable catalog systems" },
+  { id: "all", label: "Unfiltered", description: "All non-device catalog systems" },
   {
     id: "available",
     label: "Available Locally",
