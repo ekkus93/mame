@@ -225,6 +225,32 @@ Build platform bundles where the current host supports them:
 npm run tauri -- build
 ```
 
+## Packaged runtime and content setup
+
+Normal packaged installs include the package-owned MAME runtime. A user does **not** need to install upstream MAME separately or select a MAME executable before browsing and configuring content. The external executable selector is an advanced/development override: open the Settings surface, expand **Advanced override** under **Bundled MAME runtime**, and clear the override to return to the package-owned runtime.
+
+### Configure ROM, software, and CHD paths
+
+Open the app's Settings surface and use **Content configuration → ROM and software paths**. The panel has separate **ROM paths**, **Software paths**, and **CHD paths** groups with **Add … directory** actions. Paths are searched in the order shown, can be moved up/down, and remain visible with an explicit validation status when missing, unreadable, or inaccessible.
+
+For this reset, the effective media-search contract is intentionally limited to these configured paths. Automatic discovery of additional default MAME-compatible ROM locations is deferred. Audit, catalog Start, and diagnostics therefore derive their media-path view from one ordered source of truth instead of silently searching different locations.
+
+### Local content availability
+
+Catalog metadata and local content availability are separate:
+
+- **Available Locally** means the current audit for the current MAME runtime and current effective content paths classified the machine as complete or best-available. Normal Start is enabled.
+- **Missing Content** means the current audit found required content missing, incorrect, or a mixture of both. Normal Start is gated; fix the content/path configuration and audit again.
+- **Not Audited** means there is no current audit result for the active runtime/path identity. This includes results made stale by changing the runtime or effective paths. Normal Start is gated until an audit establishes availability.
+
+The machine catalog comes from MAME metadata such as `-listxml`, so catalog entries can exist before any local ROMs are configured. Seeing a machine in the browser does not imply that its ROM/CHD/software content is installed.
+
+Artwork directories are optional presentation media. Missing snapshots, cabinets, marquees, icons, and other artwork never make a machine unlaunchable and are not part of the ROM/content availability gate.
+
+### Native list/count semantics
+
+The **Unfiltered** machine view follows native MAME's unfiltered system-list semantics: it does not silently exclude device rows. Parent/clone, BIOS, driver-status, mechanical, CHD, orientation, and other dimensions are explicit filters rather than hidden base-query restrictions. The RESET-007 regression fixture and native-source comparison are recorded in `docs/MAME_TAURI_NATIVE_UI_PARITY_INVENTORY_2026-09-30.md`.
+
 ## Visual parity verification
 
 For a local visual/interaction check, start from a bundled/default runtime in an installed package or an explicit development/external MAME override plus a metadata catalog, then run:

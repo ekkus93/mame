@@ -26,6 +26,17 @@ Comparable Tauri facts:
 
 No binary screenshots are added here; this inventory records the view facts and source locations needed for reset implementation.
 
+## RESET-007 count/filter parity resolution
+
+The fixed regression baseline uses the checked-in `listxml-reset-count-parity.xml` fixture, a synthetic MAME identity reported as version `0.288` / build `reset-count-parity`, one active imported metadata generation containing nine machines, no search text, and the `Unfiltered` (`all`) machine filter. The fixture deliberately spans parent/clone, BIOS, device, preliminary/not-working, mechanical, CHD, and non-runnable dimensions so each can be tested independently.
+
+Current native MAME source establishes the unfiltered reference semantics directly. `src/frontend/mame/ui/systemlist.cpp` builds the sorted system list from the driver list and removes only `___empty`. `src/frontend/mame/ui/selgame.cpp` copies that complete sorted list into the displayed list when no machine filter is active. Native availability scanning annotates entries; it is not an unconditional device-row exclusion.
+
+The Tauri catalog query had an extra unconditional `m.is_device = 0` predicate before the selected filter was applied. That hidden base predicate could reduce the unfiltered count independently of every visible filter and was inconsistent with the native source contract. RESET-007 removes it. The regression baseline now returns all nine fixture machines, including the explicit `deviceonly` row.
+
+The same regression suite exercises the formerly suspected count dimensions as explicit filters: parent/clone, BIOS/not-BIOS, working/not-working, mechanical/not-mechanical, and CHD/no-CHD. Category support remains deferred and does not participate in the `Unfiltered` SQL predicate; metadata gaps therefore cannot silently change the base count through a category filter. The observed screenshot values (`88 Games` native versus `1-59 of 59` Tauri) remain historical capture evidence because that exact transient metadata database was not retained, but the hidden semantic difference identified in the production query is removed and the chosen unfiltered semantics now match the native source with a fixed regression fixture.
+
+
 ## Source files inspected
 
 Primary frontend sources:
