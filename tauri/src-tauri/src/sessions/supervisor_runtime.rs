@@ -247,18 +247,8 @@ fn classify_pre_ready_failure(
     };
 
     let runtime_control_code = cause.code.clone();
-    let content_failure = output_indicates_content_failure(&stdout_tail, &stderr_tail);
-    let (code, message) = if content_failure {
-        (
-            "MAME_CONTENT_LAUNCH_FAILED",
-            "MAME exited before startup because required ROM/content is missing or incorrect. Check the configured content paths and audit this machine again.",
-        )
-    } else {
-        (
-            "MAME_EARLY_EXIT",
-            "MAME exited before the runtime session became ready. Review the launch diagnostics for the underlying startup error.",
-        )
-    };
+    let (code, message, content_failure) =
+        classify_early_exit_output(&stdout_tail, &stderr_tail);
 
     AppError::new(code, message).with_details(serde_json::json!({
         "sessionId": session_id,
@@ -278,6 +268,25 @@ fn classify_pre_ready_failure(
         "earlyExit": true,
         "contentFailure": content_failure
     }))
+}
+
+pub(super) fn classify_early_exit_output(
+    stdout: &str,
+    stderr: &str,
+) -> (&'static str, &'static str, bool) {
+    let content_failure = output_indicates_content_failure(stdout, stderr);
+    let (code, message) = if content_failure {
+        (
+            "MAME_CONTENT_LAUNCH_FAILED",
+            "MAME exited before startup because required ROM/content is missing or incorrect. Check the configured content paths and audit this machine again.",
+        )
+    } else {
+        (
+            "MAME_EARLY_EXIT",
+            "MAME exited before the runtime session became ready. Review the launch diagnostics for the underlying startup error.",
+        )
+    };
+    (code, message, content_failure)
 }
 
 fn output_indicates_content_failure(stdout: &str, stderr: &str) -> bool {

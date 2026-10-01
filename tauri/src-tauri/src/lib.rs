@@ -2,6 +2,8 @@
 
 use std::path::Path;
 
+use serde::Serialize;
+
 pub mod app;
 pub mod artwork;
 pub mod artwork_assets;
@@ -67,6 +69,177 @@ pub fn verify_bundled_runtime_resource_dir(
     }
 
     Ok(identity)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResetContentPolicyGateReport {
+    code: String,
+    message: String,
+    launch_attempted: bool,
+    content_failure: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResetContentPolicyVerificationReport {
+    schema_version: u32,
+    runtime: mame::MameExecutableIdentity,
+    empty_effective_path_count: usize,
+    unaudited_gate: ResetContentPolicyGateReport,
+    configured_rompath: String,
+    configured_path_status: config::PathValidationStatus,
+    audit_classification: mame::MameAuditClassification,
+    unavailable_gate: ResetContentPolicyGateReport,
+    early_exit: ResetContentPolicyGateReport,
+}
+
+pub fn verify_reset_content_policy(
+    resource_dir: impl AsRef<Path>,
+    content_dir: impl AsRef<Path>,
+    probe_machine: &str,
+) -> errors::AppResult<ResetContentPolicyVerificationReport> {
+    let source = effective_runtime::resolve_effective_mame_source(
+        &config::SettingsV2::default(),
+        resource_dir.as_ref(),
+    )?;
+    let runtime = mame::inspect_executable(source.clone())?;
+    if runtime.source != mame::MameExecutableSourceKind::Bundled
+        || runtime.trust != mame::MameExecutableTrust::QualifiedBundled
+    {
+        return Err(errors::AppError::new(
+            "MAME_RESET_PACKAGE_RUNTIME_UNEXPECTED",
+            "Reset package qualification did not resolve the qualified bundled MAME runtime.",
+        )
+        .with_details(serde_json::json!({ "identity": runtime })));
+    }
+
+    let empty_effective =
+        content_paths::effective_content_paths(&config::ContentPathsV1::default());
+    let mut unaudited_launch_attempted = false;
+    let unaudited_error = sessions::launch_after_audit_gate(probe_machine, None, || {
+        unaudited_launch_attempted = true;
+        Ok(())
+    })
+    .expect_err("an unaudited packaged launch must be gated");
+    if unaudited_error.code != "MAME_CONTENT_AUDIT_REQUIRED" || unaudited_launch_attempted {
+        return Err(errors::AppError::new(
+            "MAME_RESET_UNAUDITED_GATE_UNEXPECTED",
+            "An unaudited packaged launch did not fail closed before process spawn.",
+        )
+        .with_details(serde_json::json!({
+            "gateError": unaudited_error,
+            "launchAttempted": unaudited_launch_attempted
+        })));
+    }
+
+    let configured = config::ContentPathsV1 {
+        rom_paths: vec![config::PlatformPath::new(content_dir.as_ref())],
+        software_paths: Vec::new(),
+        chd_paths: Vec::new(),
+    };
+    let effective = content_paths::effective_content_paths(&configured);
+    let configured_entry = effective.entries.first().ok_or_else(|| {
+        errors::AppError::new(
+            "MAME_RESET_CONTENT_PATH_MISSING",
+            "Reset package qualification did not produce the configured ROM path.",
+        )
+    })?;
+    if configured_entry.validation.status != config::PathValidationStatus::Accessible {
+        return Err(errors::AppError::new(
+            "MAME_RESET_CONTENT_PATH_INVALID",
+            "Reset package qualification requires an accessible empty ROM directory.",
+        )
+        .with_details(serde_json::json!({
+            "validation": configured_entry.validation
+        })));
+    }
+
+    let launch_paths =
+        sessions::append_effective_content_project_paths(Vec::new(), &effective)?;
+    let configured_rompath = launch_paths
+        .iter()
+        .find(|entry| entry.option == "rompath")
+        .map(|entry| entry.path.clone())
+        .ok_or_else(|| {
+            errors::AppError::new(
+                "MAME_RESET_ROMPATH_MISSING",
+                "The configured effective content path was not propagated to launch rompath.",
+            )
+        })?;
+
+    let audit = mame::audit_machine(&source, probe_machine, &effective)?;
+    if !matches!(
+        audit.classification,
+        mame::MameAuditClassification::MissingRequired
+            | mame::MameAuditClassification::Incorrect
+            | mame::MameAuditClassification::MixedFailure
+    ) {
+        return Err(errors::AppError::new(
+            "MAME_RESET_MISSING_CONTENT_AUDIT_UNEXPECTED",
+            "The real bundled runtime did not classify the intentionally empty ROM directory as unavailable content.",
+        )
+        .with_details(serde_json::json!({ "audit": audit })));
+    }
+
+    let mut unavailable_launch_attempted = false;
+    let unavailable_error =
+        sessions::launch_after_audit_gate(probe_machine, Some(audit.classification), || {
+            unavailable_launch_attempted = true;
+            Ok(())
+        })
+        .expect_err("missing packaged content must be gated");
+    if unavailable_error.code != "MAME_CONTENT_UNAVAILABLE" || unavailable_launch_attempted {
+        return Err(errors::AppError::new(
+            "MAME_RESET_UNAVAILABLE_GATE_UNEXPECTED",
+            "Unavailable packaged content did not fail closed before process spawn.",
+        )
+        .with_details(serde_json::json!({
+            "gateError": unavailable_error,
+            "launchAttempted": unavailable_launch_attempted
+        })));
+    }
+
+    let early_exit_error = sessions::classify_early_exit_output(&audit.raw_excerpt, "");
+    let content_failure = early_exit_error
+        .details
+        .get("contentFailure")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    if early_exit_error.code != "MAME_CONTENT_LAUNCH_FAILED" || !content_failure {
+        return Err(errors::AppError::new(
+            "MAME_RESET_EARLY_EXIT_CLASSIFICATION_UNEXPECTED",
+            "Real bundled-MAME missing-content output was not classified as an actionable content launch failure.",
+        )
+        .with_details(serde_json::json!({ "classifiedError": early_exit_error })));
+    }
+
+    Ok(ResetContentPolicyVerificationReport {
+        schema_version: 1,
+        runtime,
+        empty_effective_path_count: empty_effective.entries.len(),
+        unaudited_gate: ResetContentPolicyGateReport {
+            code: unaudited_error.code,
+            message: unaudited_error.message,
+            launch_attempted: unaudited_launch_attempted,
+            content_failure: None,
+        },
+        configured_rompath,
+        configured_path_status: configured_entry.validation.status.clone(),
+        audit_classification: audit.classification,
+        unavailable_gate: ResetContentPolicyGateReport {
+            code: unavailable_error.code,
+            message: unavailable_error.message,
+            launch_attempted: unavailable_launch_attempted,
+            content_failure: None,
+        },
+        early_exit: ResetContentPolicyGateReport {
+            code: early_exit_error.code,
+            message: early_exit_error.message,
+            launch_attempted: false,
+            content_failure: Some(content_failure),
+        },
+    })
 }
 
 pub fn run() -> Result<(), tauri::Error> {

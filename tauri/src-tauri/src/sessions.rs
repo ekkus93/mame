@@ -461,7 +461,7 @@ fn current_machine_audit_classification(
     .map(|stored| stored.result.classification))
 }
 
-fn launch_after_audit_gate<T>(
+pub(crate) fn launch_after_audit_gate<T>(
     machine: &str,
     classification: Option<MameAuditClassification>,
     launch: impl FnOnce() -> AppResult<T>,
@@ -493,7 +493,16 @@ fn launch_after_audit_gate<T>(
     }
 }
 
-fn append_effective_content_project_paths(
+pub(crate) fn classify_early_exit_output(stdout: &str, stderr: &str) -> AppError {
+    let (code, message, content_failure) =
+        supervisor::classify_early_exit_output(stdout, stderr);
+    AppError::new(code, message).with_details(serde_json::json!({
+        "earlyExit": true,
+        "contentFailure": content_failure
+    }))
+}
+
+pub(crate) fn append_effective_content_project_paths(
     mut project_paths: Vec<ProjectPathRequest>,
     effective_content_paths: &EffectiveContentPaths,
 ) -> AppResult<Vec<ProjectPathRequest>> {

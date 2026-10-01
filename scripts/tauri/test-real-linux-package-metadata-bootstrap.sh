@@ -9,8 +9,9 @@ Release-grade metadata-bootstrap qualification for the installed bundled-MAME
 Debian package. This test reinstalls the package, makes the installed bundled
 runtime tree read-only, asks the installed backend to resolve the default
 package-owned runtime, imports real MAME -listxml metadata into a user-writable
-catalog, verifies the resulting machine catalog is queryable, then verifies an
-explicit external override and reset back to the installed bundled runtime.
+catalog, verifies the resulting machine catalog is queryable, exercises the reset
+content-path/Start-gating/missing-ROM diagnostics contract with the real bundled
+runtime, then verifies an explicit external override and reset back to it.
 EOF
 }
 
@@ -51,7 +52,7 @@ resource_dir=${runtime_root%/mame-runtime}
 [[ -d "$resource_dir" ]] || { echo "installed Tauri resource directory is missing: $resource_dir" >&2; exit 1; }
 
 probe_root="$smoke_tmp/metadata-bootstrap"
-mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache"
+mkdir -p "$probe_root/home" "$probe_root/config" "$probe_root/data" "$probe_root/cache" "$probe_root/empty-roms"
 catalog="$probe_root/catalog.sqlite3"
 report="$probe_root/report.json"
 
@@ -115,6 +116,66 @@ if errors:
     raise SystemExit('metadata bootstrap report mismatch: ' + ', '.join(errors))
 PY
 
+policy_report="$probe_root/reset-content-policy.json"
+env \
+  HOME="$probe_root/home" \
+  XDG_CONFIG_HOME="$probe_root/config" \
+  XDG_DATA_HOME="$probe_root/data" \
+  XDG_CACHE_HOME="$probe_root/cache" \
+  "$binary" --mame-tauri-verify-reset-content-policy \
+    "$resource_dir" \
+    "$probe_root/empty-roms" \
+    "$smoke_machine" >"$policy_report"
+
+python3 - "$policy_report" "$probe_root/empty-roms" <<'PY'
+import json
+import os
+import sys
+
+report_path, expected_rompath = sys.argv[1:]
+expected_rompath = os.path.realpath(expected_rompath)
+with open(report_path, encoding='utf-8') as handle:
+    report = json.load(handle)
+
+errors = []
+runtime = report.get('runtime') or {}
+unaudited = report.get('unauditedGate') or {}
+unavailable = report.get('unavailableGate') or {}
+early_exit = report.get('earlyExit') or {}
+
+if runtime.get('source') != 'bundled':
+    errors.append(f"runtime.source={runtime.get('source')!r}")
+if runtime.get('trust') != 'qualifiedBundled':
+    errors.append(f"runtime.trust={runtime.get('trust')!r}")
+if int(report.get('emptyEffectivePathCount') or 0) != 0:
+    errors.append(f"emptyEffectivePathCount={report.get('emptyEffectivePathCount')!r}")
+if unaudited.get('code') != 'MAME_CONTENT_AUDIT_REQUIRED':
+    errors.append(f"unauditedGate.code={unaudited.get('code')!r}")
+if unaudited.get('launchAttempted') is not False:
+    errors.append(f"unauditedGate.launchAttempted={unaudited.get('launchAttempted')!r}")
+if os.path.realpath(report.get('configuredRompath') or '') != expected_rompath:
+    errors.append(
+        f"configuredRompath={report.get('configuredRompath')!r} expected={expected_rompath!r}"
+    )
+if report.get('configuredPathStatus') != 'accessible':
+    errors.append(f"configuredPathStatus={report.get('configuredPathStatus')!r}")
+if report.get('auditClassification') not in {'missingRequired', 'incorrect', 'mixedFailure'}:
+    errors.append(f"auditClassification={report.get('auditClassification')!r}")
+if unavailable.get('code') != 'MAME_CONTENT_UNAVAILABLE':
+    errors.append(f"unavailableGate.code={unavailable.get('code')!r}")
+if unavailable.get('launchAttempted') is not False:
+    errors.append(f"unavailableGate.launchAttempted={unavailable.get('launchAttempted')!r}")
+if early_exit.get('code') != 'MAME_CONTENT_LAUNCH_FAILED':
+    errors.append(f"earlyExit.code={early_exit.get('code')!r}")
+if early_exit.get('contentFailure') is not True:
+    errors.append(f"earlyExit.contentFailure={early_exit.get('contentFailure')!r}")
+if 'ROM/content' not in (early_exit.get('message') or ''):
+    errors.append(f"earlyExit.message={early_exit.get('message')!r}")
+
+if errors:
+    raise SystemExit('reset content-policy report mismatch: ' + ', '.join(errors))
+PY
+
 external_runtime="$probe_root/external-mame"
 cp "$runtime_bin" "$external_runtime"
 chmod u+w "$external_runtime"
@@ -124,4 +185,4 @@ cargo run --quiet \
   --example verify_runtime_override_reset \
   -- "$resource_dir" "$external_runtime"
 
-printf 'Installed bundled-MAME metadata bootstrap and override/reset qualification passed for %s\n' "$smoke_machine"
+printf 'Installed bundled-MAME metadata/content-policy and override/reset qualification passed for %s\n' "$smoke_machine"
