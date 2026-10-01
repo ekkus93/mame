@@ -83,7 +83,6 @@ impl CatalogRepository {
         let sql_where = format!(
             r#"
                 m.generation_id = :generation_id
-                AND m.is_device = 0
                 AND (
                     :search_pattern IS NULL
                     OR m.short_name LIKE :search_pattern ESCAPE '\\' COLLATE NOCASE
@@ -477,7 +476,7 @@ mod tests {
     }
 
     #[test]
-    fn reset_count_baseline_excludes_devices_but_has_no_hidden_game_filters() {
+    fn reset_count_baseline_matches_native_unfiltered_catalog_without_hidden_device_filter() {
         let repository = reset_count_repository();
         let generation = repository
             .active_generation()
@@ -488,8 +487,9 @@ mod tests {
         let all = repository
             .query_mame_ui_machines(&query(MameUiMachineFilter::All))
             .expect("unfiltered MAME UI query");
-        assert_eq!(all.total, 8);
-        assert!(all.items.iter().all(|item| !item.is_device));
+        assert_eq!(all.total, 9);
+        assert!(all.items.iter().any(|item| item.is_device));
+        assert!(all.items.iter().any(|item| item.short_name == "deviceonly"));
         assert!(all.items.iter().any(|item| item.short_name == "clonegood"));
         assert!(all.items.iter().any(|item| item.short_name == "biosroot"));
         assert!(all.items.iter().any(|item| item.short_name == "mechanical"));
@@ -502,16 +502,16 @@ mod tests {
     fn reset_count_dimensions_are_explicit_filters_not_implicit_base_count_changes() {
         let repository = reset_count_repository();
         let cases = [
-            (MameUiMachineFilter::Parents, 7),
+            (MameUiMachineFilter::Parents, 8),
             (MameUiMachineFilter::Clones, 1),
             (MameUiMachineFilter::Bios, 1),
-            (MameUiMachineFilter::NotBios, 7),
-            (MameUiMachineFilter::Working, 7),
+            (MameUiMachineFilter::NotBios, 8),
+            (MameUiMachineFilter::Working, 8),
             (MameUiMachineFilter::NotWorking, 1),
             (MameUiMachineFilter::Mechanical, 1),
-            (MameUiMachineFilter::NotMechanical, 7),
+            (MameUiMachineFilter::NotMechanical, 8),
             (MameUiMachineFilter::ChdRequired, 1),
-            (MameUiMachineFilter::NoChdRequired, 7),
+            (MameUiMachineFilter::NoChdRequired, 8),
         ];
 
         for (filter, expected) in cases {
