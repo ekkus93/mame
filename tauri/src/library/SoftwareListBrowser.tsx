@@ -21,6 +21,7 @@ export function SoftwareListBrowser({
   return (
     <SoftwareBrowser
       detail={detail}
+      availability="unknown"
       gameplayInputOwned={false}
       launchOverrides={launchOverrides}
       panelMode={panelMode}
