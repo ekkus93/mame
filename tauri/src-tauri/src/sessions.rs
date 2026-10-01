@@ -225,32 +225,6 @@ pub(crate) fn launch_catalog_mame_with_source(
     )
 }
 
-// This internal adapter mirrors the typed launch boundary and keeps BIOS an
-// explicit value rather than exposing a generic argv escape hatch.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn launch_mame_with_source_and_bios(
-    source: MameExecutableSource,
-    machine: String,
-    software: Option<String>,
-    bios: Option<String>,
-    project_paths: Vec<ProjectPathRequest>,
-    transient_launch_overrides: Option<LaunchPreferencesV1>,
-    supervisor: State<'_, SessionSupervisor>,
-    app: AppHandle,
-) -> AppResult<SessionSnapshot> {
-    launch_mame_with_source_and_bios_policy(
-        source,
-        machine,
-        software,
-        bios,
-        project_paths,
-        transient_launch_overrides,
-        false,
-        supervisor,
-        app,
-    )
-}
-
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn launch_catalog_mame_with_source_and_bios(
     source: MameExecutableSource,

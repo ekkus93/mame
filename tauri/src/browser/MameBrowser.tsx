@@ -498,7 +498,6 @@ export function MameBrowser({
         if (result.canceled) {
           setExportState({ status: "idle" });
           return;
-
         }
         setExportState({
           status: "success",
