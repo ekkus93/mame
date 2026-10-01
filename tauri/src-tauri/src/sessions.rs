@@ -264,12 +264,7 @@ fn launch_mame_with_source_and_bios_policy(
     let settings = load_settings(&settings_path(&app)?)?;
     let effective_content_paths = effective_content_paths(&settings.content_paths);
     let audit_classification = if require_current_audit {
-        current_machine_audit_classification(
-            &app,
-            &source,
-            &machine,
-            &effective_content_paths,
-        )?
+        current_machine_audit_classification(&app, &source, &machine, &effective_content_paths)?
     } else {
         None
     };
@@ -494,8 +489,7 @@ pub(crate) fn launch_after_audit_gate<T>(
 }
 
 pub(crate) fn classify_early_exit_output(stdout: &str, stderr: &str) -> AppError {
-    let (code, message, content_failure) =
-        supervisor::classify_early_exit_output(stdout, stderr);
+    let (code, message, content_failure) = supervisor::classify_early_exit_output(stdout, stderr);
     AppError::new(code, message).with_details(serde_json::json!({
         "earlyExit": true,
         "contentFailure": content_failure
@@ -814,7 +808,10 @@ mod tests {
         let spawn = source
             .find("supervisor.launch_with_preferences")
             .expect("session spawn source");
-        assert!(gate < spawn, "catalog audit gate must run before session spawn");
+        assert!(
+            gate < spawn,
+            "catalog audit gate must run before session spawn"
+        );
     }
 
     fn option_path(paths: &[super::ProjectPathRequest], option: &str) -> PathBuf {

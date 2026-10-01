@@ -178,7 +178,9 @@ mod tests {
         };
         let effective = effective_content_paths(&configured);
 
-        let mut restore = fs::metadata(&root).expect("metadata for cleanup").permissions();
+        let mut restore = fs::metadata(&root)
+            .expect("metadata for cleanup")
+            .permissions();
         restore.set_mode(0o700);
         fs::set_permissions(&root, restore).expect("restore directory permissions");
 

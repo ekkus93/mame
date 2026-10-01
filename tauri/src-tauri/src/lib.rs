@@ -155,8 +155,7 @@ pub fn verify_reset_content_policy(
         })));
     }
 
-    let launch_paths =
-        sessions::append_effective_content_project_paths(Vec::new(), &effective)?;
+    let launch_paths = sessions::append_effective_content_project_paths(Vec::new(), &effective)?;
     let configured_rompath = launch_paths
         .iter()
         .find(|entry| entry.option == "rompath")

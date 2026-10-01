@@ -402,13 +402,8 @@ impl SessionSupervisor {
             &ready_observed,
             Duration::from_millis(CONTROL_READY_TIMEOUT_MS),
         ) {
-            let error = classify_pre_ready_failure(
-                &self.inner,
-                &session_id,
-                &child,
-                &capture_done,
-                error,
-            );
+            let error =
+                classify_pre_ready_failure(&self.inner, &session_id, &child, &capture_done, error);
             fail_control_launch(&self.inner, &session_id, &child, &error);
             return Err(error);
         }

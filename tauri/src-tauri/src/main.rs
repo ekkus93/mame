@@ -124,11 +124,7 @@ fn verify_reset_content_policy(args: &[OsString]) {
         }
     };
 
-    match mame_tauri_lib::verify_reset_content_policy(
-        &resource_dir,
-        &content_dir,
-        probe_machine,
-    ) {
+    match mame_tauri_lib::verify_reset_content_policy(&resource_dir, &content_dir, probe_machine) {
         Ok(report) => {
             println!(
                 "{}",

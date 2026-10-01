@@ -430,13 +430,10 @@ fn database_error(error: rusqlite::Error) -> AppError {
 mod tests {
     use std::io::Cursor;
 
-    use crate::mame::{
-        MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust,
-    };
+    use crate::mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust};
 
     use super::{
-        filter_predicate, like_pattern, CatalogRepository, MameUiMachineFilter,
-        MameUiMachineQuery,
+        filter_predicate, like_pattern, CatalogRepository, MameUiMachineFilter, MameUiMachineQuery,
     };
 
     const RESET_COUNT_FIXTURE: &str =
@@ -471,7 +468,9 @@ mod tests {
         let summary = import
             .import_listxml(Cursor::new(RESET_COUNT_FIXTURE.as_bytes()))
             .expect("import reset count fixture");
-        import.finish(summary, 200).expect("finish reset count fixture");
+        import
+            .finish(summary, 200)
+            .expect("finish reset count fixture");
         repository
     }
 
@@ -493,9 +492,15 @@ mod tests {
         assert!(all.items.iter().any(|item| item.short_name == "clonegood"));
         assert!(all.items.iter().any(|item| item.short_name == "biosroot"));
         assert!(all.items.iter().any(|item| item.short_name == "mechanical"));
-        assert!(all.items.iter().any(|item| item.short_name == "preliminary"));
+        assert!(all
+            .items
+            .iter()
+            .any(|item| item.short_name == "preliminary"));
         assert!(all.items.iter().any(|item| item.short_name == "chdgame"));
-        assert!(all.items.iter().any(|item| item.short_name == "nonrunnable"));
+        assert!(all
+            .items
+            .iter()
+            .any(|item| item.short_name == "nonrunnable"));
     }
 
     #[test]
