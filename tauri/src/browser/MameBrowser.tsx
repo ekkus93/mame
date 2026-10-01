@@ -433,9 +433,7 @@ export function MameBrowser({
 
   const page = loadState.status === "ready" ? loadState.page : null;
   const selectedAvailability: MachineAvailability =
-    selected && page
-      ? (page.availabilityByShortName[selected.shortName] ?? "unknown")
-      : "unknown";
+    selected && page ? (page.availabilityByShortName[selected.shortName] ?? "unknown") : "unknown";
   const catalogReady = catalogCanQuery(catalogState);
   const availabilityNotice = catalogReady ? machineAvailabilityNotice(page) : null;
   const range =
@@ -477,12 +475,7 @@ export function MameBrowser({
           setLaunchState({ status: "error", message: errorMessage(reason) });
         });
     },
-    [
-      launchState.status,
-      onSessionStarted,
-      pendingLaunchOverrides,
-      selectedAvailability,
-    ],
+    [launchState.status, onSessionStarted, pendingLaunchOverrides, selectedAvailability],
   );
 
   const exportDisplayedList = useCallback(() => {
