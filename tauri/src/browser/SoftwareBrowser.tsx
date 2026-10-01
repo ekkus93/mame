@@ -540,7 +540,6 @@ export function SoftwareBrowser({
           )}
         </section>
 
-
         <aside className="mame-right-panel" aria-label="Selected software context">
           <div className="mame-right-tabs" role="tablist" aria-label="Software detail view">
             <button
