@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** Implementation complete through RESET-009 — final RESET-010 reconciliation is in progress; the only remaining closure item is final promoted-master CI for the reconciliation head.  
+**Status:** Complete — RESET-000 through RESET-010 are implemented, qualified, reconciled, and closed on `master`.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -27,6 +27,8 @@ This TODO exists because the project drifted from the intended product goal: a T
 **RESET-008/RESET-009 evidence, 2026-09-30:** the real Linux package smoke now verifies bundled/qualified runtime resolution without external configuration, empty-path unaudited gating, configured `rompath` propagation, unavailable-content no-spawn gating, actionable missing-content early-exit classification, and external-override/reset behavior. Package-bearing head `02dea60ab04484fd8dc7722390bcabe9ee346ad0` passed real-runtime package run `36803486807`. Final implementation head `d5a6e53edd2032242e818ef8fa875e481915ef8d` passed Tauri project run `36809751237`, Linux packaging `36809751262`, macOS packaging `36809751232`, Windows packaging `36809751256`, and Tauri security `36809751247`; real-runtime run `36809751229` was still running when this reconciliation was written. README guidance documents bundled runtime defaults, advanced external override, ordered ROM/software/CHD configuration, availability/stale semantics, catalog-vs-local-content distinction, optional artwork, and native unfiltered-count semantics.
 
 **Final product-goal evidence:** the packaged Tauri application resolves its package-owned MAME runtime by default, keeps external runtime selection advanced-only, uses one effective content-path contract across audit/launch/diagnostics, gates normal Start on current audited local availability, converts ordinary missing-ROM startup failures into actionable product errors, and aligns the primary browser/count semantics with the documented native-MAME baseline.
+
+**RESET-010 closure evidence, 2026-09-30:** reconciliation head `002ff848f580e968da659f26f9d3e98b0a258541` was promoted on `master` and passed exact-head Tauri project run `36810394430` and Build documentation run `36810394463`. This is the final promoted-master CI evidence for the reset ledger. The package-bearing reset content-policy evidence remains head `02dea60ab04484fd8dc7722390bcabe9ee346ad0` / real-runtime package run `36803486807`, while final implementation head `d5a6e53edd2032242e818ef8fa875e481915ef8d` passed the full standard implementation qualification set recorded below.
 
 ---
 
@@ -193,7 +195,7 @@ This TODO exists because the project drifted from the intended product goal: a T
 - [x] Record exact workflow run IDs and conclusions.
 - [x] Record package/integration evidence for bundled runtime, no-ROM first run, configured ROM path, Start gating, missing-ROM diagnostics, and UI parity.
 - [x] Update older BMR/RPL docs with final cross-references and status.
-- [ ] Verify final promoted `master` CI.
+- [x] Verify final promoted `master` CI.
 - [x] Add a final evidence paragraph explaining how the project now satisfies the original product goal.
 
 **Completion rule:** this reset is complete only when the packaged Tauri app is self-contained by default, the primary UI is native-MAME-aligned, ROM/content paths have one source of truth, Start does not blindly launch unknown/unavailable content, missing-ROM errors are actionable, and native-vs-Tauri count semantics are fixed or explicitly explained with tests.
@@ -219,4 +221,5 @@ This TODO exists because the project drifted from the intended product goal: a T
 - RESET-003 semantic-label/action-de-emphasis head: `135315f998d87e12fd9eadbb9ea70a59117a48e3`; exact-head `Tauri project`, Linux packaging, macOS packaging, Windows packaging, and security workflows passed as recorded above. Linux real-runtime package remained in progress at the most recent observation.
 - Final implementation head: `d5a6e53edd2032242e818ef8fa875e481915ef8d`; exact-head Tauri project `36809751237`, Linux packaging `36809751262`, macOS packaging `36809751232`, Windows packaging `36809751256`, and security `36809751247` passed. Real-runtime package run `36809751229` remained in progress at reconciliation time.
 - Package-level reset content-policy evidence: head `02dea60ab04484fd8dc7722390bcabe9ee346ad0`, Tauri Linux real runtime package run `36803486807` passed.
+- Final reconciliation qualification head: `002ff848f580e968da659f26f9d3e98b0a258541`; exact-head Tauri project `36810394430` and Build documentation `36810394463` passed.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.
