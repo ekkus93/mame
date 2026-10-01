@@ -505,7 +505,6 @@ impl SessionSupervisor {
 
         let mut status = if soft_stop_requested {
             wait_for_child(&child, SOFT_STOP_TIMEOUT).map_err(|error| {
-
                 AppError::new(
                     "MAME_STOP_WAIT_FAILED",
                     "The MAME process could not be observed during shutdown.",

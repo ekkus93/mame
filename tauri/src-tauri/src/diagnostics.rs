@@ -498,7 +498,6 @@ fn load_recent_entries(path: &Path) -> VecDeque<DiagnosticLogEntry> {
         return VecDeque::new();
     };
     let mut entries = contents
-
         .lines()
         .rev()
         .filter_map(|line| serde_json::from_str::<DiagnosticLogEntry>(line).ok())
@@ -567,7 +566,6 @@ mod tests {
         mame::{MameExecutableIdentity, MameExecutableSourceKind, MameExecutableTrust},
         storage::CATALOG_SCHEMA_VERSION,
     };
-
 
     #[test]
     fn content_path_diagnostics_use_effective_contract_without_exposing_paths() {

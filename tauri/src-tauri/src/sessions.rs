@@ -515,12 +515,10 @@ pub(crate) fn append_effective_content_project_paths(
     project_paths.retain(|project_path| project_path.option != "rompath");
     project_paths.push(ProjectPathRequest {
         option: "rompath".to_owned(),
-
         path: media_path.to_string_lossy().into_owned(),
     });
     Ok(project_paths)
 }
-
 
 fn append_bundled_runtime_project_paths(
     app: &AppHandle,

@@ -618,7 +618,6 @@ fn request_soft_stop(pid: u32) -> Result<(), String> {
 
 #[cfg(not(any(unix, windows)))]
 fn request_soft_stop(_pid: u32) -> Result<(), String> {
-
     Err("soft process termination is not implemented for this platform".to_owned())
 }
 
