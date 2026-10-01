@@ -477,7 +477,12 @@ export function MameBrowser({
           setLaunchState({ status: "error", message: errorMessage(reason) });
         });
     },
-    [launchState.status, onSessionStarted, pendingLaunchOverrides, selectedAvailability],
+    [
+      launchState.status,
+      onSessionStarted,
+      pendingLaunchOverrides,
+      selectedAvailability,
+    ],
   );
 
   const exportDisplayedList = useCallback(() => {
