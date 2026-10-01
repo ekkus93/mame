@@ -91,8 +91,10 @@ describe("MachineRightPanel primary tabs", () => {
   it("explains missing content without presenting artwork as the blocker", () => {
     const html = render("images", "missing");
     expect(html).toContain("Missing content");
-    expect(html).toContain("Required ROM/content is missing or incorrect");
-    expect(html).toContain("Artwork/media is optional");
+    expect(html).toContain("Required ROM");
+    expect(html).toContain("missing or incorrect");
+    expect(html).toContain("Artwork");
+    expect(html).toContain("optional and not required to launch");
   });
 
   it("reports audited content as ready to start", () => {
