@@ -803,7 +803,7 @@ mod tests {
     fn catalog_gate_is_evaluated_before_session_spawn_in_source() {
         let source = include_str!("sessions.rs");
         let gate = source
-            .find("launch_after_audit_gate(&machine, classification")
+            .find("launch_after_audit_gate(&machine, audit_classification")
             .expect("catalog audit gate source");
         let spawn = source
             .find("supervisor.launch_with_preferences")
