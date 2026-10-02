@@ -844,6 +844,18 @@ export function MameBrowser({
         </div>
       )}
 
+      {filter === "available" && loadState.status === "ready" && page?.total === 0 && (
+        <div className="mame-browser-banner" role="status">
+          No games have a current successful ROM audit. Check your ROM folders, then run an audit.
+          <button type="button" onClick={onConfigureOptions}>
+            Configure ROM folders
+          </button>
+          <button type="button" onClick={onOpenAudit}>
+            Audit ROMs
+          </button>
+        </div>
+      )}
+
       <div className={`mame-browser-grid ${showNarrowDetails ? "show-details" : ""}`}>
         <MachineFilterPanel
           active={filter}

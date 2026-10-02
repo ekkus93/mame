@@ -207,6 +207,9 @@ assert_runtime_tree() {
   assert_real_provenance "$runtime_root/runtime-provenance.txt"
   assert_real_executable_type "$runtime_bin"
   "$validator" "$runtime_bin"
+  if [[ "${MAME_TAURI_REQUIRE_ARCADE_DRIVERS:-}" == "1" ]]; then
+    "$repo_root/scripts/tauri/validate-release-driver-coverage.sh" "$runtime_bin"
+  fi
   assert_no_missing_shared_libraries "$runtime_bin" "$smoke_tmp/ldd.log"
 }
 

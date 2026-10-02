@@ -37,9 +37,16 @@ def publish(repo, run_id):
             or run["status"] != "completed" or run["conclusion"] != "success"
             or run["head_repository"]["full_name"] != repo):
         raise ValueError("Run is not a successful trusted real-runtime package build")
-    tag_sha = subprocess.check_output(
-        ["git", "rev-parse", f"refs/tags/{tag}^{{commit}}"], text=True
-    ).strip()
+    tag_object = api(f"repos/{repo}/git/ref/tags/{tag}")["object"]
+    for _ in range(10):
+        if tag_object["type"] == "commit":
+            break
+        if tag_object["type"] != "tag":
+            raise ValueError("Version tag does not resolve to a commit")
+        tag_object = api(f"repos/{repo}/git/tags/{tag_object['sha']}")["object"]
+    else:
+        raise ValueError("Version tag nesting exceeded the supported bound")
+    tag_sha = tag_object["sha"]
     if tag_sha != run["head_sha"]:
         raise ValueError("Package run SHA differs from the existing version tag")
     artifacts = api(f"repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100")["artifacts"]

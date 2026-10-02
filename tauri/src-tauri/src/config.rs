@@ -317,7 +317,11 @@ pub fn settings_path<R: Runtime>(app: &tauri::AppHandle<R>) -> AppResult<PathBuf
 pub fn load_settings(path: &Path) -> AppResult<SettingsV2> {
     let contents = match fs::read_to_string(path) {
         Ok(contents) => contents,
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(SettingsV2::default()),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            let variable = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+            let home = std::env::var_os(variable);
+            return Ok(initial_settings(home.as_deref().map(Path::new)));
+        }
         Err(error) => {
             return Err(AppError::new(
                 "CONFIG_READ_FAILED",
@@ -328,6 +332,21 @@ pub fn load_settings(path: &Path) -> AppResult<SettingsV2> {
     };
 
     parse_settings_json(&contents)
+}
+
+// Resolve first-run defaults through settings, so audit, launch and the settings UI
+// all use the same paths. Existing settings (including explicitly empty paths) win.
+fn initial_settings(home: Option<&Path>) -> SettingsV2 {
+    let mut settings = SettingsV2::default();
+    if let Some(home) = home.filter(|path| !path.as_os_str().is_empty()) {
+        for relative in ["mame/roms", ".mame/roms"] {
+            let path = PlatformPath::new(home.join(relative));
+            if validate_content_path(&path).status == PathValidationStatus::Accessible {
+                settings.content_paths.rom_paths.push(path);
+            }
+        }
+    }
+    settings
 }
 
 pub fn parse_settings_json(contents: &str) -> AppResult<SettingsV2> {
@@ -603,6 +622,34 @@ mod tests {
         let error = parse_settings_json(r#"{"schemaVersion":999}"#)
             .expect_err("future schema must not be guessed");
         assert_eq!(error.code, "CONFIG_SCHEMA_UNSUPPORTED");
+    }
+
+    #[test]
+    fn first_run_discovers_accessible_home_roms_without_changing_saved_paths() {
+        let home = unique_temp_path();
+        let roms = home.join("mame/roms");
+        let hidden_roms = home.join(".mame/roms");
+        fs::create_dir_all(&roms).expect("create home ROM directory");
+        fs::create_dir_all(hidden_roms.parent().unwrap()).expect("create hidden MAME directory");
+        fs::write(&hidden_roms, b"not a directory").expect("create invalid candidate");
+        let discovered = super::initial_settings(Some(&home));
+        assert_eq!(
+            discovered.content_paths.rom_paths,
+            vec![PlatformPath::new(&roms)]
+        );
+        assert!(super::initial_settings(None)
+            .content_paths
+            .rom_paths
+            .is_empty());
+        let saved = home.join("settings.json");
+        fs::write(&saved, r#"{"schemaVersion":2,"mameExecutable":null,"contentPaths":{"romPaths":[],"softwarePaths":[],"chdPaths":[]}}"#)
+            .expect("save explicitly empty content paths");
+        assert!(load_settings(&saved)
+            .expect("load saved settings")
+            .content_paths
+            .rom_paths
+            .is_empty());
+        fs::remove_dir_all(home).expect("remove temporary home");
     }
 
     fn unique_temp_path() -> PathBuf {

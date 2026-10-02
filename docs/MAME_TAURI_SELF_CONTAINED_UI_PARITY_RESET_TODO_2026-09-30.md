@@ -1,7 +1,7 @@
 # MAME Tauri Self-Contained UI Parity Reset TODO
 
 **Date:** 2026-09-30  
-**Status:** Complete — RESET-000 through RESET-010 are implemented, qualified, reconciled, and closed on `master`.  
+**Status:** Historical RESET-000 through RESET-010 closure is superseded by the reopened installed-app corrections below; fresh qualification is pending.  
 **Spec:** `docs/MAME_TAURI_SELF_CONTAINED_UI_PARITY_RESET_SPEC_2026-09-30.md`  
 **Execution rule:** work directly on `master` unless explicitly instructed otherwise.  
 **Supersedes for priority:** any existing TODO item that conflicts with self-contained packaged operation, native-MAME UI parity, single content-path truth, Start gating, or actionable missing-ROM diagnostics.
@@ -223,3 +223,13 @@ This TODO exists because the project drifted from the intended product goal: a T
 - Package-level reset content-policy evidence: head `02dea60ab04484fd8dc7722390bcabe9ee346ad0`, Tauri Linux real runtime package run `36803486807` passed.
 - Final reconciliation qualification head: `002ff848f580e968da659f26f9d3e98b0a258541`; exact-head Tauri project `36810394430` and Build documentation `36810394463` passed.
 - The RPL work had already started audit/launch path convergence, but this reset is broader and product-focused: self-contained packaged behavior, native UI parity, Start gating, missing-ROM diagnostics, and list/filter parity.
+
+## Reopened installed-app corrections — 2026-10-02
+
+The user's v0.1.0 installation exposed expiring CI-only packages, a tiny example runtime lacking ordinary arcade drivers, and no first-run discovery of `~/mame/roms`. See `docs/MAME_TAURI_RELEASE_AND_ROM_DISCOVERY_FIX_2026-10-02.md` for root causes and the correction contract. Earlier closure evidence does not qualify these corrections.
+
+- [ ] Promote original tagged v0.1.0 packages to persistent GitHub Release assets and verify both formats and checksums.
+- [ ] Qualify full-runtime driver coverage in new Debian/AppImage packages; tiny/example builds must not be treated as general arcade releases.
+- [ ] Qualify home ROM-directory discovery, saved-path precedence, and actionable empty Available Locally guidance on the corrected source.
+- [ ] Record fresh exact-head CI evidence and reconcile these corrections before restoring completed status.
+

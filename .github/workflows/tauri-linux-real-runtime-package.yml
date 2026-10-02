@@ -23,9 +23,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MAME_TAURI_MAME_BUILD_JOBS: "1"
-      MAME_TAURI_MAME_SUBTARGET: "tiny"
-      MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "gridlee"
+      MAME_TAURI_MAME_BUILD_JOBS: "2"
+      MAME_TAURI_MAME_SUBTARGET: "mame"
+      MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "pacman"
+      MAME_TAURI_REQUIRE_ARCADE_DRIVERS: "1"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -86,8 +87,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jobs=${MAME_TAURI_MAME_BUILD_JOBS:-1}
-          subtarget=${MAME_TAURI_MAME_SUBTARGET:-tiny}
+          jobs=${MAME_TAURI_MAME_BUILD_JOBS:-2}
+          subtarget=${MAME_TAURI_MAME_SUBTARGET:-mame}
           echo "Building real MAME runtime with SUBTARGET=$subtarget jobs=$jobs"
 
           runtime_candidates=(
@@ -190,6 +191,7 @@ jobs:
           trap - EXIT
           cleanup_build
           ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
+          ./scripts/tauri/validate-release-driver-coverage.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
       - name: Stage release-qualified bundled runtime
