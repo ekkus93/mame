@@ -2,6 +2,10 @@ name: Tauri Linux real runtime package
 
 on:
   push:
+    branches:
+      - "**"
+    tags:
+      - "**"
     paths:
       - ".github/workflows/tauri-linux-real-runtime-package.yml"
       - "tauri/**"
@@ -255,16 +259,16 @@ jobs:
           ./scripts/tauri/test-real-linux-package.sh "$deb" "$appimage"
           ./scripts/tauri/test-real-linux-package-metadata-bootstrap.sh "$deb"
 
-      - name: Upload real runtime package artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: real-bundled-mame-linux-packages
-          path: |
-            tauri/src-tauri/target/release/bundle/deb/*.deb
-            tauri/src-tauri/target/release/bundle/appimage/*.AppImage
-            tauri/src-tauri/bundle-resources/mame-runtime/runtime-provenance.txt
-          if-no-files-found: error
-
       - name: Verify lockfiles remain unchanged
         working-directory: tauri
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+
+      - name: Upload tagged Debian package and AppImage
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v6
+        with:
+          name: real-bundled-mame-linux-packages-${{ github.ref_name }}
+          path: |
+            tauri/src-tauri/target/release/bundle/deb/*.deb
+            tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
