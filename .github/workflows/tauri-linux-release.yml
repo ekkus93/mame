@@ -1,0 +1,47 @@
+name: Publish Tauri Linux release
+
+on:
+  workflow_run:
+    workflows: ["Tauri Linux real runtime package"]
+    types: [completed]
+  push:
+    branches: [master]
+    paths: [".github/workflows/tauri-linux-release.yml"]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful tagged real-runtime package run to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauri-linux-release-publishing
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      # Always execute the publisher from trusted master, never from the downloaded package.
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Publish qualified tagged binaries as persistent release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PACKAGE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id || '37046484748' }}
+        run: python3 scripts/tauri/publish-linux-release.py
