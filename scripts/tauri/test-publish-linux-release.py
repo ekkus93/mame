@@ -54,7 +54,7 @@ class PublisherTests(unittest.TestCase):
                 root = Path(args[args.index("--dir") + 1])
                 (root / "mame.deb").write_bytes(b"deb")
                 if case != "missing_package":
-                    (root / "mame.AppImage").write_bytes(b"appimage")
+                    (root / "MAME Tauri Frontend_0.1.0_amd64.AppImage").write_bytes(b"appimage")
             return ""
 
         with patch.object(publisher, "api", api), patch.object(publisher, "gh", gh):

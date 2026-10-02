@@ -62,7 +62,7 @@ def publish(repo, run_id):
         if (sum(p.suffix == ".deb" for p in packages) != 1
                 or sum(p.suffix == ".AppImage" for p in packages) != 1):
             raise ValueError("Artifact must contain one Debian package and one AppImage")
-        if any(not re.fullmatch(r"[A-Za-z0-9_.+-]+", p.name) for p in packages):
+        if any(not re.fullmatch(r"[A-Za-z0-9_.+ -]+", p.name) for p in packages):
             raise ValueError("Package filenames contain unsupported characters")
         sums = root / "SHA256SUMS"
         sums.write_text("".join(

@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".gitattributes"
+      - ".gitignore"
       - ".github/workflows/tauri-project.yml"
       - ".github/workflows/tauri-linux-real-runtime-qualification.yml"
       - "tauri/**"
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
       - ".gitattributes"
+      - ".gitignore"
       - ".github/workflows/tauri-project.yml"
       - ".github/workflows/tauri-linux-real-runtime-qualification.yml"
       - "tauri/**"
@@ -37,6 +39,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /.gitignore
+            /.gitattributes
             /COPYING
             /3rdparty/README.md
             /docs/legal/
@@ -262,6 +266,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /.gitignore
+            /.gitattributes
             /tauri/
             /scripts/tauri/
             /docs/MAME_TAURI_MAME_UI_REPRODUCTION_SPEC_2026-09-14.md
@@ -325,3 +331,4 @@ jobs:
 
       - name: Verify lockfiles remain unchanged
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+
