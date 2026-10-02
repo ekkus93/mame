@@ -6,7 +6,10 @@ on:
     types: [completed]
   push:
     branches: [master]
-    paths: [".github/workflows/tauri-linux-release.yml"]
+    paths:
+      - ".github/workflows/tauri-linux-release.yml"
+      - "scripts/tauri/publish-linux-release.py"
+      - "scripts/tauri/test-publish-linux-release.py"
   workflow_dispatch:
     inputs:
       run_id:
