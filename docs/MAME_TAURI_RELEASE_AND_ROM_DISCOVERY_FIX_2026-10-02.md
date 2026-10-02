@@ -48,3 +48,25 @@ does not change an already installed executable or the existing `v0.1.0` tag.
 - Backend regression covers first-run discovery, invalid candidates, and saved
   explicitly empty paths. Exact-head frontend/backend and package CI are required
   before declaring the installed-app correction qualified.
+
+## Publication and source-check evidence
+
+The original v0.1.0 release assets were published successfully by run
+`37071196810` at source `36dbaaad936682b1cc6f74b9fb142fc988ff1355`, including
+both package formats and SHA256SUMS. They are release assets, independent of
+Actions artifact retention. This preserves the original tiny-runtime build.
+
+At source `121880f1becc35ca70678bdcd813b50afa84f92f`, run `37071111113` passed
+frontend formatting, lint, typechecking, tests and production build; Rust
+formatting, tests and clippy; and locked dependency verification. Its post-job
+cache upload was still in progress when these results were observed. The
+preexisting sparse-checkout Cargo failure was resolved by retaining the root
+ignore and attributes files in the checkout.
+
+Version 0.1.1 updates the application manifests and root lockfile package
+versions without changing dependencies. A one-time release workflow waits for
+successful Tauri project checks on the current master commit, refuses to move
+an existing tag, and explicitly dispatches full-runtime package qualification
+on v0.1.1. The existing publisher attaches binaries only after qualification
+passes. Full MAME compilation and installed-package checks remain pending;
+source-test success alone is not a completed executable release.

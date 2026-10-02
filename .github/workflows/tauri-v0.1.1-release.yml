@@ -1,0 +1,76 @@
+name: Start corrected v0.1.1 Linux release
+
+on:
+  workflow_run:
+    workflows: ["Tauri project"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauri-v0.1.1-release
+  cancel-in-progress: false
+
+jobs:
+  start-release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /tauri/package.json
+            /tauri/src-tauri/Cargo.toml
+            /tauri/src-tauri/tauri.conf.json
+      - name: Tag tested source and start corrected package qualification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          checked_out=$(git rev-parse HEAD)
+          current=$(gh api "repos/$GH_REPO/git/ref/heads/master" --jq '.object.sha')
+          if [[ "$TESTED_SHA" != "$checked_out" || "$TESTED_SHA" != "$current" ]]; then
+            echo 'Master advanced; wait for quality checks on the new source.'
+            exit 0
+          fi
+          eligible=$(python3 - <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+          package = json.loads(pathlib.Path('tauri/package.json').read_text())
+          config = json.loads(pathlib.Path('tauri/src-tauri/tauri.conf.json').read_text())
+          cargo = pathlib.Path('tauri/src-tauri/Cargo.toml').read_text()
+          versions = [package['version'], config['version'], re.search(r'^version = "([^"]+)"', cargo, re.M).group(1)]
+          if len(set(versions)) != 1:
+              sys.exit('Release manifests have inconsistent versions.')
+          print('ready' if versions[0] == '0.1.1' else 'skip')
+          PY
+          )
+          [[ "$eligible" == ready ]] || { echo 'The one-time v0.1.1 release no longer applies.'; exit 0; }
+          # Inspect all matching refs so an API error cannot be mistaken for a missing tag.
+          refs=$(gh api "repos/$GH_REPO/git/matching-refs/tags/v0.1.1")
+          existing=$(printf '%s' "$refs" | python3 -c 'import json,sys; refs=json.load(sys.stdin); matches=[r for r in refs if r["ref"]=="refs/tags/v0.1.1"]; print(matches[0]["object"]["sha"] if matches else "")')
+          if [[ -n "$existing" ]]; then
+            [[ "$existing" == "$TESTED_SHA" ]] || { echo 'Existing v0.1.1 tag differs; refusing to move it.' >&2; exit 1; }
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" -f ref=refs/tags/v0.1.1 -f sha="$TESTED_SHA"
+          fi
+          # Tags created with GITHUB_TOKEN do not trigger push workflows; dispatch explicitly.
+          gh workflow run tauri-linux-real-runtime-package.yml --repo "$GH_REPO" --ref v0.1.1
+          echo 'v0.1.1 package qualification started. Publication occurs only after it passes.'

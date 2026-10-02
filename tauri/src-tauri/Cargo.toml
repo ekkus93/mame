@@ -1,6 +1,6 @@
 [package]
 name = "mame-tauri"
-version = "0.1.0"
+version = "0.1.1"
 description = "Modern Tauri application shell for MAME"
 authors = ["Phillip Chin"]
 license = "GPL-2.0-only"

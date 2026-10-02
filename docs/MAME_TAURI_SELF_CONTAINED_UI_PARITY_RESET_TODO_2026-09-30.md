@@ -228,7 +228,7 @@ This TODO exists because the project drifted from the intended product goal: a T
 
 The user's v0.1.0 installation exposed expiring CI-only packages, a tiny example runtime lacking ordinary arcade drivers, and no first-run discovery of `~/mame/roms`. See `docs/MAME_TAURI_RELEASE_AND_ROM_DISCOVERY_FIX_2026-10-02.md` for root causes and the correction contract. Earlier closure evidence does not qualify these corrections.
 
-- [ ] Promote original tagged v0.1.0 packages to persistent GitHub Release assets and verify both formats and checksums.
+- [x] Promote original tagged v0.1.0 packages to persistent GitHub Release assets and verify both formats and checksums: publishing run `37071196810` passed on `36dbaaad936682b1cc6f74b9fb142fc988ff1355`.
 - [ ] Qualify full-runtime driver coverage in new Debian/AppImage packages; tiny/example builds must not be treated as general arcade releases.
 - [ ] Qualify home ROM-directory discovery, saved-path precedence, and actionable empty Available Locally guidance on the corrected source.
 - [ ] Record fresh exact-head CI evidence and reconcile these corrections before restoring completed status.
