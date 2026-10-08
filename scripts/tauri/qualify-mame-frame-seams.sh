@@ -143,8 +143,7 @@ MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SEAM_MACHINE="$machine" 
 status=$?
 set -e
 [[ $status -eq 0 ]] || { echo "MAME frame-seam qualification failed with status $status" >&2; tail -n 120 "$output.stderr.log" >&2 || true; exit $status; }
-grep -q '^status=ok
- "$output" || { cat "$output" >&2; exit 1; }
+grep -q '^status=ok$' "$output" || { cat "$output" >&2; exit 1; }
 {
   printf 'runtime_path=%s\n' "$runtime"
   printf 'runtime_sha256=%s\n' "$(sha256sum "$runtime" | awk '{print $1}')"
