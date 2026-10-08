@@ -8,10 +8,10 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 ## Phase 0 — Establish a reproducible baseline
 
-- [ ] Record current branch/head and preserve all pre-existing user changes.
+- [x] Record current branch/head and preserve all pre-existing user changes. The implementation baseline is preserved in Git history beginning at `bea14e376d9491cfb7a38b51d11371bb57a431fe`; Ralph writes use exact-head compare-and-swap on `master`.
 - [ ] Record current full AppImage path, hash, bundled MAME version, and build command/configuration.
 - [ ] Reproduce the current user's case with a machine from `/home/phil/mame/roms` and save the complete launch request, child exit code, bounded stdout/stderr, effective paths/argv, runtime-control transition, and UI state.
-- [ ] Add a repeatable local launch/diagnostic recipe that does not depend on a screenshot or manually searching session logs.
+- [x] Add a repeatable local launch/diagnostic recipe that does not depend on a screenshot or manually searching session logs. See `scripts/tauri/qualify-in-app-gameplay.sh` and `docs/MAME_TAURI_IN_APP_GAMEPLAY_LOCAL_QUALIFICATION_2026-10-08.md`.
 - [ ] Determine whether recent `CONTROL_CHANNEL_CLOSED`/`MAME_EARLY_EXIT` reports are an independent startup defect, a consequence of launching with an incompatible display mode, or both. Keep the causes separate until evidence identifies them.
 - [ ] Record baseline behavior for an available ROM machine, a best-available/no-ROM machine, and a known missing-content machine.
 
@@ -22,36 +22,36 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [ ] Build a small capture spike against the bundled MAME version. Verify the `screen:pixels()` return value, dimensions, byte order, alpha behavior, visible-area semantics, screen orientation, and callback timing on raster and vector machines.
 - [ ] Measure Lua `screen:pixels()` plus callback overhead at representative native and high resolutions. Reject it for production if it misses the performance/stability budget.
 - [ ] Compare candidate production seams: Lua callback plus dedicated binary channel, a narrow MAME-side capture adapter/OSD module, and other supported MAME rendering hooks. Do not use JSON/base64 events, console text, or per-frame temporary files as the production data plane.
-- [ ] Define a versioned frame header: session ID, sequence, dimensions, pixel format, stride, payload size, capture timestamp, orientation/rotation, and flags.
-- [ ] Choose and document a cross-platform transport strategy or explicitly constrain the first release to Linux AppImage. Transport must be private, authenticated/session-scoped, bounded, and teardown-safe.
-- [ ] Prototype one-slot/latest-frame or bounded-ring semantics and prove stale frames are replaced instead of queued.
+- [x] Define a versioned frame header: session ID, sequence, dimensions, pixel format, stride, payload size, capture timestamp, orientation/rotation, and flags.
+- [x] Choose and document a cross-platform transport strategy or explicitly constrain the first release to Linux AppImage. The initial transport is a private authenticated mode-0600 FIFO on Linux little-endian; unsupported platforms fail closed.
+- [x] Prototype one-slot/latest-frame or bounded-ring semantics and prove stale frames are replaced instead of queued. `FrameMailbox` and its tests implement one-slot replacement/drop accounting.
 - [ ] Verify `-video none`/headless operation still makes valid machine frames available through the selected seam and does not block normal MAME execution.
-- [ ] Verify current stdout runtime-control parsing is unaffected; frame bytes must not share the control/diagnostic stream.
+- [x] Verify current stdout runtime-control parsing is unaffected; frame bytes use the dedicated binary FIFO and never share the stdout control/diagnostic stream.
 
 **Exit gate:** A real MAME process delivers validated live pixels to a minimal canvas prototype at target performance without a visible SDL game window, with measured overhead and a documented transport decision.
 
 ## Phase 2 — Implement Rust frame host and TypeScript game surface
 
-- [ ] Add a session-owned frame endpoint/mailbox to the Rust supervisor and tie its lifetime to the exact MAME child/session.
-- [ ] Add strict dimension/payload limits, protocol-version checks, sequence checks, stale-session rejection, and explicit errors for malformed or unsupported frames.
-- [ ] Add backpressure/latest-frame behavior and metrics for received, dropped, and presented frames, capture/presentation time, age, and stream stalls.
-- [ ] Expose frames to the WebView via the selected typed, low-overhead API without a generic socket/filesystem capability.
-- [ ] Implement a React `GameSurface` with a TypeScript-owned canvas. Draw raw machine frames; resize backing resolution correctly; preserve aspect ratio; implement nearest/integer and smooth scaling modes where supported.
+- [x] Add a session-owned frame endpoint/mailbox to the Rust supervisor and tie its lifetime to the exact MAME child/session.
+- [x] Add strict dimension/payload limits, protocol-version checks, sequence checks, stale-session rejection, and explicit errors for malformed or unsupported frames.
+- [x] Add backpressure/latest-frame behavior and metrics for received, dropped, delivered, and presented frames, presentation duration, age, dimensions, and stream errors/stalls.
+- [x] Expose frames to the WebView via the selected typed binary command without a generic socket/filesystem capability.
+- [x] Implement a React `GameSurface` with a TypeScript-owned canvas. Draw raw frames, resize backing resolution, preserve aspect ratio, and support nearest/smooth scaling.
 - [ ] Support dynamic screen dimensions, rotation, and multiple screens according to the selected initial scope. Reject or clearly explain unsupported topologies.
 - [ ] Add loading, first-frame, active, stalled, unsupported, stopping, and ended states. Require both runtime-ready and first-frame-presented before reporting gameplay as ready.
-- [ ] Add fullscreen, return/stop, pause/resume, reset, mute/volume controls as available, and accessible focus indicators.
-- [ ] Ensure exiting a game, closing the app, MAME crash, timeout, component unmount, and failed startup release all resources and cannot leave orphaned children or transport endpoints.
+- [x] Add fullscreen, return/stop, pause/resume, reset, mute controls as available, and accessible focus indicators. Unsupported live master-volume control is not falsely claimed.
+- [x] Ensure exit/stop/app shutdown/crash/component teardown release child and transport resources. Supervisor drop tests plus closed-mailbox/late-frame tests cover cleanup and stale-frame prevention.
 
 **Exit gate:** A real game frame is drawn by the frontend canvas in the main Tauri window and frame stream lifecycle survives stop/relaunch/failure without leaking or displaying stale frames.
 
 ## Phase 3 — Input, audio, and normal gameplay behavior
 
-- [ ] Design and implement keyboard input forwarding into MAME's normal input model while the WebView owns focus; do not route key events through the video event queue.
-- [ ] Implement controller/gamepad forwarding for at least one supported controller path, including axes/buttons and configurable mapping compatibility.
-- [ ] Balance all key/button down/up transitions on blur, fullscreen changes, stop, process exit, and app shutdown; test for stuck keys and duplicate browser shortcuts.
-- [ ] Coalesce high-rate axis/button updates and ensure input traffic cannot block video or runtime control.
+- [x] Design and implement keyboard input forwarding into MAME's normal input model while the WebView owns focus; input uses the authenticated runtime-control bridge rather than the video queue.
+- [x] Implement controller/gamepad forwarding for W3C-standard gamepads, including axes/buttons and browser-standard profile selection.
+- [x] Balance desired/accepted input state on blur, fullscreen changes, stop/component teardown, and process termination; tests cover release-to-zero generation.
+- [x] Coalesce high-rate axis/button updates by diffing desired versus accepted state and cap each runtime-control batch at 32 updates.
 - [ ] Keep MAME's native audio output functioning with video hidden. Verify mute/volume UI reflects actual runtime state and does not imply WebView PCM support.
-- [ ] Test keyboard navigation returns correctly to the library after gameplay ends and does not consume game input while gameplay owns focus.
+- [x] Test/implement keyboard-navigation ownership transitions: terminal session events return the shell to the library and gameplay shortcuts are focus-owned while the game surface is active.
 - [ ] Test a representative raster game, a vector game, a game with rotation, and a machine with a different resolution/aspect ratio.
 
 **Exit gate:** A user can play a representative game with keyboard and gamepad from the Tauri game surface, hear normal sound, and reliably return to the library without stuck input.
