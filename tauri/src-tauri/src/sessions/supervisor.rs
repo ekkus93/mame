@@ -12,6 +12,8 @@ use std::{
 
 use serde::Serialize;
 
+use super::frame::{FrameMailbox, FrameTransport, GameFrame};
+
 use super::control::{
     control_state, set_control_state, ControlBootstrap, ControlChannel, ControlChannelState,
     ControlStdoutParser, ParserEvent, SharedControlState, CONTROL_READY_TIMEOUT_MS,
@@ -143,6 +145,8 @@ struct ManagedSession {
     control: Option<ControlChannel>,
     diagnostics: SharedDiagnostics,
     event_sink: EventSink,
+    frames: FrameMailbox,
+    frame_transport: Option<FrameTransport>,
 }
 
 type SharedDiagnostics = Arc<Mutex<SessionDiagnostics>>;
@@ -250,6 +254,8 @@ impl SessionSupervisor {
         let session_id = new_session_id(created_at_epoch_ms);
         let control_bootstrap = ControlBootstrap::create(&session_id)?;
         let frame_token = control_bootstrap.frame_token().to_owned();
+        let frame_mailbox = FrameMailbox::new(session_id.clone());
+        let frame_transport = FrameTransport::create()?;
         let mut argv = build_launch_argv_with_preferences(&target, &launch_preferences)?.into_vec();
         control_bootstrap.append_launch_arguments(&mut argv);
         let diagnostics = Arc::new(Mutex::new(SessionDiagnostics::default()));
@@ -282,6 +288,17 @@ impl SessionSupervisor {
         };
         transition(&mut snapshot, SessionState::Starting)?;
 
+        let mut command = Command::new(&executable_path);
+        command
+            .args(&argv)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        if let Some(transport) = &frame_transport {
+            transport.configure_command(&mut command)?;
+            transport.start_reader(session_id.clone(), frame_mailbox.clone());
+        }
+
         {
             let mut inner = recover_lock(&self.inner);
             inner.current = Some(ManagedSession {
@@ -290,15 +307,10 @@ impl SessionSupervisor {
                 control: None,
                 diagnostics: diagnostics.clone(),
                 event_sink: event_sink.clone(),
+                frames: frame_mailbox,
+                frame_transport,
             });
         }
-
-        let mut command = Command::new(&executable_path);
-        command
-            .args(&argv)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
 
         let mut child = match command.spawn() {
             Ok(child) => child,
@@ -444,6 +456,24 @@ impl SessionSupervisor {
     pub(crate) fn current_session(&self) -> AppResult<Option<SessionSnapshot>> {
         let inner = recover_lock(&self.inner);
         Ok(inner.current.as_ref().map(snapshot_with_diagnostics))
+    }
+
+    pub(crate) fn take_latest_frame(&self, session_id: &str) -> AppResult<GameFrame> {
+        let inner = recover_lock(&self.inner);
+        let current = current_session(&inner, session_id)?;
+        let Some(frame) = current.frames.take_latest() else {
+            let mut error = AppError::new(
+                "MAME_FRAME_NOT_READY",
+                "No gameplay frame is currently available for this MAME session.",
+            )
+            .with_details(serde_json::json!({
+                "sessionId": session_id,
+                "metrics": current.frames.snapshot()
+            }));
+            error.retryable = true;
+            return Err(error);
+        };
+        Ok(frame)
     }
 
     pub(crate) fn stop(&self, session_id: &str) -> AppResult<StopSessionResult> {

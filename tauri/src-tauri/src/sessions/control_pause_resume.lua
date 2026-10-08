@@ -464,6 +464,84 @@ function mame_tauri_control_v1(token, payload)
     end
 end
 
+-- Gameplay video uses a dedicated binary FIFO configured by the Rust supervisor. It deliberately
+-- does not share stdout with the authenticated runtime-control protocol above.
+local gameplay_frame_pipe = os.getenv("MAME_TAURI_FRAME_PIPE")
+local gameplay_frame_token = os.getenv("MAME_TAURI_FRAME_TOKEN")
+local gameplay_frame_protocol = tonumber(os.getenv("MAME_TAURI_FRAME_PROTOCOL") or "0")
+local gameplay_frame_stream = nil
+local gameplay_frame_sequence = 0
+local gameplay_frame_disabled =
+    gameplay_frame_pipe == nil or gameplay_frame_token == nil or gameplay_frame_protocol ~= 1
+
+local function first_gameplay_screen()
+    for _, screen in pairs(manager.machine.screens) do
+        return screen
+    end
+    return nil
+end
+
+local function close_gameplay_frame_stream()
+    if gameplay_frame_stream ~= nil then
+        pcall(function () gameplay_frame_stream:close() end)
+        gameplay_frame_stream = nil
+    end
+end
+
+local function gameplay_capture_frame()
+    if gameplay_frame_disabled then return end
+    local screen = first_gameplay_screen()
+    if screen == nil then return end
+
+    if gameplay_frame_stream == nil then
+        local ok, stream = pcall(io.open, gameplay_frame_pipe, "wb")
+        if not ok or stream == nil then
+            gameplay_frame_disabled = true
+            return
+        end
+        gameplay_frame_stream = stream
+        pcall(function () gameplay_frame_stream:setvbuf("no") end)
+    end
+
+    local ok, pixels, width, height = pcall(function ()
+        local data, visible_width, visible_height = screen:pixels()
+        return data, visible_width, visible_height
+    end)
+    if not ok or type(pixels) ~= "string" or type(width) ~= "number" or type(height) ~= "number" then
+        return
+    end
+
+    width = math.floor(width)
+    height = math.floor(height)
+    local stride = width * 4
+    if width <= 0 or height <= 0 or #pixels ~= stride * height then return end
+
+    local orientation, flip_x, flip_y = screen:orientation()
+    local flags = (flip_x and 1 or 0) | (flip_y and 2 or 0)
+    gameplay_frame_sequence = gameplay_frame_sequence + 1
+    local capture_timestamp_us = math.floor(manager.machine.time:as_double() * 1000000)
+    local header_len = 56 + #session_id + #gameplay_frame_token
+    local header = "MTFRAME1" .. string.pack(
+        "<I2I2I8I4I4I4I4I8I2I2I2I2I2I2",
+        gameplay_frame_protocol, header_len, gameplay_frame_sequence,
+        width, height, stride, #pixels, capture_timestamp_us,
+        orientation, flags, 1, #session_id, #gameplay_frame_token, 0
+    )
+
+    local write_ok = pcall(function ()
+        gameplay_frame_stream:write(header, session_id, gameplay_frame_token, pixels)
+        gameplay_frame_stream:flush()
+    end)
+    if not write_ok then
+        close_gameplay_frame_stream()
+        gameplay_frame_disabled = true
+    end
+end
+
+if not gameplay_frame_disabled then
+    emu.register_frame_done(gameplay_capture_frame, "mame_tauri_gameplay_frame")
+end
+
 -- Keep the generated ready_frame literal for backwards-compatible bootstrap
 -- inspection tests; production emits the current capability set dynamically.
 emit_ready()

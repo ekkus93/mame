@@ -3,6 +3,7 @@
 mod control {
     include!(concat!(env!("OUT_DIR"), "/runtime_control_mt710.rs"));
 }
+mod frame;
 mod load_state;
 pub(crate) mod query_state;
 pub(crate) mod save_state;
@@ -16,7 +17,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{ipc::Response, AppHandle, Emitter, Manager, State};
 
 use crate::{
     bundled_runtime::BundledRuntimeLayout,
@@ -100,6 +101,12 @@ pub struct StopMameRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct GetMameGameFrameRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PauseMameRequest {
     pub session_id: String,
 }
@@ -161,6 +168,15 @@ pub fn inspect_mame_executable(
     request: MameExecutableRequest,
 ) -> AppResult<MameExecutableIdentity> {
     inspect_executable(executable_source(&request))
+}
+
+#[tauri::command]
+pub fn get_mame_game_frame(
+    request: GetMameGameFrameRequest,
+    supervisor: State<'_, SessionSupervisor>,
+) -> AppResult<Response> {
+    let frame = supervisor.take_latest_frame(&request.session_id)?;
+    Ok(Response::new(frame.to_client_bytes()?))
 }
 
 #[tauri::command]

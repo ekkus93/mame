@@ -444,6 +444,9 @@ fn finalize_session(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str, statu
         if let Some(control) = current.control.as_mut() {
             control.mark_closed();
         }
+        if let Some(frame_transport) = current.frame_transport.as_ref() {
+            frame_transport.cancel();
+        }
         current.snapshot.exit_code = status.code();
         current.snapshot.termination_signal = termination_signal(&status);
         match epoch_millis() {
@@ -513,6 +516,9 @@ fn mark_launch_failed(
     if let Some(control) = current.control.as_mut() {
         control.mark_failed();
     }
+    if let Some(frame_transport) = current.frame_transport.as_ref() {
+        frame_transport.cancel();
+    }
     current.snapshot.state = SessionState::Failed;
     record_diagnostic_error(&current.diagnostics, format!("{code}: {message}"));
     if let Ok(timestamp) = epoch_millis() {
@@ -529,6 +535,9 @@ fn mark_supervision_failed(inner: &Arc<Mutex<SupervisorInner>>, session_id: &str
         };
         if let Some(control) = current.control.as_mut() {
             control.mark_failed();
+        }
+        if let Some(frame_transport) = current.frame_transport.as_ref() {
+            frame_transport.cancel();
         }
         current.snapshot.state = SessionState::Failed;
         record_diagnostic_error(&current.diagnostics, message);
