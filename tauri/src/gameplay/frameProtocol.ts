@@ -116,8 +116,8 @@ export function parseGameFrame(buffer: ArrayBuffer, expectedSessionId: string): 
   };
 }
 
-export function bgrxToRgba(frame: GameFrame): Uint8ClampedArray {
-  const rgba = new Uint8ClampedArray(frame.payloadBytes);
+export function bgrxToRgba(frame: GameFrame): Uint8ClampedArray<ArrayBuffer> {
+  const rgba = new Uint8ClampedArray(new ArrayBuffer(frame.payloadBytes));
   for (let offset = 0; offset < frame.payloadBytes; offset += 4) {
     rgba[offset] = frame.pixels[offset + 2] ?? 0;
     rgba[offset + 1] = frame.pixels[offset + 1] ?? 0;
