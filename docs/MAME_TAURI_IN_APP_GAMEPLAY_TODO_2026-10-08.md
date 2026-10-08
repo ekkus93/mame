@@ -62,13 +62,16 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Make `~/mame/roms` discoverable by default for the normal Linux user profile while respecting configured paths and documented precedence. Resolution uses the runtime home directory and never hardcodes the developer's home.
 - [x] Ensure a configured `<home>/mame` parent resolves its `roms` subdirectory when present; Rust tests cover the convention without hardcoding a username.
 - [x] Use one effective-path computation for audit availability and actual game launch. Diagnostics now show effective paths, source, and validation/readability status.
-- [ ] Separate catalog metadata refresh, content audit, and ROM installation in UI copy. Do not require metadata import to discover local ROMs, and do not imply the app can acquire ROM content.
-- [ ] Keep bundled MAME audit identity stable across random AppImage mount locations; verify migration/rebase of existing audit data and relaunch in a different mount path.
-- [ ] Verify complete and best-available sets are reported accurately; do not claim that a best-available result has local files when none are required/present. Distinguish driver support from content availability.
+- [x] Separate catalog metadata refresh, content audit, and ROM installation in UI copy. Metadata import now explicitly states that it imports machine metadata only, while path configuration says the app does not download/install ROM, CHD, BIOS, or software content and points users to media audit for verification.
+- [x] Keep bundled MAME audit identity stable across random AppImage mount locations. `bundled_appimage_mount_changes_preserve_existing_audits` verifies rebase of persisted bundled-runtime audit identity across randomized mount paths; full desktop relaunch remains part of Phase 6 qualification.
+- [x] Verify complete and best-available audit classifications are preserved accurately. Regression coverage includes `best_available_romset_summary_is_not_misreported_as_missing_content`, and availability/audit state remains distinct from driver support and gameplay readiness.
 - [x] Gate launch and provide explicit audit paths for Unknown/stale/unavailable content. Tests verify unaudited and missing-content launches fail closed before spawn.
 - [ ] Test paths with spaces, non-ASCII names, multiple directories, missing directories, permissions errors, and AppImage execution.
 
 **Exit gate:** The user's default ROM folder appears after a normal launch, audit and Start use identical paths, and a valid locally available machine can reach the first-frame-ready state without manual catalog import.
+
+
+> **2026-10-08 content/audit evidence:** commit `0e4c1708bae0053926fd3a143ea1ffd31bf50a69` clarifies in-product metadata/content/audit ownership and adds a Unicode/space-containing ROM-path regression. Existing audit-store coverage rebases bundled audit provenance across randomized AppImage mount paths, and supervisor regression coverage preserves best-available classification semantics. AppImage execution of unusual paths is still reserved for full desktop qualification.
 
 ## Phase 5 — Diagnose startup and frame failures separately
 
