@@ -13,7 +13,10 @@ use crate::{
     config::{load_settings, settings_path, LaunchPreferencesV1},
     effective_runtime::resolve_effective_mame_source,
     errors::{AppError, AppResult},
-    mame::{inspect_executable, MameExecutableIdentity, MameExecutableSource},
+    mame::{
+        inspect_executable, invalidate_stale_machine_audit_results, MameExecutableIdentity,
+        MameExecutableSource,
+    },
     metadata::{
         AvailabilityFilter, CatalogRepository, CloneFilter, FavoritePage, FavoriteState,
         MachineAvailabilityQuery, MachineDetail, MachinePage, MachineQuery, MachineSort,
@@ -343,7 +346,13 @@ fn current_machine_availability_query(
         Err(error) => return Err(error),
     };
 
-    let mame_identity_json = serde_json::to_string(&context.identity).map_err(|error| {
+    invalidate_stale_machine_audit_results(
+        catalog_path,
+        &context.identity,
+        &context.content_paths,
+    )?;
+
+    let mame_identity_json = context.identity.audit_provenance_json().map_err(|error| {
         AppError::new(
             "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
             "Current MAME audit identity could not be serialized for library availability.",

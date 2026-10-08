@@ -115,7 +115,7 @@ pub fn verify_reset_content_policy(
     }
 
     let empty_effective =
-        content_paths::effective_content_paths(&config::ContentPathsV1::default());
+        content_paths::effective_content_paths_with_home(&config::ContentPathsV1::default(), None);
     let mut unaudited_launch_attempted = false;
     let unaudited_error = sessions::launch_after_audit_gate(probe_machine, None, || {
         unaudited_launch_attempted = true;

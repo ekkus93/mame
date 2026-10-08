@@ -233,7 +233,7 @@ Normal packaged installs include the package-owned MAME runtime. A user does **n
 
 Open the app's Settings surface and use **Content configuration → ROM and software paths**. The panel has separate **ROM paths**, **Software paths**, and **CHD paths** groups with **Add … directory** actions. Paths are searched in the order shown, can be moved up/down, and remain visible with an explicit validation status when missing, unreadable, or inaccessible.
 
-For this reset, the effective media-search contract is intentionally limited to these configured paths. Automatic discovery of additional default MAME-compatible ROM locations is deferred. Audit, catalog Start, and diagnostics therefore derive their media-path view from one ordered source of truth instead of silently searching different locations.
+When no ROM path is configured, the app also detects the standard per-user `~/mame/roms` directory when it exists. Explicitly configured paths take precedence. Audit, catalog Start, and diagnostics use the same effective paths, so the local availability filter reflects the directories MAME searches.
 
 ### Local content availability
 

@@ -453,15 +453,17 @@ mod tests {
     use super::{
         load_settings, parse_settings_json, path_error_status, validate_content_path,
         AudioPreference, ContentPathKind, LaunchPreferencesV1, PathValidationStatus, PlatformPath,
-        RendererPreference, SettingsV2, WindowPreference, SETTINGS_SCHEMA_VERSION,
+        RendererPreference, WindowPreference, SETTINGS_SCHEMA_VERSION,
     };
 
     #[test]
-    fn missing_settings_use_safe_defaults() {
+    fn missing_settings_use_first_run_defaults() {
         let path = PathBuf::from("this-file-must-not-exist-mame-tauri-settings.json");
+        let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" });
+        let expected = super::initial_settings(home.as_deref().map(std::path::Path::new));
         assert_eq!(
             load_settings(&path).expect("missing config uses defaults"),
-            SettingsV2::default()
+            expected
         );
     }
 

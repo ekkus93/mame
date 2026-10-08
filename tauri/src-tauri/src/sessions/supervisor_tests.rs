@@ -11,12 +11,23 @@ mod tests {
     use crate::mame::{MameExecutableSource, MameLaunchTarget};
 
     use super::{
-        recover_lock, ControlChannelState, EffectiveLaunchConfig, EventSink,
+        classify_early_exit_output, recover_lock, ControlChannelState, EffectiveLaunchConfig, EventSink,
         SessionLifecycleEventV1, SessionState, SessionSupervisor, DIAGNOSTIC_TAIL_LIMIT,
     };
 
     fn no_op_sink() -> EventSink {
         Arc::new(|_, _| Ok(()))
+    }
+
+    #[test]
+    fn best_available_romset_summary_is_not_misreported_as_missing_content() {
+        let (code, _message, content_failure) = classify_early_exit_output(
+            "romset breakout is best available\n1 romsets found, 1 were OK.",
+            "",
+        );
+
+        assert_eq!(code, "MAME_EARLY_EXIT");
+        assert!(!content_failure);
     }
 
     fn recording_sink(events: Arc<Mutex<Vec<String>>>) -> EventSink {

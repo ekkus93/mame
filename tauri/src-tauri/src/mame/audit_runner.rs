@@ -227,7 +227,7 @@ mod tests {
 
     use crate::{
         config::{ContentPathsV1, PlatformPath},
-        content_paths::effective_content_paths,
+        content_paths::{effective_content_paths, effective_content_paths_with_home},
     };
 
     use super::{audit_machine, build_machine_audit_argv, compose_media_search_path};
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn empty_configuration_keeps_mame_builtin_media_default() {
-        let effective = effective_content_paths(&ContentPathsV1::default());
+        let effective = effective_content_paths_with_home(&ContentPathsV1::default(), None);
         let argv = build_machine_audit_argv("pacman", &effective).expect("audit argv");
         assert_eq!(
             argv,
@@ -356,7 +356,7 @@ mod tests {
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).expect("executable permissions");
 
-        let effective = effective_content_paths(&ContentPathsV1::default());
+        let effective = effective_content_paths_with_home(&ContentPathsV1::default(), None);
         let result = audit_machine(
             &MameExecutableSource::external(&executable),
             "pacman",

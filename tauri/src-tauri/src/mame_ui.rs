@@ -5,7 +5,7 @@ use crate::{
     config::settings_path,
     errors::{AppError, AppResult},
     library::audit::resolve_bulk_audit_context_with_resource_dir,
-    mame::validate_short_identifier,
+    mame::{invalidate_stale_machine_audit_results, validate_short_identifier},
     metadata::{CatalogRepository, MachinePage, MameUiMachineFilter, MameUiMachineQuery},
     storage,
 };
@@ -118,10 +118,25 @@ pub(crate) fn validated_query(
             settings_path,
             resource_dir,
         ) {
-            Ok(context) => (
-                Some(serde_json::to_string(&context.identity).map_err(serialization_error)?),
-                Some(serde_json::to_string(&context.content_paths).map_err(serialization_error)?),
-            ),
+            Ok(context) => {
+                invalidate_stale_machine_audit_results(
+                    catalog_path,
+                    &context.identity,
+                    &context.content_paths,
+                )?;
+                (
+                    Some(
+                        context
+                            .identity
+                            .audit_provenance_json()
+                            .map_err(serialization_error)?,
+                    ),
+                    Some(
+                        serde_json::to_string(&context.content_paths)
+                            .map_err(serialization_error)?,
+                    ),
+                )
+            }
             Err(error) if availability_provenance_unavailable(&error) => (None, None),
             Err(error) => return Err(error),
         };

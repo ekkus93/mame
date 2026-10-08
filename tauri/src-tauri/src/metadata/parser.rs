@@ -106,9 +106,18 @@ where
                         device.instance_brief_name =
                             Some(required_attr(&attributes, "briefname")?.to_owned());
                     }
-                    b"extension" => current_device_mut(&mut current_machine)?
-                        .extensions
-                        .push(required_attr(&attributes, "name")?.to_owned()),
+                    b"extension" => {
+                        let name = attributes
+                            .get("name")
+                            .ok_or_else(|| missing_required_attr("name"))?;
+                        // MAME can emit an empty extension to represent a device
+                        // with no extension suffixes. It carries no usable metadata.
+                        if !name.is_empty() {
+                            current_device_mut(&mut current_machine)?
+                                .extensions
+                                .push(name.to_owned());
+                        }
+                    }
                     b"softwarelist" => machine_mut(&mut current_machine)?
                         .machine
                         .software_lists
@@ -508,13 +517,15 @@ fn required_attr<'a>(attributes: &'a HashMap<String, String>, name: &str) -> App
         .get(name)
         .map(String::as_str)
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            AppError::new(
-                "MAME_METADATA_REQUIRED_ATTRIBUTE_MISSING",
-                "MAME -listxml is missing a required metadata attribute.",
-            )
-            .with_details(serde_json::json!({ "attribute": name }))
-        })
+        .ok_or_else(|| missing_required_attr(name))
+}
+
+fn missing_required_attr(name: &str) -> AppError {
+    AppError::new(
+        "MAME_METADATA_REQUIRED_ATTRIBUTE_MISSING",
+        format!("MAME -listxml is missing the required metadata attribute '{name}'."),
+    )
+    .with_details(serde_json::json!({ "attribute": name }))
 }
 
 fn yes_no_attr(attributes: &HashMap<String, String>, name: &str, default: bool) -> AppResult<bool> {
@@ -657,6 +668,27 @@ mod tests {
                 .unwrap()
                 .requires_chd
         );
+    }
+
+    #[test]
+    fn empty_device_extensions_are_ignored() {
+        let xml = br#"<mame build="test" mameconfig="10">
+          <machine name="extensiongame">
+            <description>Extension Game</description>
+            <device type="floppy_image">
+              <extension name=""/>
+              <extension name="dsk"/>
+            </device>
+          </machine>
+        </mame>"#;
+        let mut machines = Vec::new();
+        parse_listxml(Cursor::new(xml.as_slice()), |machine| {
+            machines.push(machine);
+            Ok(())
+        })
+        .expect("empty extension metadata must parse");
+
+        assert_eq!(machines[0].devices[0].extensions, vec!["dsk"]);
     }
 
     #[test]

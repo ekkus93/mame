@@ -8,6 +8,7 @@ use crate::config::{
 #[serde(rename_all = "camelCase")]
 pub enum EffectiveContentPathSource {
     Configured,
+    MameDefault,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -49,16 +50,47 @@ impl EffectiveContentPaths {
     }
 }
 
-/// Resolve the one effective content-path contract used by the reset.
-///
-/// RESET-004 intentionally limits this contract to explicit user configuration. Automatic
-/// discovery/default MAME-compatible ROM locations are deferred until after reset acceptance so
-/// audit, launch, and diagnostics cannot silently disagree about an implicit search path.
+/// Resolve the one effective content-path contract shared by audits, launches, and diagnostics.
+/// Explicit user configuration takes precedence. When no ROM paths are configured, preserve the
+/// common per-user MAME layout (`~/mame/roms`) when it exists. If the conventional `~/mame` root
+/// was configured, also search its `roms` subdirectory when present, matching MAME's default
+/// relative ROM path.
 pub fn effective_content_paths(configured: &ContentPathsV1) -> EffectiveContentPaths {
+    effective_content_paths_with_home(configured, std::env::var_os("HOME").map(Into::into))
+}
+
+pub(crate) fn effective_content_paths_with_home(
+    configured: &ContentPathsV1,
+    home: Option<std::path::PathBuf>,
+) -> EffectiveContentPaths {
     let mut entries = Vec::new();
 
-    for path in &configured.rom_paths {
-        entries.push(effective_entry(ContentPathKind::Rom, path));
+    if configured.rom_paths.is_empty() {
+        if let Some(path) = home.map(|home| home.join("mame").join("roms")) {
+            if path.is_dir() {
+                entries.push(EffectiveContentPathEntry {
+                    kind: ContentPathKind::Rom,
+                    source: EffectiveContentPathSource::MameDefault,
+                    validation: validate_content_path(&PlatformPath::new(path)),
+                });
+            }
+        }
+    } else {
+        for path in &configured.rom_paths {
+            entries.push(effective_entry(ContentPathKind::Rom, path));
+
+            if let Some(home) = &home {
+                let mame_root = home.join("mame");
+                let default_roms = mame_root.join("roms");
+                if path.as_path() == mame_root && default_roms.is_dir() {
+                    entries.push(EffectiveContentPathEntry {
+                        kind: ContentPathKind::Rom,
+                        source: EffectiveContentPathSource::MameDefault,
+                        validation: validate_content_path(&PlatformPath::new(default_roms)),
+                    });
+                }
+            }
+        }
     }
     for path in &configured.software_paths {
         entries.push(effective_entry(ContentPathKind::Software, path));
@@ -89,7 +121,7 @@ mod tests {
 
     use crate::config::{ContentPathKind, ContentPathsV1, PathValidationStatus, PlatformPath};
 
-    use super::effective_content_paths;
+    use super::{effective_content_paths, effective_content_paths_with_home};
 
     fn temp_root(label: &str) -> PathBuf {
         let nonce = SystemTime::now()
@@ -101,9 +133,53 @@ mod tests {
 
     #[test]
     fn empty_settings_report_empty_effective_paths() {
-        let effective = effective_content_paths(&ContentPathsV1::default());
+        let effective = effective_content_paths_with_home(&ContentPathsV1::default(), None);
         assert!(effective.is_empty());
         assert!(effective.media_search_paths().is_empty());
+    }
+
+    #[test]
+    fn default_home_rom_directory_is_used_when_no_rom_path_is_configured() {
+        let home = temp_root("default-home");
+        let roms = home.join("mame").join("roms");
+        fs::create_dir_all(&roms).expect("create default MAME ROM directory");
+
+        let effective = effective_content_paths_with_home(&ContentPathsV1::default(), Some(home));
+        assert_eq!(effective.entries.len(), 1);
+        assert_eq!(
+            effective.entries[0].source,
+            super::EffectiveContentPathSource::MameDefault
+        );
+        assert_eq!(
+            effective.entries[0].validation.status,
+            PathValidationStatus::Accessible
+        );
+        assert_eq!(effective.entries[0].validation.path.as_path(), roms);
+    }
+
+    #[test]
+    fn configured_mame_root_also_searches_its_default_rom_subdirectory() {
+        let home = temp_root("configured-mame-root");
+        let mame_root = home.join("mame");
+        let roms = mame_root.join("roms");
+        fs::create_dir_all(&roms).expect("create default MAME ROM directory");
+
+        let configured = ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&mame_root)],
+            software_paths: Vec::new(),
+            chd_paths: Vec::new(),
+        };
+        let effective = effective_content_paths_with_home(&configured, Some(home.clone()));
+
+        assert_eq!(effective.entries.len(), 2);
+        assert_eq!(effective.entries[0].validation.path.as_path(), mame_root);
+        assert_eq!(effective.entries[1].validation.path.as_path(), roms);
+        assert_eq!(
+            effective.entries[1].source,
+            super::EffectiveContentPathSource::MameDefault
+        );
+
+        fs::remove_dir_all(home).expect("cleanup");
     }
 
     #[test]

@@ -88,6 +88,21 @@ pub struct MameExecutableIdentity {
     pub raw_version_line: String,
 }
 
+impl MameExecutableIdentity {
+    /// Serialize provenance used to determine whether a saved content audit is current.
+    /// AppImage mount paths are randomized for each launch, so they cannot identify the same
+    /// bundled MAME runtime across application restarts.
+    pub fn audit_provenance_json(&self) -> Result<String, serde_json::Error> {
+        if self.source == MameExecutableSourceKind::Bundled {
+            let mut stable = self.clone();
+            stable.path = "<bundled-mame>".to_owned();
+            serde_json::to_string(&stable)
+        } else {
+            serde_json::to_string(self)
+        }
+    }
+}
+
 pub fn configured_external_source(path: Option<&str>) -> AppResult<Option<MameExecutableSource>> {
     let Some(path) = path else {
         return Ok(None);

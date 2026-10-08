@@ -79,7 +79,7 @@ fn save_machine_audit_result_with_connection(
 
     let audited_at = to_i64(audited_at_epoch_ms, "auditedAtEpochMs")?;
     let result_json = serialize_json(result, "MAME_AUDIT_RESULT_SERIALIZE_FAILED")?;
-    let identity_json = serialize_json(mame_identity, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
+    let identity_json = serialize_identity_json(mame_identity)?;
     let content_paths_json =
         serialize_json(content_paths, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
 
@@ -119,7 +119,7 @@ fn load_current_machine_audit_result_with_connection(
     mame_identity: &MameExecutableIdentity,
     content_paths: &EffectiveContentPaths,
 ) -> AppResult<Option<StoredMachineAuditResult>> {
-    let identity_json = serialize_json(mame_identity, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
+    let identity_json = serialize_identity_json(mame_identity)?;
     let content_paths_json =
         serialize_json(content_paths, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
 
@@ -185,7 +185,7 @@ fn invalidate_stale_with_connection(
     mame_identity: &MameExecutableIdentity,
     content_paths: &EffectiveContentPaths,
 ) -> AppResult<u64> {
-    let identity_json = serialize_json(mame_identity, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
+    let identity_json = serialize_identity_json(mame_identity)?;
     let content_paths_json =
         serialize_json(content_paths, "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED")?;
     invalidate_stale_json_with_connection(connection, &identity_json, &content_paths_json)
@@ -196,6 +196,20 @@ fn invalidate_stale_json_with_connection(
     identity_json: &str,
     content_paths_json: &str,
 ) -> AppResult<u64> {
+    // Older AppImage builds persisted their randomized mount path as part of the bundled
+    // executable identity. Rebase matching audits to the stable identity before invalidation.
+    connection
+        .execute(
+            r#"UPDATE machine_audit_results
+            SET mame_identity_json = ?1
+            WHERE json_extract(?1, '$.source') = 'bundled'
+              AND json_extract(?1, '$.path') = '<bundled-mame>'
+              AND json_extract(mame_identity_json, '$.source') = 'bundled'
+              AND json_remove(mame_identity_json, '$.path') = json_remove(?1, '$.path')"#,
+            [identity_json],
+        )
+        .map_err(|error| database_error("MAME_AUDIT_STALE_INVALIDATION_FAILED", error))?;
+
     let deleted = connection
         .execute(
             r#"DELETE FROM machine_audit_results
@@ -209,6 +223,16 @@ fn invalidate_stale_json_with_connection(
             "MAME_AUDIT_STALE_INVALIDATION_FAILED",
             "The database returned an invalid stale-audit deletion count.",
         )
+    })
+}
+
+fn serialize_identity_json(identity: &MameExecutableIdentity) -> AppResult<String> {
+    identity.audit_provenance_json().map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
+            "MAME audit identity could not be serialized.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
     })
 }
 
@@ -273,6 +297,17 @@ mod tests {
         }
     }
 
+    fn bundled_identity(path: &str) -> MameExecutableIdentity {
+        MameExecutableIdentity {
+            source: MameExecutableSourceKind::Bundled,
+            trust: MameExecutableTrust::QualifiedBundled,
+            path: path.to_owned(),
+            version: "0.289".to_owned(),
+            build: Some("test-build".to_owned()),
+            raw_version_line: "0.289 (test-build)".to_owned(),
+        }
+    }
+
     fn paths(first: &str, second: &str) -> EffectiveContentPaths {
         effective_content_paths(&ContentPathsV1 {
             rom_paths: vec![PlatformPath::new(first), PlatformPath::new(second)],
@@ -310,6 +345,50 @@ mod tests {
         assert_eq!(loaded.machine_short_name, "pacman");
         assert_eq!(loaded.result, result);
         assert_eq!(loaded.audited_at_epoch_ms, 1234);
+    }
+
+    #[test]
+    fn bundled_appimage_mount_changes_preserve_existing_audits() {
+        let connection = storage::open_catalog_memory().expect("catalog");
+        let old_identity = bundled_identity("/tmp/.mount_old/usr/lib/mame");
+        let current_identity = bundled_identity("/tmp/.mount_new/usr/lib/mame");
+        let current_paths = paths("/roms-a", "/roms-b");
+        let result = parse_mame_audit_output("romset pacman is good\n", "", Some(0));
+        let old_identity_json = serde_json::to_string(&old_identity).expect("old identity JSON");
+        let result_json = serde_json::to_string(&result).expect("audit result JSON");
+        let paths_json = serde_json::to_string(&current_paths).expect("paths JSON");
+
+        connection
+            .execute(
+                r#"INSERT INTO machine_audit_results(
+                    machine_short_name, classification, result_json, audited_at_epoch_ms,
+                    mame_identity_json, content_paths_json
+                ) VALUES ('pacman', 'complete', ?1, 1234, ?2, ?3)"#,
+                rusqlite::params![result_json, old_identity_json, paths_json],
+            )
+            .expect("seed audit from previous AppImage mount");
+
+        let loaded = load_current_machine_audit_result_with_connection(
+            &connection,
+            "pacman",
+            &current_identity,
+            &current_paths,
+        )
+        .expect("load audit across mount path change")
+        .expect("matching bundled audit remains current");
+
+        assert_eq!(loaded.result, result);
+        let stored_identity: String = connection
+            .query_row(
+                "SELECT mame_identity_json FROM machine_audit_results WHERE machine_short_name = 'pacman'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read rebased identity");
+        assert_eq!(
+            stored_identity,
+            current_identity.audit_provenance_json().unwrap()
+        );
     }
 
     #[test]
