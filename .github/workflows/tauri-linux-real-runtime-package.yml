@@ -18,6 +18,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: tauri-linux-real-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   real-runtime-deb-appimage-qualification:
     runs-on: ubuntu-22.04
