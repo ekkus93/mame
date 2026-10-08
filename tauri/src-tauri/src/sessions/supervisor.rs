@@ -700,6 +700,25 @@ impl SessionSupervisor {
     }
 }
 
+fn frame_error_with_metrics(
+    mut error: AppError,
+    session_id: &str,
+    metrics: &FrameMetricsSnapshot,
+) -> AppError {
+    let mut details = match std::mem::take(&mut error.details) {
+        serde_json::Value::Object(details) => details,
+        other => {
+            let mut details = serde_json::Map::new();
+            details.insert("originalDetails".to_owned(), other);
+            details
+        }
+    };
+    details.insert("sessionId".to_owned(), serde_json::json!(session_id));
+    details.insert("metrics".to_owned(), serde_json::json!(metrics));
+    error.details = serde_json::Value::Object(details);
+    error
+}
+
 include!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/sessions/supervisor_runtime.rs"
