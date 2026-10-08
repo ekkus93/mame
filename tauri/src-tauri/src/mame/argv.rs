@@ -504,7 +504,9 @@ mod tests {
         force_in_app_gameplay_video(&mut argv);
 
         assert_eq!(argv, ["pacman", "-sound", "auto", "-video", "none"]);
-        assert!(!argv.iter().any(|argument| argument == "-window" || argument == "-nowindow"));
+        assert!(!argv
+            .iter()
+            .any(|argument| argument == "-window" || argument == "-nowindow"));
     }
 
     #[test]
