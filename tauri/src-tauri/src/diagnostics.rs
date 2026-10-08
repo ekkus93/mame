@@ -643,7 +643,10 @@ mod tests {
         });
         let summary = summarize_content_paths(&effective);
 
-        assert_eq!(summary.resolution_policy, "configuredWithConventionalMameDefaults");
+        assert_eq!(
+            summary.resolution_policy,
+            "configuredWithConventionalMameDefaults"
+        );
         assert_eq!(summary.total, 3);
         assert_eq!(summary.rom, 2);
         assert_eq!(summary.software, 1);
