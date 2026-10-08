@@ -134,6 +134,12 @@ pub struct SessionSupervisor {
     inner: Arc<Mutex<SupervisorInner>>,
 }
 
+impl Drop for SessionSupervisor {
+    fn drop(&mut self) {
+        self.shutdown_for_app_exit();
+    }
+}
+
 #[derive(Default)]
 struct SupervisorInner {
     current: Option<ManagedSession>,
@@ -526,6 +532,36 @@ impl SessionSupervisor {
         }));
         error.retryable = true;
         Err(error)
+    }
+
+    pub(crate) fn shutdown_for_app_exit(&self) {
+        let child = {
+            let mut inner = recover_lock(&self.inner);
+            let Some(current) = inner.current.as_mut() else {
+                return;
+            };
+            current.frames.close();
+            if let Some(frame_transport) = current.frame_transport.take() {
+                frame_transport.cancel();
+            }
+            if let Some(control) = current.control.as_mut() {
+                control.mark_closed();
+            }
+            current.child.clone()
+        };
+
+        let Some(child) = child else {
+            return;
+        };
+        if let Err(error) = terminate_supervised_child(&child) {
+            let inner = recover_lock(&self.inner);
+            if let Some(current) = inner.current.as_ref() {
+                record_diagnostic_error(
+                    &current.diagnostics,
+                    format!("MAME app-exit child cleanup failed: {error}"),
+                );
+            }
+        }
     }
 
     pub(crate) fn stop(&self, session_id: &str) -> AppResult<StopSessionResult> {

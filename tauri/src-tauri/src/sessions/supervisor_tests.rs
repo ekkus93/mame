@@ -311,6 +311,40 @@ mod tests {
     }
 
     #[cfg(unix)]
+    #[test]
+    fn dropping_supervisor_reaps_active_child_and_closes_gameplay_resources() {
+        let root = unique_temp_dir("drop-reaps-child");
+        let executable = write_fake_mame(&root, "trap '' TERM\nwhile :; do :; done\n");
+        let supervisor = SessionSupervisor::default();
+
+        let started = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("fake MAME must launch");
+        assert_eq!(started.state, SessionState::Running);
+
+        let child = {
+            let inner = recover_lock(&supervisor.inner);
+            let current = inner.current.as_ref().expect("managed session");
+            current.child.clone().expect("supervised child")
+        };
+
+        drop(supervisor);
+
+        let status = super::wait_for_child(&child, Duration::from_secs(2))
+            .expect("observe child after supervisor drop");
+        assert!(status.is_some(), "dropping the supervisor must reap MAME");
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
+    #[cfg(unix)]
     fn write_pre_ready_fake_mame(root: &PathBuf, launch_body: &str) -> PathBuf {
         use std::os::unix::fs::PermissionsExt;
 
