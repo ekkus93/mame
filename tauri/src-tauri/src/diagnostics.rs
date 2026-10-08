@@ -16,7 +16,7 @@ use std::{
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Manager, Runtime, State};
 
 use crate::{
     app::{self, AppInfoRequest, AppInfoResponse, APP_PROTOCOL_VERSION},
@@ -24,6 +24,7 @@ use crate::{
     content_paths::{effective_content_paths, EffectiveContentPaths},
     errors::{AppError, AppResult},
     mame::{MameExecutableSourceKind, MameExecutableTrust},
+    sessions::{FrameMetricsSnapshot, SessionSnapshot, SessionState, SessionSupervisor},
     storage,
 };
 
@@ -79,6 +80,23 @@ pub struct ContentPathDiagnostics {
     pub unreadable: u32,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct GameplayInputDiagnostics {
+    pub state: String,
+    pub bridge: String,
+    pub max_updates_per_batch: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GameplayDiagnostics {
+    pub session: Option<SessionSnapshot>,
+    pub video_transport: String,
+    pub video: Option<FrameMetricsSnapshot>,
+    pub input: GameplayInputDiagnostics,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticsSnapshot {
@@ -91,6 +109,7 @@ pub struct DiagnosticsSnapshot {
     pub catalog_path: String,
     pub catalog_schema: CatalogSchemaDiagnostics,
     pub content_paths: ContentPathDiagnostics,
+    pub gameplay: GameplayDiagnostics,
     pub log_path: String,
     pub recent_logs: Vec<DiagnosticLogEntry>,
 }
@@ -211,13 +230,19 @@ pub fn recent_logs() -> Vec<DiagnosticLogEntry> {
 }
 
 #[tauri::command]
-pub fn get_diagnostics(handle: AppHandle) -> AppResult<DiagnosticsSnapshot> {
-    diagnostics_snapshot(&handle)
+pub fn get_diagnostics(
+    handle: AppHandle,
+    supervisor: State<'_, SessionSupervisor>,
+) -> AppResult<DiagnosticsSnapshot> {
+    diagnostics_snapshot(&handle, &supervisor)
 }
 
 #[tauri::command]
-pub fn export_diagnostics_bundle(handle: AppHandle) -> AppResult<DiagnosticsExportResult> {
-    let snapshot = diagnostics_snapshot(&handle)?;
+pub fn export_diagnostics_bundle(
+    handle: AppHandle,
+    supervisor: State<'_, SessionSupervisor>,
+) -> AppResult<DiagnosticsExportResult> {
+    let snapshot = diagnostics_snapshot(&handle, &supervisor)?;
     let root = handle.path().app_data_dir().map_err(|error| {
         AppError::new(
             "DIAGNOSTICS_ROOT_UNAVAILABLE",
@@ -261,7 +286,10 @@ pub fn export_diagnostics_bundle(handle: AppHandle) -> AppResult<DiagnosticsExpo
     })
 }
 
-fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
+fn diagnostics_snapshot(
+    handle: &AppHandle,
+    supervisor: &SessionSupervisor,
+) -> AppResult<DiagnosticsSnapshot> {
     let settings = settings_path(handle)?;
     let catalog = storage::catalog_path(handle)?;
     let app = app::get_app_info(
@@ -274,6 +302,35 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
     let configured_settings = load_settings(&settings)?;
     let content_paths =
         summarize_content_paths(&effective_content_paths(&configured_settings.content_paths));
+    let session = supervisor.current_session()?;
+    let video = session
+        .as_ref()
+        .map(|session| supervisor.frame_metrics(&session.session_id))
+        .transpose()?;
+    let input_state = match session.as_ref().map(|session| session.state) {
+        Some(SessionState::Running) => "ready",
+        Some(SessionState::Created | SessionState::Starting) => "starting",
+        Some(SessionState::Stopping) => "stopping",
+        Some(SessionState::Exited | SessionState::Failed | SessionState::Crashed) => "ended",
+        None => "inactive",
+    }
+    .to_owned();
+    let gameplay = GameplayDiagnostics {
+        session,
+        video_transport: if cfg!(all(target_os = "linux", target_endian = "little")) {
+            "privateAuthenticatedFifo"
+        } else {
+            "unsupported"
+        }
+        .to_owned(),
+        video,
+        input: GameplayInputDiagnostics {
+            state: input_state,
+            bridge: "boundedAuthenticatedRuntimeControl".to_owned(),
+            max_updates_per_batch: 32,
+        },
+    };
+
     let log_path = RECORDER
         .get()
         .and_then(|recorder| recorder.lock().ok())
@@ -290,6 +347,7 @@ fn diagnostics_snapshot(handle: &AppHandle) -> AppResult<DiagnosticsSnapshot> {
         catalog_path: catalog.to_string_lossy().into_owned(),
         catalog_schema: inspect_catalog_schema(&catalog),
         content_paths,
+        gameplay,
         log_path: log_path.to_string_lossy().into_owned(),
         recent_logs: recent_logs(),
     })

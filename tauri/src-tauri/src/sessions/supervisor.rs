@@ -472,7 +472,7 @@ impl SessionSupervisor {
         Ok(inner.current.as_ref().map(snapshot_with_diagnostics))
     }
 
-    pub(super) fn frame_metrics(&self, session_id: &str) -> AppResult<FrameMetricsSnapshot> {
+    pub(crate) fn frame_metrics(&self, session_id: &str) -> AppResult<FrameMetricsSnapshot> {
         let inner = recover_lock(&self.inner);
         let current = current_session(&inner, session_id)?;
         Ok(current.frames.snapshot())
