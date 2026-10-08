@@ -113,7 +113,7 @@ The in-app gameplay path keeps MAME out of the WebView and out of the Tauri proc
 
 1. Rust launches one supervised MAME child with the normal effective ROM/content paths and native audio configuration, but forces `-video none`.
 2. The session bootstrap configures a private mode-`0600` FIFO and unpredictable per-session authentication token on supported Linux little-endian hosts.
-3. MAME's Lua callback calls `manager.machine.video:snapshot_pixels()`. That API renders MAME's snapshot target through the native C++ software renderer and returns RGB32 pixels, avoiding the palette-index ambiguity of `screen:pixels()`.
+3. MAME's Lua callback calls `manager.machine.video:snapshot_pixels()`. That API renders MAME's current snapshot target through the native C++ software renderer and returns RGB32 pixels, avoiding the palette-index ambiguity of `screen:pixels()`. The first release treats that snapshot target as one composed presentation surface: dynamic frame dimensions and rotation are supported, while multiple physical MAME screens are not exposed as independently addressable WebView canvases.
 4. Rust validates protocol version, session/token identity, dimensions, stride, payload caps, sequence monotonicity, and supported format before replacing a one-slot latest-frame mailbox.
 5. The WebView fetches only the newest frame through a typed binary command and presents it in a TypeScript-owned canvas. Frame receipt/drop/delivery/presentation metrics and stall state are separately observable.
 6. Keyboard and W3C-standard Gamepad API controls are translated to bounded MAME logical input tokens and applied through MAME's normal I/O-port fields. Saved browser-standard controller profiles pin gameplay to the recorded Gamepad API identity when connected.
