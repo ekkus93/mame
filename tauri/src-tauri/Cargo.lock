@@ -1827,6 +1827,7 @@ dependencies = [
  "getrandom 0.3.4",
  "quick-xml 0.41.0",
  "rusqlite",
+ "rustix",
  "serde",
  "serde_json",
  "tauri",
