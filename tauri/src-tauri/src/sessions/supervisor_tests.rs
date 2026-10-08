@@ -20,6 +20,23 @@ mod tests {
     }
 
     #[test]
+    fn startup_output_classifies_permission_path_renderer_runtime_and_crash_failures() {
+        let cases = [
+            ("Permission denied while opening /games/roms", "MAME_CONTENT_PERMISSION_DENIED"),
+            ("configured path is not a directory", "MAME_CONTENT_PATH_INVALID"),
+            ("Unable to initialize SDL video subsystem", "MAME_RENDERER_STARTUP_FAILED"),
+            ("Unknown option: -notreal", "MAME_RUNTIME_CONFIGURATION_FAILED"),
+            ("Fatal error: assertion failed in device startup", "MAME_CHILD_CRASHED"),
+        ];
+
+        for (stderr, expected_code) in cases {
+            let (code, _message, content_failure) = classify_early_exit_output("", stderr);
+            assert_eq!(code, expected_code, "stderr={stderr}");
+            assert!(!content_failure, "stderr={stderr}");
+        }
+    }
+
+    #[test]
     fn best_available_romset_summary_is_not_misreported_as_missing_content() {
         let (code, _message, content_failure) = classify_early_exit_output(
             "romset breakout is best available\n1 romsets found, 1 were OK.",

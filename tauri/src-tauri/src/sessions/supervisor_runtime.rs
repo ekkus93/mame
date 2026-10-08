@@ -274,11 +274,93 @@ pub(super) fn classify_early_exit_output(
     stdout: &str,
     stderr: &str,
 ) -> (&'static str, &'static str, bool) {
-    let content_failure = output_indicates_content_failure(stdout, stderr);
+    let output = format!("{stdout}\n{stderr}").to_ascii_lowercase();
+    let content_failure = output_contains_any(
+        &output,
+        &[
+            "required files are missing",
+            "required rom",
+            "missing one or more required rom",
+            "rom/disk images for the selected system are missing or incorrect",
+            "one or more roms/chds for this machine are incorrect",
+            " - not found",
+            " not found!",
+            "wrong length",
+            "wrong checksum",
+            "incorrect checksum",
+        ],
+    );
     let (code, message) = if content_failure {
         (
             "MAME_CONTENT_LAUNCH_FAILED",
             "MAME exited before startup because required ROM/content is missing or incorrect. Check the configured content paths and audit this machine again.",
+        )
+    } else if output_contains_any(
+        &output,
+        &["permission denied", "operation not permitted", "access is denied"],
+    ) {
+        (
+            "MAME_CONTENT_PERMISSION_DENIED",
+            "MAME could not read a required path because access was denied. Check the configured content-path permissions and try again.",
+        )
+    } else if output_contains_any(
+        &output,
+        &[
+            "not a directory",
+            "invalid path",
+            "path does not exist",
+            "failed to open directory",
+            "cannot open directory",
+        ],
+    ) {
+        (
+            "MAME_CONTENT_PATH_INVALID",
+            "MAME could not use one of the configured content paths. Review the effective paths and their validation status.",
+        )
+    } else if output_contains_any(
+        &output,
+        &[
+            "unable to initialize sdl",
+            "could not initialize video",
+            "no available video device",
+            "no video driver",
+            "error initializing bgfx",
+            "renderer initialization failed",
+            "failed to create window",
+        ],
+    ) {
+        (
+            "MAME_RENDERER_STARTUP_FAILED",
+            "MAME could not initialize the selected video/runtime renderer. Review the renderer configuration and platform support.",
+        )
+    } else if output_contains_any(
+        &output,
+        &[
+            "unknown option",
+            "unrecognized option",
+            "invalid option",
+            "unknown system",
+            "not a valid system",
+            "unable to find system",
+        ],
+    ) {
+        (
+            "MAME_RUNTIME_CONFIGURATION_FAILED",
+            "MAME rejected the launch configuration or selected machine. Review the effective argv and bundled runtime identity.",
+        )
+    } else if output_contains_any(
+        &output,
+        &[
+            "segmentation fault",
+            "assertion failed",
+            "fatal error",
+            "aborted",
+            "stack trace",
+        ],
+    ) {
+        (
+            "MAME_CHILD_CRASHED",
+            "MAME crashed before the runtime session became ready. Review the bounded startup output and runtime identity.",
         )
     } else {
         (
@@ -289,22 +371,8 @@ pub(super) fn classify_early_exit_output(
     (code, message, content_failure)
 }
 
-fn output_indicates_content_failure(stdout: &str, stderr: &str) -> bool {
-    let output = format!("{stdout}\n{stderr}").to_ascii_lowercase();
-    [
-        "required files are missing",
-        "required rom",
-        "missing one or more required rom",
-        "rom/disk images for the selected system are missing or incorrect",
-        "one or more roms/chds for this machine are incorrect",
-        " - not found",
-        " not found!",
-        "wrong length",
-        "wrong checksum",
-        "incorrect checksum",
-    ]
-    .iter()
-    .any(|pattern| output.contains(pattern))
+fn output_contains_any(output: &str, patterns: &[&str]) -> bool {
+    patterns.iter().any(|pattern| output.contains(pattern))
 }
 
 fn fail_control_launch(
