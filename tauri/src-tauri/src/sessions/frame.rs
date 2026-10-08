@@ -86,15 +86,29 @@ impl GameFrame {
     pub(super) fn to_client_bytes(&self) -> AppResult<Vec<u8>> {
         let session = self.session_id.as_bytes();
         let session_len = u16::try_from(session.len()).map_err(|_| {
-            protocol_error("MAME_FRAME_SESSION_INVALID", "The MAME frame session identifier is too long.", serde_json::json!({}))
+            protocol_error(
+                "MAME_FRAME_SESSION_INVALID",
+                "The MAME frame session identifier is too long.",
+                serde_json::json!({}),
+            )
         })?;
         let payload_len = u32::try_from(self.payload.len()).map_err(|_| {
-            protocol_error("MAME_FRAME_PAYLOAD_TOO_LARGE", "The MAME frame payload exceeds the supported client response size.", serde_json::json!({}))
+            protocol_error(
+                "MAME_FRAME_PAYLOAD_TOO_LARGE",
+                "The MAME frame payload exceeds the supported client response size.",
+                serde_json::json!({}),
+            )
         })?;
         let header_len = FRAME_CLIENT_FIXED_HEADER_BYTES
             .checked_add(session.len())
             .and_then(|value| u16::try_from(value).ok())
-            .ok_or_else(|| protocol_error("MAME_FRAME_HEADER_INVALID", "The MAME frame client header exceeds the supported size.", serde_json::json!({})))?;
+            .ok_or_else(|| {
+                protocol_error(
+                    "MAME_FRAME_HEADER_INVALID",
+                    "The MAME frame client header exceeds the supported size.",
+                    serde_json::json!({}),
+                )
+            })?;
         let mut bytes = Vec::with_capacity(usize::from(header_len) + self.payload.len());
         bytes.extend_from_slice(FRAME_CLIENT_MAGIC);
         push_u16(&mut bytes, FRAME_PROTOCOL_VERSION);
@@ -136,26 +150,46 @@ struct FrameMailboxInner {
 
 impl FrameMailbox {
     pub(super) fn new(session_id: String) -> Self {
-        Self { inner: Arc::new(Mutex::new(FrameMailboxInner {
-            session_id, latest: None, received: 0, dropped: 0, delivered: 0,
-            last_sequence: None, last_capture_timestamp_us: None, last_width: None,
-            last_height: None, last_error_code: None, last_error_message: None,
-        })) }
+        Self {
+            inner: Arc::new(Mutex::new(FrameMailboxInner {
+                session_id,
+                latest: None,
+                received: 0,
+                dropped: 0,
+                delivered: 0,
+                last_sequence: None,
+                last_capture_timestamp_us: None,
+                last_width: None,
+                last_height: None,
+                last_error_code: None,
+                last_error_message: None,
+            })),
+        }
     }
 
     fn publish(&self, frame: GameFrame) -> AppResult<()> {
         let mut inner = recover_lock(&self.inner);
         if frame.session_id != inner.session_id {
-            return Err(protocol_error("MAME_FRAME_SESSION_MISMATCH", "A MAME frame belongs to a different gameplay session.", serde_json::json!({})));
+            return Err(protocol_error(
+                "MAME_FRAME_SESSION_MISMATCH",
+                "A MAME frame belongs to a different gameplay session.",
+                serde_json::json!({}),
+            ));
         }
         if let Some(previous) = inner.last_sequence {
             if frame.sequence <= previous {
-                return Err(protocol_error("MAME_FRAME_SEQUENCE_INVALID", "The MAME frame sequence did not advance monotonically.", serde_json::json!({
-                    "previousSequence": previous, "observedSequence": frame.sequence
-                })));
+                return Err(protocol_error(
+                    "MAME_FRAME_SEQUENCE_INVALID",
+                    "The MAME frame sequence did not advance monotonically.",
+                    serde_json::json!({
+                        "previousSequence": previous, "observedSequence": frame.sequence
+                    }),
+                ));
             }
         }
-        if inner.latest.is_some() { inner.dropped = inner.dropped.saturating_add(1); }
+        if inner.latest.is_some() {
+            inner.dropped = inner.dropped.saturating_add(1);
+        }
         inner.received = inner.received.saturating_add(1);
         inner.last_sequence = Some(frame.sequence);
         inner.last_capture_timestamp_us = Some(frame.capture_timestamp_us);
@@ -170,7 +204,9 @@ impl FrameMailbox {
     pub(super) fn take_latest(&self) -> Option<GameFrame> {
         let mut inner = recover_lock(&self.inner);
         let frame = inner.latest.take();
-        if frame.is_some() { inner.delivered = inner.delivered.saturating_add(1); }
+        if frame.is_some() {
+            inner.delivered = inner.delivered.saturating_add(1);
+        }
         frame
     }
 
@@ -215,21 +251,32 @@ impl FrameTransport {
     pub(super) fn create() -> AppResult<Option<Self>> {
         #[cfg(all(target_os = "linux", target_endian = "little"))]
         {
-            let root = Arc::new(Builder::new().prefix(".mame-tauri-frame-").tempdir()
-                .map_err(|error| transport_io_error("create temporary directory", error))?);
+            let root = Arc::new(
+                Builder::new()
+                    .prefix(".mame-tauri-frame-")
+                    .tempdir()
+                    .map_err(|error| transport_io_error("create temporary directory", error))?,
+            );
             let path = root.path().join("frames.fifo");
             mkfifoat(CWD, &path, Mode::RUSR | Mode::WUSR).map_err(|error| {
-                AppError::new("MAME_FRAME_TRANSPORT_CREATE_FAILED", "The private MAME frame transport could not be created.")
-                    .with_details(serde_json::json!({ "cause": error.to_string() }))
+                AppError::new(
+                    "MAME_FRAME_TRANSPORT_CREATE_FAILED",
+                    "The private MAME frame transport could not be created.",
+                )
+                .with_details(serde_json::json!({ "cause": error.to_string() }))
             })?;
             return Ok(Some(Self {
-                root, path, auth_token: generate_auth_token()?,
+                root,
+                path,
+                auth_token: generate_auth_token()?,
                 reader_opened: Arc::new(AtomicBool::new(false)),
                 cancelled: Arc::new(AtomicBool::new(false)),
             }));
         }
         #[cfg(not(all(target_os = "linux", target_endian = "little")))]
-        { Ok(None) }
+        {
+            Ok(None)
+        }
     }
 
     pub(super) fn configure_command(&self, command: &mut std::process::Command) -> AppResult<()> {
@@ -237,7 +284,10 @@ impl FrameTransport {
         {
             command.env("MAME_TAURI_FRAME_PIPE", path_text(&self.path)?);
             command.env("MAME_TAURI_FRAME_TOKEN", &self.auth_token);
-            command.env("MAME_TAURI_FRAME_PROTOCOL", FRAME_PROTOCOL_VERSION.to_string());
+            command.env(
+                "MAME_TAURI_FRAME_PROTOCOL",
+                FRAME_PROTOCOL_VERSION.to_string(),
+            );
         }
         #[cfg(not(all(target_os = "linux", target_endian = "little")))]
         let _ = command;
@@ -254,7 +304,10 @@ impl FrameTransport {
             let cancelled = self.cancelled.clone();
             thread::spawn(move || {
                 let mut reader = match File::open(&path) {
-                    Ok(reader) => { reader_opened.store(true, Ordering::Release); reader }
+                    Ok(reader) => {
+                        reader_opened.store(true, Ordering::Release);
+                        reader
+                    }
                     Err(error) => {
                         if !cancelled.load(Ordering::Acquire) {
                             mailbox.mark_error(&transport_io_error("open private FIFO", error));
@@ -271,7 +324,9 @@ impl FrameTransport {
                             }
                         }
                         Err(error) => {
-                            if !cancelled.load(Ordering::Acquire) { mailbox.mark_error(&error); }
+                            if !cancelled.load(Ordering::Acquire) {
+                                mailbox.mark_error(&error);
+                            }
                             break;
                         }
                     }
@@ -293,17 +348,31 @@ impl FrameTransport {
     }
 }
 
-fn read_wire_frame(reader: &mut impl Read, expected_session_id: &str, expected_auth_token: &str) -> AppResult<GameFrame> {
+fn read_wire_frame(
+    reader: &mut impl Read,
+    expected_session_id: &str,
+    expected_auth_token: &str,
+) -> AppResult<GameFrame> {
     let mut fixed = [0_u8; FRAME_WIRE_FIXED_HEADER_BYTES];
-    reader.read_exact(&mut fixed).map_err(|error| frame_read_error("header", error))?;
+    reader
+        .read_exact(&mut fixed)
+        .map_err(|error| frame_read_error("header", error))?;
     if &fixed[0..8] != FRAME_WIRE_MAGIC {
-        return Err(protocol_error("MAME_FRAME_MAGIC_INVALID", "The MAME frame stream magic value is invalid.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_MAGIC_INVALID",
+            "The MAME frame stream magic value is invalid.",
+            serde_json::json!({}),
+        ));
     }
     let version = read_u16(&fixed, 8);
     if version != FRAME_PROTOCOL_VERSION {
-        return Err(protocol_error("MAME_FRAME_VERSION_UNSUPPORTED", "The MAME frame stream protocol version is unsupported.", serde_json::json!({
-            "supportedVersion": FRAME_PROTOCOL_VERSION, "observedVersion": version
-        })));
+        return Err(protocol_error(
+            "MAME_FRAME_VERSION_UNSUPPORTED",
+            "The MAME frame stream protocol version is unsupported.",
+            serde_json::json!({
+                "supportedVersion": FRAME_PROTOCOL_VERSION, "observedVersion": version
+            }),
+        ));
     }
     let header_len = usize::from(read_u16(&fixed, 10));
     let sequence = read_u64(&fixed, 12);
@@ -319,67 +388,158 @@ fn read_wire_frame(reader: &mut impl Read, expected_session_id: &str, expected_a
     let token_len = usize::from(read_u16(&fixed, 52));
     let reserved = read_u16(&fixed, 54);
 
-    if reserved != 0 { return Err(protocol_error("MAME_FRAME_HEADER_INVALID", "The MAME frame stream header contains unsupported reserved flags.", serde_json::json!({}))); }
-    if width == 0 || height == 0 || width > MAX_FRAME_DIMENSION || height > MAX_FRAME_DIMENSION {
-        return Err(protocol_error("MAME_FRAME_DIMENSIONS_INVALID", "The MAME frame dimensions exceed the supported bounds.", serde_json::json!({ "width": width, "height": height })));
+    if reserved != 0 {
+        return Err(protocol_error(
+            "MAME_FRAME_HEADER_INVALID",
+            "The MAME frame stream header contains unsupported reserved flags.",
+            serde_json::json!({}),
+        ));
     }
-    if session_len == 0 || session_len > MAX_SESSION_ID_BYTES || token_len == 0 || token_len > MAX_AUTH_TOKEN_BYTES {
-        return Err(protocol_error("MAME_FRAME_IDENTITY_INVALID", "The MAME frame identity lengths are invalid.", serde_json::json!({})));
+    if width == 0 || height == 0 || width > MAX_FRAME_DIMENSION || height > MAX_FRAME_DIMENSION {
+        return Err(protocol_error(
+            "MAME_FRAME_DIMENSIONS_INVALID",
+            "The MAME frame dimensions exceed the supported bounds.",
+            serde_json::json!({ "width": width, "height": height }),
+        ));
+    }
+    if session_len == 0
+        || session_len > MAX_SESSION_ID_BYTES
+        || token_len == 0
+        || token_len > MAX_AUTH_TOKEN_BYTES
+    {
+        return Err(protocol_error(
+            "MAME_FRAME_IDENTITY_INVALID",
+            "The MAME frame identity lengths are invalid.",
+            serde_json::json!({}),
+        ));
     }
     let expected_header_len = FRAME_WIRE_FIXED_HEADER_BYTES
-        .checked_add(session_len).and_then(|v| v.checked_add(token_len))
-        .ok_or_else(|| protocol_error("MAME_FRAME_HEADER_INVALID", "The MAME frame header length overflowed.", serde_json::json!({})))?;
+        .checked_add(session_len)
+        .and_then(|v| v.checked_add(token_len))
+        .ok_or_else(|| {
+            protocol_error(
+                "MAME_FRAME_HEADER_INVALID",
+                "The MAME frame header length overflowed.",
+                serde_json::json!({}),
+            )
+        })?;
     if header_len != expected_header_len {
-        return Err(protocol_error("MAME_FRAME_HEADER_INVALID", "The MAME frame stream header length is inconsistent.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_HEADER_INVALID",
+            "The MAME frame stream header length is inconsistent.",
+            serde_json::json!({}),
+        ));
     }
-    let expected_stride = width.checked_mul(4)
-        .ok_or_else(|| protocol_error("MAME_FRAME_DIMENSIONS_INVALID", "The MAME frame stride overflowed.", serde_json::json!({})))?;
+    let expected_stride = width.checked_mul(4).ok_or_else(|| {
+        protocol_error(
+            "MAME_FRAME_DIMENSIONS_INVALID",
+            "The MAME frame stride overflowed.",
+            serde_json::json!({}),
+        )
+    })?;
     if stride != expected_stride {
-        return Err(protocol_error("MAME_FRAME_STRIDE_INVALID", "The MAME frame stride does not match packed RGB32.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_STRIDE_INVALID",
+            "The MAME frame stride does not match packed RGB32.",
+            serde_json::json!({}),
+        ));
     }
-    let expected_payload_len = (stride as usize).checked_mul(height as usize)
-        .ok_or_else(|| protocol_error("MAME_FRAME_PAYLOAD_TOO_LARGE", "The MAME frame payload size overflowed.", serde_json::json!({})))?;
+    let expected_payload_len = (stride as usize)
+        .checked_mul(height as usize)
+        .ok_or_else(|| {
+            protocol_error(
+                "MAME_FRAME_PAYLOAD_TOO_LARGE",
+                "The MAME frame payload size overflowed.",
+                serde_json::json!({}),
+            )
+        })?;
     if payload_len != expected_payload_len || payload_len > MAX_FRAME_PAYLOAD_BYTES {
-        return Err(protocol_error("MAME_FRAME_PAYLOAD_INVALID", "The MAME frame payload size is inconsistent or exceeds the supported cap.", serde_json::json!({
-            "expectedPayloadBytes": expected_payload_len, "observedPayloadBytes": payload_len
-        })));
+        return Err(protocol_error(
+            "MAME_FRAME_PAYLOAD_INVALID",
+            "The MAME frame payload size is inconsistent or exceeds the supported cap.",
+            serde_json::json!({
+                "expectedPayloadBytes": expected_payload_len, "observedPayloadBytes": payload_len
+            }),
+        ));
     }
     if !matches!(orientation_degrees, 0 | 90 | 180 | 270) {
-        return Err(protocol_error("MAME_FRAME_ORIENTATION_INVALID", "The MAME frame orientation is unsupported.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_ORIENTATION_INVALID",
+            "The MAME frame orientation is unsupported.",
+            serde_json::json!({}),
+        ));
     }
 
     let mut identity = vec![0_u8; session_len + token_len];
-    reader.read_exact(&mut identity).map_err(|error| frame_read_error("identity", error))?;
-    let session_id = std::str::from_utf8(&identity[..session_len])
-        .map_err(|error| protocol_error("MAME_FRAME_SESSION_INVALID", "The MAME frame session identifier is not valid UTF-8.", serde_json::json!({ "cause": error.to_string() })))?;
-    let auth_token = std::str::from_utf8(&identity[session_len..])
-        .map_err(|error| protocol_error("MAME_FRAME_AUTH_INVALID", "The MAME frame authentication token is not valid UTF-8.", serde_json::json!({ "cause": error.to_string() })))?;
+    reader
+        .read_exact(&mut identity)
+        .map_err(|error| frame_read_error("identity", error))?;
+    let session_id = std::str::from_utf8(&identity[..session_len]).map_err(|error| {
+        protocol_error(
+            "MAME_FRAME_SESSION_INVALID",
+            "The MAME frame session identifier is not valid UTF-8.",
+            serde_json::json!({ "cause": error.to_string() }),
+        )
+    })?;
+    let auth_token = std::str::from_utf8(&identity[session_len..]).map_err(|error| {
+        protocol_error(
+            "MAME_FRAME_AUTH_INVALID",
+            "The MAME frame authentication token is not valid UTF-8.",
+            serde_json::json!({ "cause": error.to_string() }),
+        )
+    })?;
     if session_id != expected_session_id {
-        return Err(protocol_error("MAME_FRAME_SESSION_MISMATCH", "The MAME frame stream belongs to a different gameplay session.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_SESSION_MISMATCH",
+            "The MAME frame stream belongs to a different gameplay session.",
+            serde_json::json!({}),
+        ));
     }
     if auth_token != expected_auth_token {
-        return Err(protocol_error("MAME_FRAME_AUTH_MISMATCH", "The MAME frame stream authentication token is invalid.", serde_json::json!({})));
+        return Err(protocol_error(
+            "MAME_FRAME_AUTH_MISMATCH",
+            "The MAME frame stream authentication token is invalid.",
+            serde_json::json!({}),
+        ));
     }
 
     let mut payload = vec![0_u8; payload_len];
-    reader.read_exact(&mut payload).map_err(|error| frame_read_error("payload", error))?;
+    reader
+        .read_exact(&mut payload)
+        .map_err(|error| frame_read_error("payload", error))?;
     Ok(GameFrame {
-        session_id: session_id.to_owned(), sequence, width, height, stride, capture_timestamp_us,
-        orientation_degrees, flags, pixel_format, payload,
+        session_id: session_id.to_owned(),
+        sequence,
+        width,
+        height,
+        stride,
+        capture_timestamp_us,
+        orientation_degrees,
+        flags,
+        pixel_format,
+        payload,
     })
 }
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 fn path_text(path: &Path) -> AppResult<&str> {
-    path.to_str().ok_or_else(|| AppError::new("MAME_FRAME_TRANSPORT_PATH_INVALID", "The private MAME frame transport path is not valid UTF-8."))
+    path.to_str().ok_or_else(|| {
+        AppError::new(
+            "MAME_FRAME_TRANSPORT_PATH_INVALID",
+            "The private MAME frame transport path is not valid UTF-8.",
+        )
+    })
 }
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 fn generate_auth_token() -> AppResult<String> {
     let mut bytes = [0_u8; FRAME_AUTH_TOKEN_BYTES];
     getrandom::fill(&mut bytes).map_err(|error| {
-        AppError::new("MAME_FRAME_AUTH_RANDOM_FAILED", "Secure randomness for the MAME frame transport is unavailable.")
-            .with_details(serde_json::json!({ "cause": error.to_string() }))
+        AppError::new(
+            "MAME_FRAME_AUTH_RANDOM_FAILED",
+            "Secure randomness for the MAME frame transport is unavailable.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
     })?;
     let mut token = String::with_capacity(FRAME_AUTH_TOKEN_BYTES * 2);
     for byte in bytes {
@@ -391,13 +551,19 @@ fn generate_auth_token() -> AppResult<String> {
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 fn transport_io_error(action: &str, error: io::Error) -> AppError {
-    AppError::new("MAME_FRAME_TRANSPORT_IO_FAILED", "The private MAME frame transport could not be initialized or read.")
-        .with_details(serde_json::json!({ "action": action, "cause": error.to_string() }))
+    AppError::new(
+        "MAME_FRAME_TRANSPORT_IO_FAILED",
+        "The private MAME frame transport could not be initialized or read.",
+    )
+    .with_details(serde_json::json!({ "action": action, "cause": error.to_string() }))
 }
 
 fn frame_read_error(part: &str, error: io::Error) -> AppError {
-    AppError::new("MAME_FRAME_STREAM_READ_FAILED", "The MAME frame stream ended or could not be read.")
-        .with_details(serde_json::json!({ "part": part, "cause": error.to_string() }))
+    AppError::new(
+        "MAME_FRAME_STREAM_READ_FAILED",
+        "The MAME frame stream ended or could not be read.",
+    )
+    .with_details(serde_json::json!({ "part": part, "cause": error.to_string() }))
 }
 
 fn protocol_error(code: &str, message: &str, details: serde_json::Value) -> AppError {
@@ -405,19 +571,43 @@ fn protocol_error(code: &str, message: &str, details: serde_json::Value) -> AppE
 }
 
 fn recover_lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match mutex.lock() { Ok(guard) => guard, Err(poisoned) => poisoned.into_inner() }
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
 }
-fn read_u16(bytes: &[u8], o: usize) -> u16 { u16::from_le_bytes([bytes[o], bytes[o + 1]]) }
-fn read_u32(bytes: &[u8], o: usize) -> u32 { u32::from_le_bytes([bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]]) }
-fn read_u64(bytes: &[u8], o: usize) -> u64 { u64::from_le_bytes([bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3], bytes[o + 4], bytes[o + 5], bytes[o + 6], bytes[o + 7]]) }
-fn push_u16(bytes: &mut Vec<u8>, value: u16) { bytes.extend_from_slice(&value.to_le_bytes()); }
-fn push_u32(bytes: &mut Vec<u8>, value: u32) { bytes.extend_from_slice(&value.to_le_bytes()); }
-fn push_u64(bytes: &mut Vec<u8>, value: u64) { bytes.extend_from_slice(&value.to_le_bytes()); }
+fn read_u16(bytes: &[u8], o: usize) -> u16 {
+    u16::from_le_bytes([bytes[o], bytes[o + 1]])
+}
+fn read_u32(bytes: &[u8], o: usize) -> u32 {
+    u32::from_le_bytes([bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]])
+}
+fn read_u64(bytes: &[u8], o: usize) -> u64 {
+    u64::from_le_bytes([
+        bytes[o],
+        bytes[o + 1],
+        bytes[o + 2],
+        bytes[o + 3],
+        bytes[o + 4],
+        bytes[o + 5],
+        bytes[o + 6],
+        bytes[o + 7],
+    ])
+}
+fn push_u16(bytes: &mut Vec<u8>, value: u16) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
+fn push_u32(bytes: &mut Vec<u8>, value: u32) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
+fn push_u64(bytes: &mut Vec<u8>, value: u64) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use super::*;
+    use std::io::Cursor;
 
     const SESSION: &str = "mame-123-1";
     const TOKEN: &str = "0123456789012345678901234567890123456789012";
@@ -450,17 +640,36 @@ mod tests {
 
     #[test]
     fn parses_bounded_authenticated_frame() {
-        let frame = read_wire_frame(&mut Cursor::new(wire_frame(7, 2, 3, SESSION, TOKEN)), SESSION, TOKEN).expect("valid frame");
-        assert_eq!((frame.sequence, frame.width, frame.height, frame.payload.len()), (7, 2, 3, 24));
+        let frame = read_wire_frame(
+            &mut Cursor::new(wire_frame(7, 2, 3, SESSION, TOKEN)),
+            SESSION,
+            TOKEN,
+        )
+        .expect("valid frame");
+        assert_eq!(
+            (
+                frame.sequence,
+                frame.width,
+                frame.height,
+                frame.payload.len()
+            ),
+            (7, 2, 3, 24)
+        );
     }
 
     #[test]
     fn rejects_cross_session_and_oversized_dimensions() {
-        let error = read_wire_frame(&mut Cursor::new(wire_frame(1, 1, 1, SESSION, TOKEN)), "other", TOKEN).expect_err("cross session");
+        let error = read_wire_frame(
+            &mut Cursor::new(wire_frame(1, 1, 1, SESSION, TOKEN)),
+            "other",
+            TOKEN,
+        )
+        .expect_err("cross session");
         assert_eq!(error.code, "MAME_FRAME_SESSION_MISMATCH");
         let mut bytes = wire_frame(1, 1, 1, SESSION, TOKEN);
         bytes[20..24].copy_from_slice(&9000_u32.to_le_bytes());
-        let error = read_wire_frame(&mut Cursor::new(bytes), SESSION, TOKEN).expect_err("oversized");
+        let error =
+            read_wire_frame(&mut Cursor::new(bytes), SESSION, TOKEN).expect_err("oversized");
         assert_eq!(error.code, "MAME_FRAME_DIMENSIONS_INVALID");
     }
 
@@ -468,11 +677,20 @@ mod tests {
     fn mailbox_replaces_stale_frame_instead_of_queueing() {
         let mailbox = FrameMailbox::new(SESSION.to_owned());
         for sequence in [1_u64, 2] {
-            mailbox.publish(GameFrame {
-                session_id: SESSION.to_owned(), sequence, width: 1, height: 1, stride: 4,
-                capture_timestamp_us: sequence, orientation_degrees: 0, flags: 0,
-                pixel_format: FramePixelFormat::Bgrx8888Le, payload: vec![sequence as u8; 4],
-            }).expect("publish");
+            mailbox
+                .publish(GameFrame {
+                    session_id: SESSION.to_owned(),
+                    sequence,
+                    width: 1,
+                    height: 1,
+                    stride: 4,
+                    capture_timestamp_us: sequence,
+                    orientation_degrees: 0,
+                    flags: 0,
+                    pixel_format: FramePixelFormat::Bgrx8888Le,
+                    payload: vec![sequence as u8; 4],
+                })
+                .expect("publish");
         }
         assert_eq!(mailbox.snapshot().dropped, 1);
         assert_eq!(mailbox.take_latest().expect("latest").sequence, 2);
@@ -482,12 +700,21 @@ mod tests {
     #[test]
     fn client_buffer_does_not_expose_auth_token() {
         let frame = GameFrame {
-            session_id: SESSION.to_owned(), sequence: 9, width: 1, height: 1, stride: 4,
-            capture_timestamp_us: 99, orientation_degrees: 270, flags: 2,
-            pixel_format: FramePixelFormat::Bgrx8888Le, payload: vec![1, 2, 3, 0],
+            session_id: SESSION.to_owned(),
+            sequence: 9,
+            width: 1,
+            height: 1,
+            stride: 4,
+            capture_timestamp_us: 99,
+            orientation_degrees: 270,
+            flags: 2,
+            pixel_format: FramePixelFormat::Bgrx8888Le,
+            payload: vec![1, 2, 3, 0],
         };
         let bytes = frame.to_client_bytes().expect("client bytes");
         assert_eq!(&bytes[..8], b"MTGFRM01");
-        assert!(bytes.windows(TOKEN.len()).all(|window| window != TOKEN.as_bytes()));
+        assert!(bytes
+            .windows(TOKEN.len())
+            .all(|window| window != TOKEN.as_bytes()));
     }
 }
