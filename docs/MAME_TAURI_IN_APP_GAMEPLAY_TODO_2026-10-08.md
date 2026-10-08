@@ -1,7 +1,7 @@
 # MAME Tauri In-App Gameplay TODO
 
 **Date:** 2026-10-08  
-**Status:** Open; none of the implementation phases below are complete by virtue of this plan  
+**Status:** In progress; automated implementation and documentation are substantially reconciled, but real-ROM performance and full-AppImage desktop gameplay qualification remain open  
 **Specification:** [MAME Tauri In-App Gameplay Specification](MAME_TAURI_IN_APP_GAMEPLAY_SPEC_2026-10-08.md)
 
 This TODO replaces the former assumption that a supervised MAME process plus a separate SDL window constitutes playable Tauri gameplay. It tracks the complete path from discovered local ROMs through live video, controls, diagnostics, and validation in the full AppImage.
@@ -59,24 +59,24 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 ## Phase 4 — Fix ROM discovery, audit, and launch parity
 
 - [ ] Verify how the original installed MAME resolves the user's actual ROM path and effective `rompath`; capture evidence from the same host/configuration.
-- [ ] Make `~/mame/roms` discoverable by default for the normal Linux user profile while respecting configured paths, MAME config, and documented precedence. Never hardcode the developer's home directory.
-- [ ] Ensure configured parent path `/home/<user>/mame` correctly resolves its `roms` subdirectory when that is the supported convention; avoid duplicating or hiding paths in the UI.
-- [ ] Use one effective-path computation for metadata/audit availability and actual game launch. Show the effective paths and validation/readability status in settings/diagnostics.
+- [x] Make `~/mame/roms` discoverable by default for the normal Linux user profile while respecting configured paths and documented precedence. Resolution uses the runtime home directory and never hardcodes the developer's home.
+- [x] Ensure a configured `<home>/mame` parent resolves its `roms` subdirectory when present; Rust tests cover the convention without hardcoding a username.
+- [x] Use one effective-path computation for audit availability and actual game launch. Diagnostics now show effective paths, source, and validation/readability status.
 - [ ] Separate catalog metadata refresh, content audit, and ROM installation in UI copy. Do not require metadata import to discover local ROMs, and do not imply the app can acquire ROM content.
 - [ ] Keep bundled MAME audit identity stable across random AppImage mount locations; verify migration/rebase of existing audit data and relaunch in a different mount path.
 - [ ] Verify complete and best-available sets are reported accurately; do not claim that a best-available result has local files when none are required/present. Distinguish driver support from content availability.
-- [ ] Gate launch or provide an explicit audit path for Unknown, stale, and unavailable content. Preserve a deliberate override only if the UX explains the risk and its result is diagnosable.
+- [x] Gate launch and provide explicit audit paths for Unknown/stale/unavailable content. Tests verify unaudited and missing-content launches fail closed before spawn.
 - [ ] Test paths with spaces, non-ASCII names, multiple directories, missing directories, permissions errors, and AppImage execution.
 
 **Exit gate:** The user's default ROM folder appears after a normal launch, audit and Start use identical paths, and a valid locally available machine can reach the first-frame-ready state without manual catalog import.
 
 ## Phase 5 — Diagnose startup and frame failures separately
 
-- [ ] Preserve terminal session snapshots long enough for the UI and diagnostics panel to read exit code, stdout/stderr tails, argv, runtime identity, content paths, and selected machine even when there is no active session.
-- [ ] Map missing ROM/CHD/BIOS, invalid paths, permissions, unsupported renderer/runtime, child crash, control-channel failure, and generic early exit to distinct user-facing diagnoses.
-- [ ] Replace the primary `CONTROL_CHANNEL_CLOSED` message with the underlying MAME startup cause where output supports a classification; retain raw protocol codes in developer details.
-- [ ] Add a separate no-first-frame timeout and post-start stream-stall timeout, with last valid frame metadata and actionable recovery.
-- [ ] Ensure diagnostics export includes the bounded/sanitized startup output and separate runtime, video, input, and content states.
+- [x] Preserve terminal session snapshots long enough for UI/diagnostics to read exit status, bounded stdout/stderr, argv, runtime identity, effective content paths, and machine identity.
+- [x] Map missing/incorrect content, invalid paths/permissions, unsupported runtime, child crash, control-channel failure, and generic early exit to distinct stable diagnoses.
+- [x] Replace the primary `CONTROL_CHANNEL_CLOSED` message with the underlying MAME startup cause where output supports classification; retain the raw runtime-control code in developer details.
+- [x] Add separate no-first-frame and post-start stream-stall timeouts; frame metrics retain last sequence/dimensions/error state for diagnostics.
+- [x] Ensure diagnostics export includes bounded/sanitized startup output and separate runtime, video, input, session, and effective content-path states.
 - [ ] Test app shutdown and retry after each pre-ready and post-ready failure so a stale failed session cannot hide a new one.
 
 **Exit gate:** Every failure in the spec produces a specific user-visible state, useful details, and a retry/return path; runtime ready is never misreported as video ready.
