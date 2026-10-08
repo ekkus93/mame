@@ -10,6 +10,11 @@ import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
 import type { SessionSnapshot } from "../backend/types";
 import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
 import {
+  acceptFrameSequence,
+  frameDisplaySize,
+  framePollFailureDecision,
+} from "./gameSurfaceState";
+import {
   combineInputState,
   diffInputState,
   gamepadInputState,
@@ -50,9 +55,11 @@ function drawFrame(
   }
   stagingContext.putImageData(new ImageData(bgrxToRgba(frame), frame.width, frame.height), 0, 0);
 
-  const rotated = frame.orientationDegrees === 90 || frame.orientationDegrees === 270;
-  const displayWidth = rotated ? frame.height : frame.width;
-  const displayHeight = rotated ? frame.width : frame.height;
+  const { width: displayWidth, height: displayHeight } = frameDisplaySize(
+    frame.width,
+    frame.height,
+    frame.orientationDegrees,
+  );
   if (canvas.width !== displayWidth) canvas.width = displayWidth;
   if (canvas.height !== displayHeight) canvas.height = displayHeight;
 
@@ -203,10 +210,7 @@ export function GameSurface({
         if (disposed) return;
 
         const frame = parseGameFrame(raw, session.sessionId);
-        if (frame.sequence <= lastSequence) {
-          throw new Error("The MAME gameplay frame sequence moved backwards.");
-        }
-        lastSequence = frame.sequence;
+        lastSequence = acceptFrameSequence(lastSequence, frame.sequence);
         const presentationStartedAt = performance.now();
         drawFrame(canvas, staging, frame, smoothScaling);
         const presentationDurationUs = Math.max(
@@ -244,17 +248,19 @@ export function GameSurface({
       } catch (error: unknown) {
         if (disposed) return;
         const now = performance.now();
-        if (isAppErrorEnvelope(error) && error.code === "MAME_FRAME_NOT_READY") {
-          if (firstFrameAt === null && now - startedAt >= FIRST_FRAME_TIMEOUT_MS) {
-            setFrameState("stalled");
-            setFailure("MAME is running, but no gameplay frame has arrived yet.");
-          } else if (firstFrameAt !== null && now - lastPresentedAt >= FRAME_STALL_TIMEOUT_MS) {
-            setFrameState("stalled");
-            setFailure("The MAME gameplay frame stream has stalled.");
-          }
-        } else {
-          setFrameState("error");
-          setFailure(errorMessage(error));
+        const decision = framePollFailureDecision({
+          errorCode: isAppErrorEnvelope(error) ? error.code : null,
+          errorMessage: errorMessage(error),
+          nowMs: now,
+          startedAtMs: startedAt,
+          firstFrameAtMs: firstFrameAt,
+          lastPresentedAtMs: lastPresentedAt,
+          firstFrameTimeoutMs: FIRST_FRAME_TIMEOUT_MS,
+          frameStallTimeoutMs: FRAME_STALL_TIMEOUT_MS,
+        });
+        if (decision) {
+          setFrameState(decision.state);
+          setFailure(decision.message);
         }
       }
 
