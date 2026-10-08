@@ -144,6 +144,7 @@ pub(super) struct FrameMailbox {
 
 struct FrameMailboxInner {
     session_id: String,
+    closed: bool,
     latest: Option<GameFrame>,
     received: u64,
     dropped: u64,
@@ -166,6 +167,7 @@ impl FrameMailbox {
         Self {
             inner: Arc::new(Mutex::new(FrameMailboxInner {
                 session_id,
+                closed: false,
                 latest: None,
                 received: 0,
                 dropped: 0,
@@ -187,6 +189,13 @@ impl FrameMailbox {
 
     fn publish(&self, frame: GameFrame) -> AppResult<()> {
         let mut inner = recover_lock(&self.inner);
+        if inner.closed {
+            return Err(protocol_error(
+                "MAME_FRAME_SESSION_CLOSED",
+                "Gameplay frames cannot be published after the session has closed.",
+                serde_json::json!({ "sessionId": inner.session_id }),
+            ));
+        }
         if frame.session_id != inner.session_id {
             return Err(protocol_error(
                 "MAME_FRAME_SESSION_MISMATCH",
@@ -288,7 +297,9 @@ impl FrameMailbox {
     }
 
     pub(super) fn close(&self) {
-        recover_lock(&self.inner).latest = None;
+        let mut inner = recover_lock(&self.inner);
+        inner.closed = true;
+        inner.latest = None;
     }
 
     pub(super) fn stream_error(&self) -> Option<AppError> {
@@ -413,8 +424,13 @@ impl FrameTransport {
                 loop {
                     match read_wire_frame(&mut reader, &session_id, &auth_token) {
                         Ok(frame) => {
+                            if cancelled.load(Ordering::Acquire) {
+                                break;
+                            }
                             if let Err(error) = mailbox.publish(frame) {
-                                mailbox.mark_error(&error);
+                                if !cancelled.load(Ordering::Acquire) {
+                                    mailbox.mark_error(&error);
+                                }
                                 break;
                             }
                         }
@@ -862,6 +878,31 @@ mod tests {
             .expect("publish");
         mailbox.close();
         assert!(mailbox.take_latest().is_none());
+    }
+
+    #[test]
+    fn closed_mailbox_rejects_late_frame_and_preserves_terminal_metrics() {
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        mailbox.close();
+        let error = mailbox
+            .publish(GameFrame {
+                session_id: SESSION.to_owned(),
+                sequence: 1,
+                width: 1,
+                height: 1,
+                stride: 4,
+                capture_timestamp_us: 1,
+                orientation_degrees: 0,
+                flags: 0,
+                pixel_format: FramePixelFormat::Bgrx8888Le,
+                payload: vec![0; 4],
+            })
+            .expect_err("closed session must reject frames from a late producer");
+        assert_eq!(error.code, "MAME_FRAME_SESSION_CLOSED");
+        assert!(mailbox.take_latest().is_none());
+        let metrics = mailbox.snapshot();
+        assert_eq!(metrics.received, 0);
+        assert_eq!(metrics.dropped, 0);
     }
 
     #[test]
