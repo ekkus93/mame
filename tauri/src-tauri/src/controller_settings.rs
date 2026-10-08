@@ -143,8 +143,9 @@ fn controller_profile_configuration(
         ControllerProfileApplicationStatus::Unassigned
     };
     let status_message = match application_status {
-        ControllerProfileApplicationStatus::Unassigned =>
-            "No controller profile is selected for this scope.".to_owned(),
+        ControllerProfileApplicationStatus::Unassigned => {
+            "No controller profile is selected for this scope.".to_owned()
+        }
         ControllerProfileApplicationStatus::AssignedNotApplied => {
             match effective_profile
                 .as_ref()
