@@ -58,7 +58,7 @@ export function MameCatalogStatePanel({
             : `The active catalog belongs to a different MAME executable or version and contains ${state.previousMachineCount.toLocaleString()} machines. Refresh is starting automatically before browsing or launching.`;
       } else {
         detail =
-          "No successfully imported MAME machine catalog is active. Metadata import is starting automatically to populate the machine list.";
+          "No successfully imported MAME machine catalog is active. Metadata import is starting automatically to populate the machine list. This imports machine metadata only; it does not download or install ROM, CHD, BIOS, or software content.";
       }
       showConfigure = true;
       showImport = true;

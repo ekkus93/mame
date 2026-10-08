@@ -119,7 +119,9 @@ export function PathConfigurationPanel({
           <h2 id="content-paths-heading">ROM and software paths</h2>
           <p>
             Paths are searched in the order shown. Unavailable paths stay configured and are
-            reported explicitly instead of being discarded.
+            reported explicitly instead of being discarded. These settings tell MAME where to
+            search for content; the application does not download or install ROM, CHD, BIOS, or
+            software files. Use media audit to verify content already present on disk.
           </p>
         </div>
       </div>

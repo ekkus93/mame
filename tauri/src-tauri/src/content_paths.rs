@@ -218,6 +218,30 @@ mod tests {
     }
 
     #[test]
+    fn configured_paths_support_spaces_and_non_ascii_names() {
+        let root = temp_root("unicode-paths");
+        let roms = root.join("roms with spaces").join("日本語");
+        fs::create_dir_all(&roms).expect("create Unicode ROM directory");
+
+        let configured = ContentPathsV1 {
+            rom_paths: vec![PlatformPath::new(&roms)],
+            software_paths: Vec::new(),
+            chd_paths: Vec::new(),
+        };
+        let effective = effective_content_paths(&configured);
+
+        assert_eq!(effective.entries.len(), 1);
+        assert_eq!(effective.entries[0].validation.path.as_path(), roms);
+        assert_eq!(
+            effective.entries[0].validation.status,
+            PathValidationStatus::Accessible
+        );
+        assert_eq!(effective.media_search_paths()[0].as_path(), roms);
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn missing_configured_paths_remain_visible_with_validation_status() {
         let missing = temp_root("missing").join("roms");
         let configured = ContentPathsV1 {
