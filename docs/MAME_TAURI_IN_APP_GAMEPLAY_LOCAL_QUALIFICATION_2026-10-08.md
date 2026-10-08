@@ -35,6 +35,31 @@ The script performs the non-visual evidence collection automatically:
 
 The operator still performs the user-facing interactions inside the actual AppImage: audit/start, gameplay, keyboard/gamepad, native sound/mute, resize, fullscreen, stop/relaunch, negative content/path cases, and diagnostics export. Those observations are deliberately explicit because an Xvfb window-existence check does not prove playable gameplay.
 
+## Isolated normal-first-run review
+
+To qualify first-run behavior without relying on an existing developer catalog,
+audit database, or settings profile, use the companion wrapper from a **real**
+desktop session:
+
+```bash
+scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh \
+  /absolute/path/to/MAME-Tauri-Frontend.AppImage \
+  <machine-short-name> \
+  "$HOME/mame/roms"
+```
+
+It creates a temporary HOME and separate XDG config/data/cache directories,
+exposes the selected existing ROM directory through the conventional
+`~/mame/roms` path by symlink (without copying ROMs), and runs the same full
+AppImage capture script. The temporary profile is deleted on exit; the evidence
+directory retains `fresh-profile-manifest.txt`,
+`fresh-profile-instructions.txt`, and the ordinary qualification files.
+The user's existing application profile is not read or changed by the wrapper.
+Run without custom runtime/path environment overrides, and confirm first-run
+catalog behavior, ROM discovery, audit, launch, controls, and diagnostics in
+the actual desktop UI. This wrapper prepares a reproducible review; it does
+**not** itself satisfy the user-facing Phase 7 acceptance checkbox.
+
 ## Required evidence
 
 A qualifying evidence directory contains at least:

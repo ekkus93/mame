@@ -117,6 +117,8 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 **Exit gate:** User-facing and engineering docs agree with actual behavior, and all remaining limitations are explicit and acceptable for the first supported release.
 
+> **2026-10-08 fresh-profile harness:** `scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh` isolates HOME/XDG state and exposes the selected ROM directory through the normal `~/mame/roms` convention. The Phase 7 first-run review remains unchecked until a real desktop operator records the UI observations and diagnostics from the full AppImage.
+
 ## Definition of done
 
 Every phase exit gate has evidence. Passing unit tests or seeing a MAME child process alive is not sufficient: the required proof is a playable machine rendered by the TypeScript canvas in the full AppImage, using the user's normal ROM directory and controls, with useful diagnostics for negative cases.
