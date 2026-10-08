@@ -192,6 +192,97 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn pre_ready_failure_allows_clean_retry_with_a_new_session() {
+        let bad_root = unique_temp_dir("pre-ready-retry-bad");
+        let good_root = unique_temp_dir("pre-ready-retry-good");
+        let bad_executable = write_pre_ready_fake_mame(
+            &bad_root,
+            "printf '%s\\n' 'Required files are missing, the machine cannot be run.' >&2\nexit 2\n",
+        );
+        let good_executable = write_fake_mame(&good_root, "exit 0\n");
+        let supervisor = SessionSupervisor::default();
+
+        let first_error = supervisor
+            .launch(
+                MameExecutableSource::external(&bad_executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect_err("pre-ready failure must fail launch");
+        assert_eq!(first_error.code, "MAME_CONTENT_LAUNCH_FAILED");
+
+        let retried = supervisor
+            .launch(
+                MameExecutableSource::external(&good_executable),
+                target("galaga"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("terminal pre-ready failure must not block retry");
+        assert_eq!(retried.state, SessionState::Running);
+        assert_eq!(retried.machine, "galaga");
+
+        let exited = wait_for_terminal(&supervisor);
+        assert_eq!(exited.state, SessionState::Exited);
+        assert_eq!(exited.exit_code, Some(0));
+
+        fs::remove_dir_all(bad_root).expect("remove failed fake MAME directory");
+        fs::remove_dir_all(good_root).expect("remove retry fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn post_ready_crash_allows_clean_retry_without_stale_session_state() {
+        let crash_root = unique_temp_dir("post-ready-retry-crash");
+        let retry_root = unique_temp_dir("post-ready-retry-good");
+        let crash_executable =
+            write_fake_mame(&crash_root, "printf '%s\\n' 'fatal fake failure' >&2\nexit 7\n");
+        let retry_executable = write_fake_mame(&retry_root, "exit 0\n");
+        let supervisor = SessionSupervisor::default();
+
+        let first = supervisor
+            .launch(
+                MameExecutableSource::external(&crash_executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("crashing fake MAME must reach runtime-ready first");
+        let crashed = wait_for_terminal(&supervisor);
+        assert_eq!(crashed.state, SessionState::Crashed);
+        assert_eq!(crashed.exit_code, Some(7));
+
+        let retried = supervisor
+            .launch(
+                MameExecutableSource::external(&retry_executable),
+                target("galaga"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("terminal post-ready crash must not block retry");
+        assert_ne!(retried.session_id, first.session_id);
+        assert_eq!(retried.state, SessionState::Running);
+        assert_eq!(retried.machine, "galaga");
+
+        let exited = wait_for_terminal(&supervisor);
+        assert_eq!(exited.state, SessionState::Exited);
+        assert_eq!(exited.exit_code, Some(0));
+
+        fs::remove_dir_all(crash_root).expect("remove crashing fake MAME directory");
+        fs::remove_dir_all(retry_root).expect("remove retry fake MAME directory");
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn diagnostics_are_bounded_to_recent_tail() {
         let root = unique_temp_dir("bounded-output");
         let executable = write_fake_mame(
