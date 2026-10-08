@@ -231,6 +231,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   useEffect(() => {
     let disposed = false;
     let animationFrame = 0;
+    const acceptedInputs = acceptedInputsRef.current;
 
     const releaseDesiredInputs = () => {
       keyboardInputsRef.current.clear();
@@ -315,11 +316,11 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       inputOwnedRef.current = false;
       releaseDesiredInputs();
-      const release = Array.from(acceptedInputsRef.current.keys()).map((token) => ({
+      const release = Array.from(acceptedInputs.keys()).map((token) => ({
         token,
         value: 0,
       }));
-      acceptedInputsRef.current.clear();
+      acceptedInputs.clear();
       if (release.length > 0) {
         void setMameInputs({ sessionId: session.sessionId, updates: release.slice(0, 32) }).catch(
           () => undefined,
