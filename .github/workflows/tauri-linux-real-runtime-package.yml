@@ -273,6 +273,17 @@ jobs:
         working-directory: tauri
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
 
+      - name: Upload branch Debian package and AppImage
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: actions/upload-artifact@v6
+        with:
+          name: real-bundled-mame-linux-packages-${{ github.sha }}
+          path: |
+            tauri/src-tauri/target/release/bundle/deb/*.deb
+            tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload tagged Debian package and AppImage
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v6
