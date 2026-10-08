@@ -23,8 +23,8 @@ use crate::{
     config::LaunchPreferencesV1,
     errors::{AppError, AppResult},
     mame::{
-        build_launch_argv_with_preferences, inspect_executable, validate_executable_path,
-        MameExecutableIdentity, MameExecutableSource, MameLaunchTarget,
+        build_launch_argv_with_preferences, force_in_app_gameplay_video, inspect_executable,
+        validate_executable_path, MameExecutableIdentity, MameExecutableSource, MameLaunchTarget,
     },
 };
 
