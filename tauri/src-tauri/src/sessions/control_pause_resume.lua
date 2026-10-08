@@ -565,13 +565,6 @@ local gameplay_frame_sequence = 0
 local gameplay_frame_disabled =
     gameplay_frame_pipe == nil or gameplay_frame_token == nil or gameplay_frame_protocol ~= 1
 
-local function first_gameplay_screen()
-    for _, screen in pairs(manager.machine.screens) do
-        return screen
-    end
-    return nil
-end
-
 local function close_gameplay_frame_stream()
     if gameplay_frame_stream ~= nil then
         pcall(function () gameplay_frame_stream:close() end)
@@ -580,9 +573,7 @@ local function close_gameplay_frame_stream()
 end
 
 local function gameplay_capture_frame()
-    if gameplay_frame_disabled then return end
-    local screen = first_gameplay_screen()
-    if screen == nil then return end
+    if gameplay_frame_disabled or manager.machine.video.skip_this_frame then return end
 
     if gameplay_frame_stream == nil then
         local ok, stream = pcall(io.open, gameplay_frame_pipe, "wb")
@@ -594,9 +585,15 @@ local function gameplay_capture_frame()
         pcall(function () gameplay_frame_stream:setvbuf("no") end)
     end
 
+    -- screen:pixels() may return palette indices for indexed displays.  The
+    -- video manager snapshot path renders through MAME's native C++ software
+    -- renderer and guarantees RGB32 pixels for the selected snapshot target.
+    -- It also applies the target's configured orientation/layout, so the
+    -- transport advertises orientation=0 and no additional flip flags.
     local ok, pixels, width, height = pcall(function ()
-        local data, visible_width, visible_height = screen:pixels()
-        return data, visible_width, visible_height
+        local snapshot_width, snapshot_height = manager.machine.video:snapshot_size()
+        local data = manager.machine.video:snapshot_pixels()
+        return data, snapshot_width, snapshot_height
     end)
     if not ok or type(pixels) ~= "string" or type(width) ~= "number" or type(height) ~= "number" then
         return
@@ -607,8 +604,6 @@ local function gameplay_capture_frame()
     local stride = width * 4
     if width <= 0 or height <= 0 or #pixels ~= stride * height then return end
 
-    local orientation, flip_x, flip_y = screen:orientation()
-    local flags = (flip_x and 1 or 0) | (flip_y and 2 or 0)
     gameplay_frame_sequence = gameplay_frame_sequence + 1
     local capture_timestamp_us = math.floor(manager.machine.time:as_double() * 1000000)
     local header_len = 56 + #session_id + #gameplay_frame_token
@@ -616,7 +611,7 @@ local function gameplay_capture_frame()
         "<I2I2I8I4I4I4I4I8I2I2I2I2I2I2",
         gameplay_frame_protocol, header_len, gameplay_frame_sequence,
         width, height, stride, #pixels, capture_timestamp_us,
-        orientation, flags, 1, #session_id, #gameplay_frame_token, 0
+        0, 0, 1, #session_id, #gameplay_frame_token, 0
     )
 
     local write_ok = pcall(function ()

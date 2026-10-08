@@ -48,6 +48,13 @@ mod tests {
         assert!(script.contains("manager.machine:soft_reset()"));
         assert!(!script.contains("hard_reset()"));
         assert!(script.contains("CONTROL_UNSUPPORTED_RESET_KIND"));
+        assert!(script.contains("manager.machine.video:snapshot_size()"));
+        assert!(script.contains("manager.machine.video:snapshot_pixels()"));
+        assert!(script.contains("manager.machine.video.skip_this_frame"));
+        assert!(
+            !script.contains("screen:pixels()"),
+            "gameplay capture must not interpret palette indices as RGB pixels"
+        );
         let ready_frame = script
             .lines()
             .find_map(|line| {
