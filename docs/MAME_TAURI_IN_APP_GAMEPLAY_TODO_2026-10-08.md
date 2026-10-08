@@ -37,12 +37,15 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Add backpressure/latest-frame behavior and metrics for received, dropped, delivered, and presented frames, presentation duration, age, dimensions, and stream errors/stalls.
 - [x] Expose frames to the WebView via the selected typed binary command without a generic socket/filesystem capability.
 - [x] Implement a React `GameSurface` with a TypeScript-owned canvas. Draw raw frames, resize backing resolution, preserve aspect ratio, and support nearest/smooth scaling.
-- [ ] Support dynamic screen dimensions, rotation, and multiple screens according to the selected initial scope. Reject or clearly explain unsupported topologies.
-- [ ] Add loading, first-frame, active, stalled, unsupported, stopping, and ended states. Require both runtime-ready and first-frame-presented before reporting gameplay as ready.
+- [x] Support dynamic screen dimensions and rotation, with the selected initial multi-screen scope documented as MAME's single composed snapshot target. The canvas resizes per frame and handles 0/90/180/270-degree orientation; independently addressable per-screen WebView surfaces remain an explicit non-goal/gap.
+- [x] Add loading, first-frame, active, stalled, unsupported, stopping, and ended gameplay presentation states. The surface remains in waiting/first-frame state until a valid frame is presented even after runtime readiness.
 - [x] Add fullscreen, return/stop, pause/resume, reset, mute controls as available, and accessible focus indicators. Unsupported live master-volume control is not falsely claimed.
 - [x] Ensure exit/stop/app shutdown/crash/component teardown release child and transport resources. Supervisor drop tests plus closed-mailbox/late-frame tests cover cleanup and stale-frame prevention.
 
 **Exit gate:** A real game frame is drawn by the frontend canvas in the main Tauri window and frame stream lifecycle survives stop/relaunch/failure without leaking or displaying stale frames.
+
+
+> **2026-10-08 presentation-state/topology evidence:** `GameSurface` resizes its backing canvas from each validated frame, `frameDisplaySize` covers all four supported quarter-turn orientations, unsupported transport/protocol outcomes have a dedicated presentation state, terminal sessions map to an ended state, and active presentation begins only after a valid first frame. The initial multi-screen contract is MAME's composed snapshot target; separate independently controlled screen surfaces are not claimed.
 
 ## Phase 3 — Input, audio, and normal gameplay behavior
 
