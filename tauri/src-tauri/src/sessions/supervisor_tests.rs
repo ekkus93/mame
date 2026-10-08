@@ -344,6 +344,99 @@ mod tests {
         fs::remove_dir_all(root).expect("remove fake MAME directory");
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn deterministic_fake_frame_producer_reaches_session_mailbox() {
+        let root = unique_temp_dir("gameplay-frame-producer");
+        let executable = write_fake_mame(
+            &root,
+            r#"session_id=$(sed -n 's/^local session_id = "\(.*\)"$/\1/p' "$bootstrap")
+python3 - "$MAME_TAURI_FRAME_PIPE" "$MAME_TAURI_FRAME_TOKEN" "$session_id" <<'PY'
+import struct
+import sys
+
+pipe, token, session_id = sys.argv[1:]
+width, height = 2, 1
+pixels = bytes([3, 2, 1, 0, 30, 20, 10, 0])
+header_len = 56 + len(session_id.encode()) + len(token.encode())
+header = b"MTFRAME1" + struct.pack(
+    "<HHQIIIIQHHHHHH",
+    1,
+    header_len,
+    1,
+    width,
+    height,
+    width * 4,
+    len(pixels),
+    1234,
+    0,
+    0,
+    1,
+    len(session_id.encode()),
+    len(token.encode()),
+    0,
+)
+with open(pipe, "wb", buffering=0) as stream:
+    stream.write(header)
+    stream.write(session_id.encode())
+    stream.write(token.encode())
+    stream.write(pixels)
+PY
+trap 'exit 0' TERM
+while :; do sleep 1; done
+"#,
+        );
+        let supervisor = SessionSupervisor::default();
+
+        let started = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("fake MAME must launch");
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let frame = loop {
+            match supervisor.take_latest_frame(&started.session_id) {
+                Ok(frame) => break frame,
+                Err(error) if error.code == "MAME_FRAME_NOT_READY" => {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "fake gameplay frame did not arrive before deadline: {error:?}"
+                    );
+                    thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => panic!("unexpected gameplay frame error: {error:?}"),
+            }
+        };
+
+        let bytes = frame.to_client_bytes().expect("serialize gameplay frame");
+        assert_eq!(&bytes[..8], b"MTGFRM01");
+        assert_eq!(u64::from_le_bytes(bytes[12..20].try_into().unwrap()), 1);
+        assert_eq!(u32::from_le_bytes(bytes[20..24].try_into().unwrap()), 2);
+        assert_eq!(u32::from_le_bytes(bytes[24..28].try_into().unwrap()), 1);
+        let metrics = supervisor
+            .frame_metrics(&started.session_id)
+            .expect("frame metrics");
+        assert_eq!(metrics.received, 1);
+        assert_eq!(metrics.delivered, 1);
+        assert_eq!(metrics.dropped, 0);
+
+        supervisor
+            .stop(&started.session_id)
+            .expect("fake MAME must stop cleanly");
+        let error = supervisor
+            .take_latest_frame(&started.session_id)
+            .expect_err("terminal session must not serve stale gameplay video");
+        assert_eq!(error.code, "MAME_FRAME_SESSION_NOT_RUNNING");
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
     #[cfg(unix)]
     fn write_pre_ready_fake_mame(root: &PathBuf, launch_body: &str) -> PathBuf {
         use std::os::unix::fs::PermissionsExt;
