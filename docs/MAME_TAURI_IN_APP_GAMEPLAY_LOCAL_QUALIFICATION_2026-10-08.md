@@ -42,7 +42,7 @@ audit database, or settings profile, use the companion wrapper from a **real**
 desktop session:
 
 ```bash
-scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh \
+bash scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh \
   /absolute/path/to/MAME-Tauri-Frontend.AppImage \
   <machine-short-name> \
   "$HOME/mame/roms"
