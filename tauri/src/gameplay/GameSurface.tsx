@@ -6,12 +6,7 @@ import type { MameInputUpdate, SessionSnapshot } from "../backend/types";
 import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
 import "./GameSurface.css";
 
-type FrameState =
-  | "waitingRuntime"
-  | "waitingFrame"
-  | "active"
-  | "stalled"
-  | "error";
+type FrameState = "waitingRuntime" | "waitingFrame" | "active" | "stalled" | "error";
 
 const FIRST_FRAME_TIMEOUT_MS = 5_000;
 const FRAME_STALL_TIMEOUT_MS = 2_000;
@@ -87,11 +82,7 @@ function drawFrame(
   if (!stagingContext) {
     throw new Error("The browser could not create the gameplay staging canvas.");
   }
-  stagingContext.putImageData(
-    new ImageData(bgrxToRgba(frame), frame.width, frame.height),
-    0,
-    0,
-  );
+  stagingContext.putImageData(new ImageData(bgrxToRgba(frame), frame.width, frame.height), 0, 0);
 
   const rotated = frame.orientationDegrees === 90 || frame.orientationDegrees === 270;
   const displayWidth = rotated ? frame.height : frame.width;
@@ -149,9 +140,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   );
   const [failure, setFailure] = useState<string | null>(null);
   const [smoothScaling, setSmoothScaling] = useState(false);
-  const [frameSummary, setFrameSummary] = useState<string>(
-    "No frame presented yet.",
-  );
+  const [frameSummary, setFrameSummary] = useState<string>("No frame presented yet.");
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -211,16 +200,10 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
         if (disposed) return;
         const now = performance.now();
         if (isAppErrorEnvelope(error) && error.code === "MAME_FRAME_NOT_READY") {
-          if (
-            firstFrameAt === null &&
-            now - startedAt >= FIRST_FRAME_TIMEOUT_MS
-          ) {
+          if (firstFrameAt === null && now - startedAt >= FIRST_FRAME_TIMEOUT_MS) {
             setFrameState("stalled");
             setFailure("MAME is running, but no gameplay frame has arrived yet.");
-          } else if (
-            firstFrameAt !== null &&
-            now - lastPresentedAt >= FRAME_STALL_TIMEOUT_MS
-          ) {
+          } else if (firstFrameAt !== null && now - lastPresentedAt >= FRAME_STALL_TIMEOUT_MS) {
             setFrameState("stalled");
             setFailure("The MAME gameplay frame stream has stalled.");
           }
@@ -256,17 +239,12 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
 
     const updateGamepad = () => {
       const next = new Map<string, number>();
-      if (
-        inputOwnedRef.current &&
-        typeof navigator.getGamepads === "function"
-      ) {
+      if (inputOwnedRef.current && typeof navigator.getGamepads === "function") {
         const gamepad = Array.from(navigator.getGamepads()).find(
           (candidate): candidate is Gamepad => candidate !== null && candidate.connected,
         );
         if (gamepad) {
-          for (const [indexText, token] of Object.entries(
-            GAMEPAD_BUTTON_INPUTS,
-          )) {
+          for (const [indexText, token] of Object.entries(GAMEPAD_BUTTON_INPUTS)) {
             const button = gamepad.buttons[Number(indexText)];
             next.set(token, button?.pressed ? 32767 : 0);
           }
@@ -282,14 +260,8 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
             "P1_JOYSTICK_RIGHT",
             horizontal >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0,
           );
-          next.set(
-            "P1_JOYSTICK_UP",
-            vertical <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0,
-          );
-          next.set(
-            "P1_JOYSTICK_DOWN",
-            vertical >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0,
-          );
+          next.set("P1_JOYSTICK_UP", vertical <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0);
+          next.set("P1_JOYSTICK_DOWN", vertical >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0);
         }
       }
       gamepadInputsRef.current = next;
@@ -300,10 +272,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       updateGamepad();
 
       if (!inputInFlightRef.current && session.state === "running") {
-        const desired = combineInputState(
-          keyboardInputsRef.current,
-          gamepadInputsRef.current,
-        );
+        const desired = combineInputState(keyboardInputsRef.current, gamepadInputsRef.current);
         const updates = diffInputState(desired, acceptedInputsRef.current);
         if (updates.length > 0) {
           inputInFlightRef.current = true;
@@ -343,10 +312,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
     return () => {
       disposed = true;
       window.cancelAnimationFrame(animationFrame);
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
       inputOwnedRef.current = false;
       releaseDesiredInputs();
       const release = Array.from(acceptedInputsRef.current.keys()).map((token) => ({
@@ -372,9 +338,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
     gamepadInputsRef.current.clear();
   };
 
-  const handleGameplayKeyDown = (
-    event: React.KeyboardEvent<HTMLCanvasElement>,
-  ) => {
+  const handleGameplayKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
     const token = KEYBOARD_INPUTS[event.code];
     if (!token || event.repeat) return;
     event.preventDefault();
@@ -448,10 +412,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
           onKeyUp={handleGameplayKeyUp}
         />
         {frameState !== "active" && (
-          <div
-            className="game-surface-overlay"
-            role={frameState === "error" ? "alert" : "status"}
-          >
+          <div className="game-surface-overlay" role={frameState === "error" ? "alert" : "status"}>
             <strong>{statusLabel}</strong>
             {failure && <span>{failure}</span>}
           </div>
@@ -460,9 +421,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       <footer className="game-surface-status" aria-live="polite">
         <span>{statusLabel}</span>
         <span>{frameSummary}</span>
-        <span>
-          Focus game: arrows · Z/X/C/V · Enter start · 5 coin · gamepad supported
-        </span>
+        <span>Focus game: arrows · Z/X/C/V · Enter start · 5 coin · gamepad supported</span>
       </footer>
     </section>
   );
