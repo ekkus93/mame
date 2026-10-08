@@ -6,6 +6,8 @@
 **Original planning baseline:** `7cc3033a50b00801240f020b7098e22ffffdcd44`  
 **Status:** Engineering-phase closure reconciled; optional MT-1000/1100/1200 and MT-1705 research deferred
 
+> **2026-10-08 architecture supersession:** this ledger records the historical external-window release and remains useful evidence, but its gameplay-window assumptions are no longer current product policy. In-app gameplay is now governed by `MAME_TAURI_IN_APP_GAMEPLAY_SPEC_2026-10-08.md` and `MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md`. MAME remains a supervised sidecar process; video now crosses a private bounded frame data plane into a TypeScript canvas, gameplay input crosses a bounded typed logical-input bridge, and native MAME audio remains out of WebView PCM.
+
 ---
 
 ## 1. Purpose
@@ -58,7 +60,7 @@ A checkbox is not complete merely because code exists. Its acceptance criteria m
 - [x] Review `MAME_TAURI_ARCHITECTURE_SPEC_2026-09-08.md` against current MAME master.
 - [x] Record any architectural drift since planning baseline `7cc3033a50b00801240f020b7098e22ffffdcd44`.
 - [x] Confirm sidecar-first approach.
-- [x] Confirm native video/audio/input hot-path invariant.
+- [x] Confirm native video/audio/input hot-path invariant — **historical external-window decision; superseded for video/input by the 2026-10-08 in-app gameplay architecture. Native MAME audio/timing remain authoritative.**
 - [x] Confirm embedded rendering and in-process hosting remain optional gated phases.
 
 **Acceptance:** architecture document matches implementation intent and current repository reality.
@@ -1495,12 +1497,12 @@ The first implementation iteration should be intentionally narrow.
 - [x] user selects a known machine.
 - [x] Rust launches MAME as supervised child.
 - [x] frontend receives session-started state.
-- [x] MAME runs in its normal external native window.
+- [x] MAME runs in its normal external native window — **historical VS-1 acceptance only; superseded by the in-app gameplay surface.**
 - [x] user requests stop.
 - [x] child exits cleanly.
 - [x] frontend returns to idle state.
 - [x] failed launch shows structured error.
-- [x] no video frame crosses Tauri IPC.
+- [x] no video frame crosses Tauri IPC — **historical VS-1 acceptance only; superseded by the private binary-frame/typed-command path defined on 2026-10-08.**
 - [x] no PCM stream crosses Tauri IPC.
 
 This vertical slice is the recommended first Ralph-loop target after the foundation/scaffold work.
@@ -1541,10 +1543,10 @@ The core project is considered complete when:
 4. Users can launch and supervise MAME sessions reliably.
 5. Application settings and per-machine state are durable and non-destructive.
 6. Runtime controls required by the selected product scope are reliable.
-7. Video/audio/gameplay input remain on native low-latency paths.
+7. MAME retains native emulation timing and audio; the current in-app gameplay architecture uses a bounded private RGB frame data plane plus a bounded typed logical-input bridge, with no WebView PCM path.
 8. Linux, Windows, and macOS release targets meet documented acceptance criteria.
 9. Security, unsafe-fallback, and silent-failure audits are closed.
 10. Project-specific MAME divergence is documented and maintainable.
 11. Exact-head CI/release qualification is recorded.
 
-Embedded rendering, a dedicated Tauri MAME OSD, and in-process MAME hosting are **separate optional success tracks**. They must not be falsely treated as required for the core frontend project to be considered successful.
+The historical external-window release treated embedded rendering, a dedicated Tauri MAME OSD, and in-process MAME hosting as separate optional tracks. The 2026-10-08 in-app gameplay work supersedes the external-window gameplay assumption with a sidecar snapshot-frame integration; dedicated OSD and in-process hosting remain optional research.

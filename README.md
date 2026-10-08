@@ -2,7 +2,9 @@
 
 This repository is a fork of upstream [MAME](https://www.mamedev.org/) with a project-owned React/Tauri desktop frontend under `tauri/`.
 
-The product scope is a **production-useful external-window MAME frontend**. MAME remains a separately supervised native process and owns emulation, rendering, audio, timing, and gameplay input. The Tauri application owns machine/software browsing, configuration, metadata, audit/status surfaces, artwork, save-state management, session control, and project-specific library features.
+The current product scope is a **Tauri-hosted in-app gameplay frontend backed by a separately supervised MAME process**. On the first supported gameplay path (Linux little-endian/AppImage), MAME runs headless with `-video none`; MAME's native snapshot renderer supplies RGB32 frames over a private authenticated session FIFO, Rust validates and exposes only the latest bounded frame, and a TypeScript-owned canvas renders the game inside the main Tauri window. MAME continues to own emulation, timing, and native audio output. Focus-owned keyboard/W3C-standard gamepad state is forwarded through a bounded typed Tauri command into the authenticated runtime-control shim rather than through the video queue.
+
+The earlier external-native-window release remains useful historical engineering evidence, but it is no longer the intended gameplay product experience. The authoritative current work is `docs/MAME_TAURI_IN_APP_GAMEPLAY_SPEC_2026-10-08.md` and `docs/MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md`.
 
 ## Current product UI
 
@@ -38,7 +40,7 @@ The old temporary **Legacy UI** route and vertical engineering-dashboard composi
 
 Parity does not mean embedding the original native selector. The intentional deviations are bounded and documented:
 
-- the selector is rendered by React in a Tauri WebView; MAME itself remains a separately supervised native process;
+- the selector and gameplay surface are rendered by React in a Tauri WebView; MAME remains a separately supervised native process rather than an in-process emulator library;
 - project-only secondary surfaces such as Diagnostics, Collections, and bulk Audit remain available behind secondary actions;
 - Category and Custom Filter positions are represented in the original-like filter list where full data/authoring support remains deferred;
 - narrow-window behavior uses an explicit **Details** control instead of allowing the desktop three-panel layout to become unusable;
@@ -76,7 +78,7 @@ Earlier reproduction and engineering closure records remain useful historical ev
 - `docs/MAME_TAURI_MT2200_ENGINEERING_CLOSURE_2026-09-13.md`;
 - `docs/MAME_TAURI_POST_CLOSEOUT_HARDENING_TODO_2026-09-13.md`.
 
-The deliberately deferred architecture research tracks remain MT-1000 native-window/embedded-render integration, MT-1100 dedicated Tauri MAME OSD, MT-1200 in-process MAME hosting, and MT-1705 embedded-render performance qualification. They are not part of the external-window product claim.
+The September MT-1000/MT-1705 embedded-render work was deferred for the historical external-window release. That product assumption was superseded on 2026-10-08 by the in-app gameplay specification. The current implementation deliberately uses a narrow sidecar integration—MAME's existing snapshot renderer plus a private bounded frame transport—rather than a dedicated Tauri MAME OSD or in-process MAME hosting. Dedicated OSD and in-process hosting remain separate research tracks.
 
 ## MAME-style browser capabilities
 
@@ -105,6 +107,20 @@ Implemented browser capabilities include:
 
 Deliberate MAME-parity gaps and remediation status are documented in the parity TODO, the reopened remediation ledger, and the historical closure record. They are not silently represented as implemented features.
 
+## In-app gameplay architecture and current scope
+
+The in-app gameplay path keeps MAME out of the WebView and out of the Tauri process while replacing the visible external SDL gameplay window:
+
+1. Rust launches one supervised MAME child with the normal effective ROM/content paths and native audio configuration, but forces `-video none`.
+2. The session bootstrap configures a private mode-`0600` FIFO and unpredictable per-session authentication token on supported Linux little-endian hosts.
+3. MAME's Lua callback calls `manager.machine.video:snapshot_pixels()`. That API renders MAME's snapshot target through the native C++ software renderer and returns RGB32 pixels, avoiding the palette-index ambiguity of `screen:pixels()`.
+4. Rust validates protocol version, session/token identity, dimensions, stride, payload caps, sequence monotonicity, and supported format before replacing a one-slot latest-frame mailbox.
+5. The WebView fetches only the newest frame through a typed binary command and presents it in a TypeScript-owned canvas. Frame receipt/drop/delivery/presentation metrics and stall state are separately observable.
+6. Keyboard and W3C-standard Gamepad API controls are translated to bounded MAME logical input tokens and applied through MAME's normal I/O-port fields. Saved browser-standard controller profiles pin gameplay to the recorded Gamepad API identity when connected.
+7. MAME audio remains native. The currently bundled MAME Lua surface exposes UI mute but not a live master-volume setter, so the product exposes mute/unmute without claiming WebView PCM or unsupported volume control.
+
+The first supported in-app video transport is explicitly **Linux little-endian**. Unsupported platforms fail with `MAME_IN_APP_GAMEPLAY_UNSUPPORTED` rather than silently reopening an external native gameplay window. Current known gaps include final full-AppImage desktop qualification with real ROMs, performance evidence across representative raster/vector/high-resolution machines, and parity with renderer-specific BGFX/artwork effects. See the in-app gameplay spec/TODO for closure evidence.
+
 ## Repository layout
 
 Important project-owned paths:
@@ -119,6 +135,7 @@ tauri/
   src/library/                        # retained audit/favorites/history/collection logic
   src/settings/                       # global/machine/controller configuration surfaces
   src/session/                        # session/runtime/save-state surfaces
+  src/gameplay/                       # in-app canvas, frame protocol, input mapping
   src-tauri/src/                      # Rust authority: catalog, launch, filesystem, export, control
 docs/MAME_TAURI_*                     # specs, ledgers, qualification and closure records
 scripts/tauri/                        # regression/qualification helpers
@@ -142,9 +159,13 @@ Key invariants:
 - no unrestricted filesystem, opener, or HTTP capability is added for UI convenience;
 - displayed-list export supplies only typed browser query state, uses a native save dialog, and streams bounded catalog results in Rust;
 - artwork serving remains bounded to configured local roots with containment checks;
-- runtime-control frames remain authenticated, bounded, and session-scoped;
-- gameplay video, PCM audio, timing, and gameplay input are not proxied through Tauri IPC;
-- frontend keyboard shortcuts fail closed whenever native MAME owns gameplay input or ownership cannot be established.
+- runtime-control messages remain authenticated, bounded, and session-scoped;
+- gameplay video uses a separate private authenticated binary FIFO from MAME to Rust; frame bytes never share stdout/runtime-control diagnostics and the Rust mailbox keeps only the latest frame;
+- the WebView receives gameplay video only through a typed bounded binary command; it has no generic socket or filesystem capability;
+- gameplay input is focus-owned in the WebView and forwarded as bounded logical MAME input tokens through a typed command; high-rate updates are coalesced and never share the video queue;
+- PCM audio is not proxied through the WebView: MAME retains native audio output, with native UI mute exposed through the authenticated control protocol;
+- MAME remains authoritative for emulation timing; the WebView does not drive the emulation clock;
+- focus loss, fullscreen transitions, stop, and component teardown release desired/accepted gameplay input to prevent stuck controls.
 
 ## Developer prerequisites
 
