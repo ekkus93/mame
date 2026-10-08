@@ -44,14 +44,19 @@ export function framePollFailureDecision({
     return { state: "error", message: errorMessage };
   }
   if (firstFrameAtMs === null) {
-    return nowMs - startedAtMs >= firstFrameTimeoutMs
-      ? {
-          state: "stalled",
-          message: "MAME is running, but no gameplay frame has arrived yet.",
-        }
-      : null;
+    if (nowMs - startedAtMs >= firstFrameTimeoutMs) {
+      return {
+        state: "stalled",
+        message: "MAME is running, but no gameplay frame has arrived yet.",
+      };
+    }
+    return null;
   }
-  return nowMs - lastPresentedAtMs >= frameStallTimeoutMs
-    ? { state: "stalled", message: "The MAME gameplay frame stream has stalled." }
-    : null;
+  if (nowMs - lastPresentedAtMs >= frameStallTimeoutMs) {
+    return {
+      state: "stalled",
+      message: "The MAME gameplay frame stream has stalled.",
+    };
+  }
+  return null;
 }
