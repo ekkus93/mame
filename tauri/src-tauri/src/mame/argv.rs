@@ -99,6 +99,28 @@ pub fn build_launch_argv_with_preferences(
     Ok(MameArgv { args })
 }
 
+pub fn force_in_app_gameplay_video(argv: &mut Vec<OsString>) {
+    let mut filtered = Vec::with_capacity(argv.len() + 2);
+    let mut index = 0_usize;
+
+    while index < argv.len() {
+        let argument = &argv[index];
+        if argument == "-video" {
+            index = index.saturating_add(2);
+            continue;
+        }
+        if argument == "-window" || argument == "-nowindow" {
+            index += 1;
+            continue;
+        }
+        filtered.push(argument.clone());
+        index += 1;
+    }
+
+    push_option(&mut filtered, "video", "none");
+    *argv = filtered;
+}
+
 pub fn compose_mame_path_list<'a, I>(paths: I) -> AppResult<Option<OsString>>
 where
     I: IntoIterator<Item = &'a Path>,
@@ -320,8 +342,9 @@ mod tests {
 
     use super::{
         build_launch_argv, build_launch_argv_with_preferences, compose_mame_path_list,
-        validate_project_controlled_path, validate_short_identifier, validate_software_identifier,
-        validate_software_list_identifier, MameLaunchTarget, ProjectPathArgument,
+        force_in_app_gameplay_video, validate_project_controlled_path, validate_short_identifier,
+        validate_software_identifier, validate_software_list_identifier, MameLaunchTarget,
+        ProjectPathArgument,
     };
 
     #[test]
@@ -459,6 +482,29 @@ mod tests {
         let argv = build_launch_argv_with_preferences(&target, &LaunchPreferencesV1::default())
             .expect("inherited preferences must preserve base argv");
         assert_eq!(argv.as_slice(), ["pacman"]);
+    }
+
+    #[test]
+    fn in_app_gameplay_forces_headless_video_without_disabling_audio() {
+        let target = MameLaunchTarget {
+            machine: "pacman".to_owned(),
+            software: None,
+            bios: None,
+            project_paths: Vec::new(),
+        };
+        let preferences = LaunchPreferencesV1 {
+            window_mode: WindowPreference::Fullscreen,
+            renderer: RendererPreference::Bgfx,
+            audio: AudioPreference::Auto,
+        };
+        let mut argv = build_launch_argv_with_preferences(&target, &preferences)
+            .expect("preferences")
+            .into_vec();
+
+        force_in_app_gameplay_video(&mut argv);
+
+        assert_eq!(argv, ["pacman", "-sound", "auto", "-video", "none"]);
+        assert!(!argv.iter().any(|argument| argument == "-window" || argument == "-nowindow"));
     }
 
     #[test]

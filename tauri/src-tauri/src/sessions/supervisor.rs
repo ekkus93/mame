@@ -255,8 +255,18 @@ impl SessionSupervisor {
         let control_bootstrap = ControlBootstrap::create(&session_id)?;
         let frame_token = control_bootstrap.frame_token().to_owned();
         let frame_mailbox = FrameMailbox::new(session_id.clone());
-        let frame_transport = FrameTransport::create()?;
+        let frame_transport = FrameTransport::create()?.ok_or_else(|| {
+            AppError::new(
+                "MAME_IN_APP_GAMEPLAY_UNSUPPORTED",
+                "In-app gameplay is not supported on this operating system or CPU byte order.",
+            )
+            .with_details(serde_json::json!({
+                "requiredPlatform": "linux-little-endian",
+                "fallbackWindowAllowed": false
+            }))
+        })?;
         let mut argv = build_launch_argv_with_preferences(&target, &launch_preferences)?.into_vec();
+        force_in_app_gameplay_video(&mut argv);
         control_bootstrap.append_launch_arguments(&mut argv);
         let diagnostics = Arc::new(Mutex::new(SessionDiagnostics::default()));
         let effective_argv = argv
@@ -294,10 +304,8 @@ impl SessionSupervisor {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        if let Some(transport) = &frame_transport {
-            transport.configure_command(&mut command)?;
-            transport.start_reader(session_id.clone(), frame_mailbox.clone());
-        }
+        frame_transport.configure_command(&mut command)?;
+        frame_transport.start_reader(session_id.clone(), frame_mailbox.clone());
 
         {
             let mut inner = recover_lock(&self.inner);
@@ -308,7 +316,7 @@ impl SessionSupervisor {
                 diagnostics: diagnostics.clone(),
                 event_sink: event_sink.clone(),
                 frames: frame_mailbox,
-                frame_transport,
+                frame_transport: Some(frame_transport),
             });
         }
 
