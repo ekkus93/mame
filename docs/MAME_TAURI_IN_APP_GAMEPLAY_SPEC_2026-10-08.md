@@ -65,6 +65,20 @@ The frame transport must preserve frame boundaries and metadata (protocol versio
 
 The implementation must compare available capture seams before selecting one. MAME currently exposes Lua screen pixel APIs (`screen_device::pixels` is bound as `screen:pixels()` and returns pixels plus visible dimensions) and a frame-done callback. These are a practical prototype seam, not a pre-approved production transport. A Lua-per-frame file dump, large base64 JSON/Tauri events, unbounded pipes, and a second visible SDL window are not acceptable final implementations. If the Lua callback is too expensive or unstable, add a small, isolated MAME-side capture adapter or OSD output module and keep the bulk of project-specific code outside core emulation files.
 
+### 4.1 Production capture-seam decision
+
+The first Linux release selects MAME's existing native snapshot renderer, called from the per-frame Lua callback, plus a dedicated authenticated binary FIFO into Rust. The alternatives were evaluated against the product boundary rather than treated as equivalent transports:
+
+| Candidate | Decision | Rationale |
+| --- | --- | --- |
+| `screen:pixels()` from Lua | Rejected for production | The binding may expose screen-device pixel representations rather than a guaranteed finished RGB32 presentation, including palette-index ambiguity. It remains useful only as a diagnostic/prototype comparison seam. |
+| `manager.machine.video:snapshot_pixels()` + dedicated binary FIFO | Selected for the initial Linux release | It renders through MAME's native C++ software snapshot path to RGB32, keeps frame bytes off stdout/runtime-control, requires no core emulator fork, and fits the session-scoped bounded latest-frame transport. |
+| Project-specific MAME capture adapter/OSD output module | Deferred fallback | It offers tighter control and potentially lower overhead, but adds invasive MAME-side maintenance. Promote it only if measured snapshot/Lua overhead fails the performance budget. |
+| JSON/base64 Tauri events, per-frame files, or unbounded pipes | Rejected | These violate the bounded high-throughput data-plane requirement and/or create avoidable allocation, latency, or filesystem overhead. |
+| Visible native SDL window | Rejected for supported in-app mode | It does not satisfy the product requirement that gameplay be presented in the Tauri-owned surface. |
+
+This decision does **not** close the performance qualification: representative raster, high-resolution, and vector measurements remain required before release acceptance. The selected path is intentionally replaceable behind the Rust frame protocol if those measurements show unacceptable overhead.
+
 The transport decision must be recorded with measured results for representative raster, high-resolution, and vector machines. The transport must be authenticated/session-scoped, private to the current user, bounded in memory, and cleaned up on normal exit, crash, timeout, and app shutdown. It must not expose arbitrary file paths or a general local network listener to the WebView.
 
 ## 5. User experience and lifecycle
