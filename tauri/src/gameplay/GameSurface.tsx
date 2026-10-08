@@ -8,12 +8,14 @@ import {
 } from "../backend/commands";
 import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
 import type { SessionSnapshot } from "../backend/types";
-import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
 import {
   acceptFrameSequence,
+  bgrxToRgba,
   frameDisplaySize,
   framePollFailureDecision,
-} from "./gameSurfaceState";
+  parseGameFrame,
+  type GameFrame,
+} from "./frameProtocol";
 import {
   combineInputState,
   diffInputState,

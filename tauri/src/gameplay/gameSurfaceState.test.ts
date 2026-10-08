@@ -4,7 +4,7 @@ import {
   acceptFrameSequence,
   frameDisplaySize,
   framePollFailureDecision,
-} from "./gameSurfaceState";
+} from "./frameProtocol";
 
 describe("game surface state", () => {
   it("swaps backing dimensions for quarter-turn rotation only", () => {
