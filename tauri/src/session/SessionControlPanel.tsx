@@ -277,7 +277,20 @@ export function SessionControlPanel() {
 
   return (
     <>
-      {session && <GameSurface session={session} />}
+      {session && (
+        <GameSurface
+          session={session}
+          paused={paused}
+          muted={muted}
+          canCommand={canCommand}
+          stopping={stopping}
+          onPause={requestPause}
+          onResume={requestResume}
+          onReset={requestReset}
+          onToggleMute={() => requestMute(!muted)}
+          onStop={requestStop}
+        />
+      )}
       <section className="status-card" aria-labelledby="session-control-heading" aria-live="polite">
         <p className="eyebrow">MAME session</p>
         <h2 id="session-control-heading">Session control</h2>

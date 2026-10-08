@@ -18,7 +18,20 @@ import {
 } from "./gameplayInput";
 import "./GameSurface.css";
 
-type FrameState = "waitingRuntime" | "waitingFrame" | "active" | "stalled" | "error";
+type FrameState = "starting" | "waitingFrame" | "active" | "stalled" | "stopping" | "error";
+
+type GameSurfaceProps = {
+  session: SessionSnapshot;
+  paused: boolean;
+  muted: boolean;
+  canCommand: boolean;
+  stopping: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onReset: () => void;
+  onToggleMute: () => void;
+  onStop: () => void;
+};
 
 const FIRST_FRAME_TIMEOUT_MS = 5_000;
 const FRAME_STALL_TIMEOUT_MS = 2_000;
@@ -79,7 +92,18 @@ function drawFrame(
   context.restore();
 }
 
-export function GameSurface({ session }: { session: SessionSnapshot }) {
+export function GameSurface({
+  session,
+  paused,
+  muted,
+  canCommand,
+  stopping,
+  onPause,
+  onResume,
+  onReset,
+  onToggleMute,
+  onStop,
+}: GameSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stagingRef = useRef<HTMLCanvasElement | null>(null);
   const surfaceRef = useRef<HTMLElement | null>(null);
@@ -93,7 +117,11 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
     durationUs: number;
   } | null>(null);
   const [frameState, setFrameState] = useState<FrameState>(
-    session.state === "running" ? "waitingFrame" : "waitingRuntime",
+    session.state === "running"
+      ? "waitingFrame"
+      : session.state === "stopping"
+        ? "stopping"
+        : "starting",
   );
   const [failure, setFailure] = useState<string | null>(null);
   const [smoothScaling, setSmoothScaling] = useState(false);
@@ -140,7 +168,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
     if (!canvas) return;
 
     if (session.state !== "running") {
-      setFrameState("waitingRuntime");
+      setFrameState(session.state === "stopping" ? "stopping" : "starting");
       setFailure(null);
       return;
     }
@@ -364,10 +392,11 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   };
 
   const statusLabel = {
-    waitingRuntime: "Starting MAME runtime…",
+    starting: "Starting MAME runtime…",
     waitingFrame: "Waiting for first gameplay frame…",
     active: "Gameplay active",
     stalled: "Gameplay video stalled",
+    stopping: "Stopping MAME…",
     error: "Gameplay video unavailable",
   }[frameState];
 
@@ -396,6 +425,21 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
               <option value="smooth">Smooth</option>
             </select>
           </label>
+          <button type="button" disabled={!canCommand || paused} onClick={onPause}>
+            Pause
+          </button>
+          <button type="button" disabled={!canCommand || !paused} onClick={onResume}>
+            Resume
+          </button>
+          <button type="button" disabled={!canCommand} onClick={onReset}>
+            Reset
+          </button>
+          <button type="button" disabled={!canCommand} onClick={onToggleMute}>
+            {muted ? "Unmute" : "Mute"}
+          </button>
+          <button type="button" disabled={!canCommand || stopping} onClick={onStop}>
+            {stopping ? "Stopping…" : "Stop"}
+          </button>
           <button type="button" onClick={toggleFullscreen}>
             {document.fullscreenElement ? "Exit fullscreen" : "Fullscreen"}
           </button>
