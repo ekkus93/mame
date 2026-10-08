@@ -585,7 +585,7 @@ local function gameplay_capture_frame()
         pcall(function () gameplay_frame_stream:setvbuf("no") end)
     end
 
-    -- screen:pixels() may return palette indices for indexed displays.  The
+    -- Direct screen-device pixel reads may return palette indices for indexed displays. The
     -- video manager snapshot path renders through MAME's native C++ software
     -- renderer and guarantees RGB32 pixels for the selected snapshot target.
     -- It also applies the target's configured orientation/layout, so the
