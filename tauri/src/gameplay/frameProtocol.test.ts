@@ -54,6 +54,13 @@ describe("gameplay frame protocol", () => {
     expect(Array.from(frame.pixels)).toEqual([3, 2, 1, 0, 30, 20, 10, 0]);
   });
 
+  it("views frame pixels without allocating another full-frame copy", () => {
+    const buffer = makeFrame();
+    const frame = parseGameFrame(buffer, SESSION);
+    expect(frame.pixels.buffer).toBe(buffer);
+    expect(frame.pixels.byteOffset).toBe(FRAME_FIXED_HEADER_BYTES + SESSION.length);
+  });
+
   it("converts little-endian packed RGB bytes to opaque RGBA", () => {
     const rgba = bgrxToRgba(parseGameFrame(makeFrame(), SESSION));
     expect(Array.from(rgba)).toEqual([1, 2, 3, 255, 10, 20, 30, 255]);
@@ -66,6 +73,18 @@ describe("gameplay frame protocol", () => {
     expect(() => parseGameFrame(makeFrame({ orientation: 45 }), SESSION)).toThrow(
       "orientation is unsupported",
     );
+  });
+
+  it("rejects empty session identity and inconsistent payload length", () => {
+    const emptySession = makeFrame();
+    new DataView(emptySession).setUint16(50, 0, true);
+    expect(() => parseGameFrame(emptySession, SESSION)).toThrow(
+      "session identifier length is invalid",
+    );
+
+    const badPayload = makeFrame();
+    new DataView(badPayload).setUint32(32, 9, true);
+    expect(() => parseGameFrame(badPayload, SESSION)).toThrow("payload size is invalid");
   });
 
   it("rejects unknown frame flags", () => {

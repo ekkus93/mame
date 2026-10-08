@@ -74,6 +74,9 @@ export function parseGameFrame(buffer: ArrayBuffer, expectedSessionId: string): 
   if (payloadBytes !== expectedPayloadBytes || payloadBytes > MAX_FRAME_PAYLOAD) {
     throw new Error("The MAME gameplay frame payload size is invalid.");
   }
+  if (sessionBytes === 0 || sessionBytes > 96) {
+    throw new Error("The MAME gameplay frame session identifier length is invalid.");
+  }
   if (headerBytes !== FRAME_FIXED_HEADER_BYTES + sessionBytes) {
     throw new Error("The MAME gameplay frame header length is invalid.");
   }
@@ -112,7 +115,9 @@ export function parseGameFrame(buffer: ArrayBuffer, expectedSessionId: string): 
     flipX: (flags & 1) !== 0,
     flipY: (flags & 2) !== 0,
     pixelFormat: "bgrx8888Le",
-    pixels: data.slice(headerBytes),
+    // The invoke result is an owned binary buffer. Avoid copying the full
+    // frame again before the separate BGRX-to-RGBA canvas conversion.
+    pixels: data.subarray(headerBytes),
   };
 }
 
