@@ -69,7 +69,7 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Keep bundled MAME audit identity stable across random AppImage mount locations. `bundled_appimage_mount_changes_preserve_existing_audits` verifies rebase of persisted bundled-runtime audit identity across randomized mount paths; full desktop relaunch remains part of Phase 6 qualification.
 - [x] Verify complete and best-available audit classifications are preserved accurately. Regression coverage includes `best_available_romset_summary_is_not_misreported_as_missing_content`, and availability/audit state remains distinct from driver support and gameplay readiness.
 - [x] Gate launch and provide explicit audit paths for Unknown/stale/unavailable content. Tests verify unaudited and missing-content launches fail closed before spawn.
-- [ ] Test paths with spaces, non-ASCII names, multiple directories, missing directories, permissions errors, and AppImage execution.
+- [x] Test paths with spaces, non-ASCII names, multiple directories, missing directories, permissions errors, and AppImage execution. Rust content-path regressions cover the path/validation matrix, and Linux AppImage packaging smoke passed on binary head `ad605d64145d9bcca547bc0b689fe244c17b2744` in run `37842790394`.
 
 **Exit gate:** The user's default ROM folder appears after a normal launch, audit and Start use identical paths, and a valid locally available machine can reach the first-frame-ready state without manual catalog import.
 
