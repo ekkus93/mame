@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  acceptFrameSequence,
-  frameDisplaySize,
-  framePollFailureDecision,
-} from "./frameProtocol";
+import { acceptFrameSequence, frameDisplaySize, framePollFailureDecision } from "./frameProtocol";
 
 describe("game surface state", () => {
   it("swaps backing dimensions for quarter-turn rotation only", () => {

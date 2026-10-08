@@ -132,18 +132,24 @@ export function bgrxToRgba(frame: GameFrame): Uint8ClampedArray<ArrayBuffer> {
   return rgba;
 }
 
-export type FramePollFailureDecision =
-  | { state: "stalled"; message: string }
-  | { state: "error"; message: string };
+export type FramePollFailureDecision = { state: "stalled" | "error"; message: string };
 
-export function frameDisplaySize(
-  width: number,
-  height: number,
-  orientation: FrameOrientation,
-): { width: number; height: number } {
-  return orientation === 90 || orientation === 270
-    ? { width: height, height: width }
-    : { width, height };
+export interface FramePollContext {
+  errorCode: string | null;
+  errorMessage: string;
+  nowMs: number;
+  startedAtMs: number;
+  firstFrameAtMs: number | null;
+  lastPresentedAtMs: number;
+  firstFrameTimeoutMs: number;
+  frameStallTimeoutMs: number;
+}
+
+export function frameDisplaySize(width: number, height: number, orientation: FrameOrientation) {
+  if (orientation === 90 || orientation === 270) {
+    return { width: height, height: width };
+  }
+  return { width, height };
 }
 
 export function acceptFrameSequence(previous: bigint, next: bigint): bigint {
@@ -153,30 +159,12 @@ export function acceptFrameSequence(previous: bigint, next: bigint): bigint {
   return next;
 }
 
-export function framePollFailureDecision({
-  errorCode,
-  errorMessage,
-  nowMs,
-  startedAtMs,
-  firstFrameAtMs,
-  lastPresentedAtMs,
-  firstFrameTimeoutMs,
-  frameStallTimeoutMs,
-}: {
-  errorCode: string | null;
-  errorMessage: string;
-  nowMs: number;
-  startedAtMs: number;
-  firstFrameAtMs: number | null;
-  lastPresentedAtMs: number;
-  firstFrameTimeoutMs: number;
-  frameStallTimeoutMs: number;
-}): FramePollFailureDecision | null {
-  if (errorCode !== "MAME_FRAME_NOT_READY") {
-    return { state: "error", message: errorMessage };
+export function framePollFailureDecision(context: FramePollContext): FramePollFailureDecision | null {
+  if (context.errorCode !== "MAME_FRAME_NOT_READY") {
+    return { state: "error", message: context.errorMessage };
   }
-  if (firstFrameAtMs === null) {
-    if (nowMs - startedAtMs >= firstFrameTimeoutMs) {
+  if (context.firstFrameAtMs === null) {
+    if (context.nowMs - context.startedAtMs >= context.firstFrameTimeoutMs) {
       return {
         state: "stalled",
         message: "MAME is running, but no gameplay frame has arrived yet.",
@@ -184,7 +172,7 @@ export function framePollFailureDecision({
     }
     return null;
   }
-  if (nowMs - lastPresentedAtMs >= frameStallTimeoutMs) {
+  if (context.nowMs - context.lastPresentedAtMs >= context.frameStallTimeoutMs) {
     return {
       state: "stalled",
       message: "The MAME gameplay frame stream has stalled.",
