@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getMameGameFrame, setMameInputs } from "../backend/commands";
+import { getMameFrameMetrics, getMameGameFrame, setMameInputs } from "../backend/commands";
 import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
 import type { MameInputUpdate, SessionSnapshot } from "../backend/types";
 import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
@@ -135,6 +135,10 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   const acceptedInputsRef = useRef(new Map<string, number>());
   const inputOwnedRef = useRef(false);
   const inputInFlightRef = useRef(false);
+  const presentationAckRef = useRef<{
+    sequence: string;
+    durationUs: number;
+  } | null>(null);
   const [frameState, setFrameState] = useState<FrameState>(
     session.state === "running" ? "waitingFrame" : "waitingRuntime",
   );
@@ -172,7 +176,13 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       if (disposed) return;
 
       try {
-        const raw = await getMameGameFrame({ sessionId: session.sessionId });
+        const acknowledgement = presentationAckRef.current;
+        presentationAckRef.current = null;
+        const raw = await getMameGameFrame({
+          sessionId: session.sessionId,
+          presentedSequence: acknowledgement?.sequence,
+          presentationDurationUs: acknowledgement?.durationUs,
+        });
         if (disposed) return;
 
         const frame = parseGameFrame(raw, session.sessionId);
@@ -180,7 +190,16 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
           throw new Error("The MAME gameplay frame sequence moved backwards.");
         }
         lastSequence = frame.sequence;
+        const presentationStartedAt = performance.now();
         drawFrame(canvas, staging, frame, smoothScaling);
+        const presentationDurationUs = Math.max(
+          0,
+          Math.round((performance.now() - presentationStartedAt) * 1_000),
+        );
+        presentationAckRef.current = {
+          sequence: frame.sequence.toString(),
+          durationUs: presentationDurationUs,
+        };
 
         const now = performance.now();
         if (firstFrameAt === null) firstFrameAt = now;
@@ -192,9 +211,20 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
           lastSummaryAt = now;
           const orientation =
             frame.orientationDegrees === 0 ? "" : ` · rotated ${frame.orientationDegrees}°`;
-          setFrameSummary(
-            `${frame.width}×${frame.height}${orientation} · frame ${frame.sequence.toString()}`,
-          );
+          const baseSummary =
+            `${frame.width}×${frame.height}${orientation} · frame ${frame.sequence.toString()}`;
+          setFrameSummary(baseSummary);
+          void getMameFrameMetrics({ sessionId: session.sessionId })
+            .then((metrics) => {
+              if (disposed) return;
+              const age =
+                metrics.latestAgeMs === null ? "age —" : `age ${metrics.latestAgeMs}ms`;
+              setFrameSummary(
+                `${baseSummary} · recv ${metrics.received} · drop ${metrics.dropped} · ` +
+                  `presented ${metrics.presented} · ${age}`,
+              );
+            })
+            .catch(() => undefined);
         }
       } catch (error: unknown) {
         if (disposed) return;
@@ -224,6 +254,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
 
     return () => {
       disposed = true;
+      presentationAckRef.current = null;
       window.cancelAnimationFrame(animationFrame);
     };
   }, [session.sessionId, session.state, smoothScaling]);

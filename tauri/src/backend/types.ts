@@ -321,6 +321,33 @@ export type StopMameRequest = {
 
 export type GetMameGameFrameRequest = {
   sessionId: string;
+  presentedSequence?: string | null;
+  presentationDurationUs?: number | null;
+};
+
+export type GetMameFrameMetricsRequest = {
+  sessionId: string;
+};
+
+export type FrameMetricsSnapshot = {
+  schemaVersion: 1;
+  sessionId: string;
+  received: number;
+  dropped: number;
+  delivered: number;
+  presented: number;
+  lastSequence: number | null;
+  lastDeliveredSequence: number | null;
+  lastPresentedSequence: number | null;
+  lastCaptureTimestampUs: number | null;
+  lastReceivedAtEpochMs: number | null;
+  lastPresentedAtEpochMs: number | null;
+  lastPresentationDurationUs: number | null;
+  latestAgeMs: number | null;
+  lastWidth: number | null;
+  lastHeight: number | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
 };
 
 export type MameInputUpdate = {

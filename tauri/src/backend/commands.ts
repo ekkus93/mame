@@ -7,6 +7,8 @@ import {
   type FavoritePage,
   type FavoritePageRequest,
   type FavoriteState,
+  type FrameMetricsSnapshot,
+  type GetMameFrameMetricsRequest,
   type GetMameGameFrameRequest,
   type LaunchLibraryMachineRequest,
   type LoadMameStateRequest,
@@ -77,6 +79,12 @@ export async function getMameSession(): Promise<SessionSnapshot | null> {
 
 export async function getMameGameFrame(request: GetMameGameFrameRequest): Promise<ArrayBuffer> {
   return invoke<ArrayBuffer>("get_mame_game_frame", { request });
+}
+
+export async function getMameFrameMetrics(
+  request: GetMameFrameMetricsRequest,
+): Promise<FrameMetricsSnapshot> {
+  return invoke<FrameMetricsSnapshot>("get_mame_frame_metrics", { request });
 }
 
 export async function setMameInputs(request: SetMameInputsRequest): Promise<SetMameInputsResult> {
