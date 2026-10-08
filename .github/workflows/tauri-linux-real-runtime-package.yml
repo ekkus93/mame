@@ -198,6 +198,10 @@ jobs:
           ./scripts/tauri/validate-release-driver-coverage.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
+      - name: Verify headless real-MAME frame capture
+        shell: bash
+        run: ./scripts/tauri/test-real-mame-headless-frame.sh "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE"
+
       - name: Stage release-qualified bundled runtime
         shell: bash
         env:
