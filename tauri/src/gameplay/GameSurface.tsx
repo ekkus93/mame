@@ -466,9 +466,7 @@ export function GameSurface({
       <footer className="game-surface-status" aria-live="polite">
         <span>{statusLabel}</span>
         <span>{frameSummary}</span>
-        <span>
-          Focus game: arrows · Z/X/C/V · Enter start · 5 coin · {controllerSummary}
-        </span>
+        <span>Focus game: arrows · Z/X/C/V · Enter start · 5 coin · {controllerSummary}</span>
       </footer>
     </section>
   );

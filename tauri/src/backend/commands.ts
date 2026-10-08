@@ -82,7 +82,9 @@ export async function getMameSession(): Promise<SessionSnapshot | null> {
 export async function getControllerProfileConfiguration(
   request: ControllerProfileConfigurationRequest,
 ): Promise<ControllerProfileConfiguration> {
-  return invoke<ControllerProfileConfiguration>("get_controller_profile_configuration", { request });
+  return invoke<ControllerProfileConfiguration>("get_controller_profile_configuration", {
+    request,
+  });
 }
 
 export async function getMameGameFrame(request: GetMameGameFrameRequest): Promise<ArrayBuffer> {

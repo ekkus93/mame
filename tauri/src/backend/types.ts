@@ -275,9 +275,7 @@ export type SetLibraryFavoriteRequest = {
   favorite: boolean;
 };
 
-export type ControllerProfileScope =
-  | { kind: "global" }
-  | { kind: "machine"; shortName: string };
+export type ControllerProfileScope = { kind: "global" } | { kind: "machine"; shortName: string };
 
 export type ControllerProfile = {
   schemaVersion: 1;
@@ -290,10 +288,7 @@ export type ControllerProfile = {
   };
   mappingProvenance: {
     kind:
-      | "browserStandardGamepad"
-      | "mameControllerConfig"
-      | "mameOsdControllerMap"
-      | "projectOwned";
+      "browserStandardGamepad" | "mameControllerConfig" | "mameOsdControllerMap" | "projectOwned";
     sourceReference: string | null;
   };
   createdAtEpochMs: number;

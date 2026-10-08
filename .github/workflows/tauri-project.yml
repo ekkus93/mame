@@ -151,12 +151,7 @@ jobs:
         run: npm ci
 
       - name: Frontend format check
-        run: |
-          if ! npm run format:check; then
-            npx prettier src/backend/commands.ts src/backend/types.ts src/gameplay/GameSurface.tsx src/session/SessionControlPanel.tsx --write
-            git diff -- src/backend/commands.ts src/backend/types.ts src/gameplay/GameSurface.tsx src/session/SessionControlPanel.tsx
-            exit 1
-          fi
+        run: npm run format:check
 
       - name: Frontend lint
         run: npm run lint
