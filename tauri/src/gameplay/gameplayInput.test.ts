@@ -9,16 +9,12 @@ import {
   type GamepadSample,
 } from "./gameplayInput";
 
-function gamepad(
-  overrides: Partial<GamepadSample> & Pick<GamepadSample, "id">,
-): GamepadSample {
+function gamepad(overrides: Partial<GamepadSample> & Pick<GamepadSample, "id">): GamepadSample {
   return {
     id: overrides.id,
     mapping: overrides.mapping ?? "standard",
     connected: overrides.connected ?? true,
-    buttons:
-      overrides.buttons ??
-      Array.from({ length: 10 }, () => ({ pressed: false, value: 0 })),
+    buttons: overrides.buttons ?? Array.from({ length: 10 }, () => ({ pressed: false, value: 0 })),
     axes: overrides.axes ?? [0, 0],
   };
 }

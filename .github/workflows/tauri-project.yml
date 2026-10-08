@@ -151,12 +151,7 @@ jobs:
         run: npm ci
 
       - name: Frontend format check
-        run: |
-          if ! npm run format:check; then
-            npx prettier src/gameplay/gameplayInput.ts src/gameplay/gameplayInput.test.ts src/gameplay/GameSurface.tsx --write
-            git diff -- src/gameplay/gameplayInput.ts src/gameplay/gameplayInput.test.ts src/gameplay/GameSurface.tsx
-            exit 1
-          fi
+        run: npm run format:check
 
       - name: Frontend lint
         run: npm run lint

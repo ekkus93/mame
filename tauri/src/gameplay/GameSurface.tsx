@@ -159,14 +159,12 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
           lastSummaryAt = now;
           const orientation =
             frame.orientationDegrees === 0 ? "" : ` · rotated ${frame.orientationDegrees}°`;
-          const baseSummary =
-            `${frame.width}×${frame.height}${orientation} · frame ${frame.sequence.toString()}`;
+          const baseSummary = `${frame.width}×${frame.height}${orientation} · frame ${frame.sequence.toString()}`;
           setFrameSummary(baseSummary);
           void getMameFrameMetrics({ sessionId: session.sessionId })
             .then((metrics) => {
               if (disposed) return;
-              const age =
-                metrics.latestAgeMs === null ? "age —" : `age ${metrics.latestAgeMs}ms`;
+              const age = metrics.latestAgeMs === null ? "age —" : `age ${metrics.latestAgeMs}ms`;
               setFrameSummary(
                 `${baseSummary} · recv ${metrics.received} · drop ${metrics.dropped} · ` +
                   `presented ${metrics.presented} · ${age}`,

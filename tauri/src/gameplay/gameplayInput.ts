@@ -64,14 +64,8 @@ export function gamepadInputState(gamepad: GamepadSample): Map<string, number> {
   const vertical = normalizedAxis(gamepad.axes[1] ?? 0);
   next.set("P1_AD_STICK_X", horizontal);
   next.set("P1_AD_STICK_Y", vertical);
-  next.set(
-    "P1_JOYSTICK_LEFT",
-    horizontal <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0,
-  );
-  next.set(
-    "P1_JOYSTICK_RIGHT",
-    horizontal >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0,
-  );
+  next.set("P1_JOYSTICK_LEFT", horizontal <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0);
+  next.set("P1_JOYSTICK_RIGHT", horizontal >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0);
   next.set("P1_JOYSTICK_UP", vertical <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0);
   next.set("P1_JOYSTICK_DOWN", vertical >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0);
   return next;
