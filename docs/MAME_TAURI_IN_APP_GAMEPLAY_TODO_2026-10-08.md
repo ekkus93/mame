@@ -83,10 +83,10 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 ## Phase 6 — Automated verification and full AppImage qualification
 
-- [ ] Add Rust unit/integration tests for frame protocol validation, caps, session binding, ordering, backpressure, disconnect, timeout, and cleanup.
-- [ ] Add TypeScript tests for canvas conversion/pixel format, sizing/aspect/rotation, sequence/stale-frame handling, loading/stalled/error states, and input ownership.
-- [ ] Add a supervisor integration test using a deterministic fake frame producer and child process, plus a bundled-MAME smoke test where the environment permits.
-- [ ] Run frontend lint, typecheck, build, and all Vitest tests; run Rust formatting, clippy where project CI requires it, and all Rust tests.
+- [x] Add Rust unit/integration tests for frame protocol validation, caps, session binding, ordering, backpressure, disconnect, timeout, and cleanup.
+- [x] Add TypeScript tests for canvas conversion/pixel format, sizing/aspect/rotation, sequence/stale-frame handling, loading/stalled/error states, and input ownership.
+- [x] Add a supervisor integration test using a deterministic fake frame producer and child process, plus a bundled-MAME smoke test where the environment permits.
+- [x] Run frontend lint, typecheck, build, and all Vitest tests; run Rust formatting, clippy where project CI requires it, and all Rust tests.
 - [ ] Build the actual full Linux AppImage after source changes. Keep and inspect the full-runtime artifact; do not substitute a slim image or test only the unpacked AppDir.
 - [ ] Launch that AppImage from a real desktop session with the user's default ROM path and verify the game renders in the Tauri window, with no separate visible MAME window.
 - [ ] Capture evidence for frame rate, frame age, dropped frames, emulation speed, CPU/memory, input, sound, resize, fullscreen, stop, and relaunch.
@@ -95,13 +95,16 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 **Exit gate:** All automated checks pass and the exact full AppImage passes the desktop gameplay acceptance criteria in the spec.
 
+
+> **2026-10-08 reconciliation evidence:** exact-head `e5dda4ece55c8491a702ac20cf7cd449fc1be5e6` completed the `linux-quality` job successfully in Tauri project run `37838923882`. That job ran frontend formatting, lint, typecheck, Vitest, production build, Rust formatting, Rust tests, ignored performance qualification, and clippy. Source coverage includes authenticated frame-protocol/mailbox tests, teardown/backpressure tests, the deterministic fake-frame-producer supervisor integration test, TypeScript frame conversion/parser tests, gameplay input tests, and game-surface sizing/sequence/stall-state tests. README and the 2026-09-08 architecture baseline now describe the Linux little-endian in-app canvas/frame-data-plane architecture, ROM defaults/path behavior, and known renderer/platform gaps. Full real-ROM desktop AppImage qualification remains open and is not implied by these checks.
+
 ## Phase 7 — Documentation and release readiness
 
-- [ ] Update `README.md`, the 2026-09-08 architecture baseline, and any relevant runtime-control/performance docs to describe the in-app TypeScript canvas and the separate binary frame data plane accurately.
-- [ ] Remove or revise statements that gameplay video must not pass through Tauri or that the external MAME window is the intended product experience.
-- [ ] Document initial renderer scope and known gaps (BGFX effects, artwork/bezel compositing, vector effects, multi-screen, external runtime compatibility).
-- [ ] Document ROM defaults, path precedence, audit freshness, and the distinction between catalog metadata, ROM auditing, and obtaining ROM files.
-- [ ] Link this spec/TODO from `docs/README.md` and update checkboxes only when implementation and evidence exist.
+- [x] Update `README.md`, the 2026-09-08 architecture baseline, and any relevant runtime-control/performance docs to describe the in-app TypeScript canvas and the separate binary frame data plane accurately.
+- [x] Remove or revise statements that gameplay video must not pass through Tauri or that the external MAME window is the intended product experience.
+- [x] Document initial renderer scope and known gaps (BGFX effects, artwork/bezel compositing, vector effects, multi-screen, external runtime compatibility).
+- [x] Document ROM defaults, path precedence, audit freshness, and the distinction between catalog metadata, ROM auditing, and obtaining ROM files.
+- [x] Link this spec/TODO from `docs/README.md` and update checkboxes only when implementation and evidence exist.
 - [ ] Perform a user-facing review using a normal first-run profile, not a developer database with warm audit/catalog state.
 
 **Exit gate:** User-facing and engineering docs agree with actual behavior, and all remaining limitations are explicit and acceptable for the first supported release.
