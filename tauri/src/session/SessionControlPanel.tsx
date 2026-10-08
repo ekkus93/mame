@@ -19,6 +19,7 @@ import {
   SESSION_RESUMED_EVENT,
   SESSION_STARTED_EVENT,
 } from "../backend/events";
+import { GameSurface } from "../gameplay/GameSurface";
 import type {
   QueryMameRuntimeStateResult,
   SessionLifecycleEventV1,
@@ -276,6 +277,7 @@ export function SessionControlPanel() {
 
   return (
     <>
+      {session && <GameSurface session={session} />}
       <section className="status-card" aria-labelledby="session-control-heading" aria-live="polite">
         <p className="eyebrow">MAME session</p>
         <h2 id="session-control-heading">Session control</h2>

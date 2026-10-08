@@ -1,0 +1,111 @@
+.game-surface {
+  display: grid;
+  grid-template-rows: auto minmax(18rem, 1fr) auto;
+  gap: 0.5rem;
+  min-height: 60vh;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--mame-border);
+  background: var(--mame-bg-deep);
+  color: var(--mame-text);
+}
+
+.game-surface-toolbar,
+.game-surface-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-surface-toolbar h2,
+.game-surface-toolbar p {
+  margin: 0;
+}
+
+.game-surface-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-surface-actions label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.game-surface-actions select,
+.game-surface-actions button {
+  min-height: 2rem;
+  border: 1px solid var(--mame-border-muted);
+  border-radius: 0;
+  background: var(--mame-toolbar-strong);
+  color: var(--mame-text);
+}
+
+.game-surface-stage {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 18rem;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.game-surface-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  outline: none;
+}
+
+.game-surface-stage canvas.is-nearest {
+  image-rendering: pixelated;
+}
+
+.game-surface-stage canvas:focus-visible {
+  outline: 2px solid var(--mame-focus);
+  outline-offset: -2px;
+}
+
+.game-surface-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.4rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.74);
+  text-align: center;
+}
+
+.game-surface-overlay span {
+  max-width: 42rem;
+  color: var(--mame-muted);
+}
+
+.game-surface-error .game-surface-overlay,
+.game-surface-stalled .game-surface-overlay {
+  color: var(--mame-error);
+}
+
+.game-surface-status {
+  min-height: 1.5rem;
+  color: var(--mame-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 720px) {
+  .game-surface-toolbar,
+  .game-surface-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .game-surface-actions {
+    flex-wrap: wrap;
+  }
+}

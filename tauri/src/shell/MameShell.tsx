@@ -60,7 +60,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
     const bind = async () => {
       unlisteners.push(
         await listen<SessionLifecycleEventV1>(SESSION_STARTED_EVENT, (event) => {
-          if (!disposed) observeSession(event.payload.session);
+          if (!disposed) {
+            observeSession(event.payload.session);
+            setView("session");
+          }
         }),
       );
       for (const eventName of [
@@ -73,6 +76,7 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             if (!disposed) {
               setSession(null);
               setGameplayInputOwned(false);
+              setView("library");
             }
           }),
         );
@@ -118,7 +122,10 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
             onOpenHistory={() => setView("history")}
             onOpenSession={() => setView("session")}
             sessionLabel={activeSessionLabel}
-            onSessionStarted={observeSession}
+            onSessionStarted={(next) => {
+              observeSession(next);
+              setView("session");
+            }}
           />
         )}
         {view !== "library" && (

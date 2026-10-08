@@ -319,6 +319,10 @@ export type StopMameRequest = {
   sessionId: string;
 };
 
+export type GetMameGameFrameRequest = {
+  sessionId: string;
+};
+
 export type StopMameResult = {
   schemaVersion: 1;
   softStopRequested: boolean;
