@@ -466,7 +466,7 @@ impl SessionSupervisor {
         Ok(inner.current.as_ref().map(snapshot_with_diagnostics))
     }
 
-    pub(crate) fn take_latest_frame(&self, session_id: &str) -> AppResult<GameFrame> {
+    pub(super) fn take_latest_frame(&self, session_id: &str) -> AppResult<GameFrame> {
         let inner = recover_lock(&self.inner);
         let current = current_session(&inner, session_id)?;
         let Some(frame) = current.frames.take_latest() else {

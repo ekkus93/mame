@@ -265,13 +265,13 @@ impl FrameTransport {
                 )
                 .with_details(serde_json::json!({ "cause": error.to_string() }))
             })?;
-            return Ok(Some(Self {
+            Ok(Some(Self {
                 root,
                 path,
                 auth_token: generate_auth_token()?,
                 reader_opened: Arc::new(AtomicBool::new(false)),
                 cancelled: Arc::new(AtomicBool::new(false)),
-            }));
+            }))
         }
         #[cfg(not(all(target_os = "linux", target_endian = "little")))]
         {
