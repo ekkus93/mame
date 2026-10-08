@@ -323,6 +323,23 @@ export type GetMameGameFrameRequest = {
   sessionId: string;
 };
 
+export type MameInputUpdate = {
+  token: string;
+  value: number;
+};
+
+export type SetMameInputsRequest = {
+  sessionId: string;
+  updates: MameInputUpdate[];
+};
+
+export type SetMameInputsResult = {
+  schemaVersion: 1;
+  sessionId: string;
+  accepted: boolean;
+  updateCount: number;
+};
+
 export type StopMameResult = {
   schemaVersion: 1;
   softStopRequested: boolean;

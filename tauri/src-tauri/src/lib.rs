@@ -279,6 +279,7 @@ pub fn run() -> Result<(), tauri::Error> {
             sessions::launch_mame,
             sessions::get_mame_session,
             sessions::get_mame_game_frame,
+            sessions::set_mame_inputs,
             sessions::pause_mame,
             sessions::resume_mame,
             sessions::reset_mame,

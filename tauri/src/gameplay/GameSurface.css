@@ -109,3 +109,13 @@
     flex-wrap: wrap;
   }
 }
+
+.game-surface-status span:last-child {
+  text-align: right;
+}
+
+@media (max-width: 980px) {
+  .game-surface-status span:last-child {
+    text-align: left;
+  }
+}

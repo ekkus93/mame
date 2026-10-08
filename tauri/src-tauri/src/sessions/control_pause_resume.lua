@@ -464,6 +464,97 @@ function mame_tauri_control_v1(token, payload)
     end
 end
 
+local gameplay_input_field_cache = {}
+
+local function gameplay_fields_for_token(token)
+    local cached = gameplay_input_field_cache[token]
+    if cached ~= nil then return cached end
+
+    local fields = {}
+    local ok, input_type, player = pcall(function()
+        local resolved_type, resolved_player = manager.machine.ioport:token_to_input_type(token)
+        return resolved_type, resolved_player
+    end)
+    if ok and input_type ~= nil then
+        for _, port in pairs(manager.machine.ioport.ports) do
+            for _, field in pairs(port.fields) do
+                if field.enabled and field.type == input_type and field.player == player then
+                    fields[#fields + 1] = field
+                end
+            end
+        end
+    end
+    gameplay_input_field_cache[token] = fields
+    return fields
+end
+
+local function gameplay_apply_input(field, value)
+    if value == 0 then
+        field:clear_value()
+        return
+    end
+    if not field.is_analog then
+        field:set_value(1)
+        return
+    end
+
+    local minimum = field.minvalue
+    local maximum = field.maxvalue
+    local neutral = field.defvalue
+    if type(minimum) ~= "number" or type(maximum) ~= "number" or type(neutral) ~= "number" then
+        return
+    end
+
+    local mapped
+    if value > 0 then
+        mapped = neutral + math.floor((maximum - neutral) * value / 32767)
+    else
+        mapped = neutral + math.ceil((neutral - minimum) * value / 32768)
+    end
+    if mapped < minimum then mapped = minimum end
+    if mapped > maximum then mapped = maximum end
+    field:set_value(mapped)
+end
+
+function mame_tauri_input_v1(token, payload)
+    if token ~= expected_token or type(payload) ~= "string" or #payload > max_encoded_payload_bytes then
+        return
+    end
+    local decoded = base64url_decode(payload)
+    if decoded == nil or #decoded > max_message_bytes then return end
+
+    local parsed_ok, request = pcall(json.parse, decoded)
+    if not parsed_ok
+        or type(request) ~= "table"
+        or request.version ~= 1
+        or request.sessionId ~= session_id
+        or type(request.updates) ~= "table"
+        or #request.updates < 1
+        or #request.updates > 32 then
+        return
+    end
+
+    for _, update in ipairs(request.updates) do
+        if type(update) ~= "table"
+            or type(update.token) ~= "string"
+            or #update.token < 1
+            or #update.token > 64
+            or update.token:match("^[A-Z0-9_]+$") == nil
+            or type(update.value) ~= "number"
+            or update.value ~= math.floor(update.value)
+            or update.value < -32768
+            or update.value > 32767 then
+            return
+        end
+    end
+
+    for _, update in ipairs(request.updates) do
+        for _, field in ipairs(gameplay_fields_for_token(update.token)) do
+            pcall(gameplay_apply_input, field, update.value)
+        end
+    end
+end
+
 -- Gameplay video uses a dedicated binary FIFO configured by the Rust supervisor. It deliberately
 -- does not share stdout with the authenticated runtime-control protocol above.
 local gameplay_frame_pipe = os.getenv("MAME_TAURI_FRAME_PIPE")

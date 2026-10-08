@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getMameGameFrame } from "../backend/commands";
+import { getMameGameFrame, setMameInputs } from "../backend/commands";
 import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
-import type { SessionSnapshot } from "../backend/types";
+import type { MameInputUpdate, SessionSnapshot } from "../backend/types";
 import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
 import "./GameSurface.css";
 
@@ -10,6 +10,66 @@ type FrameState = "waitingRuntime" | "waitingFrame" | "active" | "stalled" | "er
 
 const FIRST_FRAME_TIMEOUT_MS = 5_000;
 const FRAME_STALL_TIMEOUT_MS = 2_000;
+
+const KEYBOARD_INPUTS: Readonly<Record<string, string>> = {
+  ArrowUp: "P1_JOYSTICK_UP",
+  ArrowDown: "P1_JOYSTICK_DOWN",
+  ArrowLeft: "P1_JOYSTICK_LEFT",
+  ArrowRight: "P1_JOYSTICK_RIGHT",
+  KeyZ: "P1_BUTTON1",
+  KeyX: "P1_BUTTON2",
+  KeyC: "P1_BUTTON3",
+  KeyV: "P1_BUTTON4",
+  Enter: "START1",
+  Digit5: "COIN1",
+};
+
+const GAMEPAD_BUTTON_INPUTS: Readonly<Record<number, string>> = {
+  0: "P1_BUTTON1",
+  1: "P1_BUTTON2",
+  2: "P1_BUTTON3",
+  3: "P1_BUTTON4",
+  8: "COIN1",
+  9: "START1",
+};
+
+const GAMEPAD_DEADZONE = 0.12;
+const GAMEPAD_DIGITAL_THRESHOLD = 0.5;
+
+function normalizedAxis(value: number): number {
+  if (!Number.isFinite(value) || Math.abs(value) < GAMEPAD_DEADZONE) return 0;
+  return Math.max(-32768, Math.min(32767, Math.round(value * 32767)));
+}
+
+function combineInputState(
+  keyboard: ReadonlyMap<string, number>,
+  gamepad: ReadonlyMap<string, number>,
+): Map<string, number> {
+  const combined = new Map<string, number>();
+  for (const source of [keyboard, gamepad]) {
+    for (const [token, value] of source) {
+      const current = combined.get(token) ?? 0;
+      if (Math.abs(value) >= Math.abs(current)) combined.set(token, value);
+    }
+  }
+  return combined;
+}
+
+function diffInputState(
+  desired: ReadonlyMap<string, number>,
+  accepted: ReadonlyMap<string, number>,
+): MameInputUpdate[] {
+  const tokens = new Set([...desired.keys(), ...accepted.keys()]);
+  const updates: MameInputUpdate[] = [];
+  for (const token of tokens) {
+    const desiredValue = desired.get(token) ?? 0;
+    if (desiredValue !== (accepted.get(token) ?? 0)) {
+      updates.push({ token, value: desiredValue });
+    }
+  }
+  return updates;
+}
+
 
 function drawFrame(
   canvas: HTMLCanvasElement,
@@ -75,6 +135,11 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stagingRef = useRef<HTMLCanvasElement | null>(null);
   const surfaceRef = useRef<HTMLElement | null>(null);
+  const keyboardInputsRef = useRef(new Map<string, number>());
+  const gamepadInputsRef = useRef(new Map<string, number>());
+  const acceptedInputsRef = useRef(new Map<string, number>());
+  const inputOwnedRef = useRef(false);
+  const inputInFlightRef = useRef(false);
   const [frameState, setFrameState] = useState<FrameState>(
     session.state === "running" ? "waitingFrame" : "waitingRuntime",
   );
@@ -168,6 +233,121 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
     };
   }, [session.sessionId, session.state, smoothScaling]);
 
+  useEffect(() => {
+    let disposed = false;
+    let animationFrame = 0;
+
+    const releaseDesiredInputs = () => {
+      keyboardInputsRef.current.clear();
+      gamepadInputsRef.current.clear();
+    };
+
+    const updateGamepad = () => {
+      const next = new Map<string, number>();
+      if (inputOwnedRef.current && typeof navigator.getGamepads === "function") {
+        const gamepad = Array.from(navigator.getGamepads()).find(
+          (candidate): candidate is Gamepad => candidate !== null && candidate.connected,
+        );
+        if (gamepad) {
+          for (const [indexText, token] of Object.entries(GAMEPAD_BUTTON_INPUTS)) {
+            const button = gamepad.buttons[Number(indexText)];
+            next.set(token, button?.pressed ? 32767 : 0);
+          }
+          const horizontal = normalizedAxis(gamepad.axes[0] ?? 0);
+          const vertical = normalizedAxis(gamepad.axes[1] ?? 0);
+          next.set("P1_AD_STICK_X", horizontal);
+          next.set("P1_AD_STICK_Y", vertical);
+          next.set("P1_JOYSTICK_LEFT", horizontal <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0);
+          next.set("P1_JOYSTICK_RIGHT", horizontal >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0);
+          next.set("P1_JOYSTICK_UP", vertical <= -GAMEPAD_DIGITAL_THRESHOLD * 32768 ? 32767 : 0);
+          next.set("P1_JOYSTICK_DOWN", vertical >= GAMEPAD_DIGITAL_THRESHOLD * 32767 ? 32767 : 0);
+        }
+      }
+      gamepadInputsRef.current = next;
+    };
+
+    const pump = () => {
+      if (disposed) return;
+      updateGamepad();
+
+      if (!inputInFlightRef.current && session.state === "running") {
+        const desired = combineInputState(keyboardInputsRef.current, gamepadInputsRef.current);
+        const updates = diffInputState(desired, acceptedInputsRef.current);
+        if (updates.length > 0) {
+          inputInFlightRef.current = true;
+          void setMameInputs({ sessionId: session.sessionId, updates: updates.slice(0, 32) })
+            .then((result) => {
+              if (!result.accepted) return;
+              for (const update of updates.slice(0, 32)) {
+                if (update.value === 0) acceptedInputsRef.current.delete(update.token);
+                else acceptedInputsRef.current.set(update.token, update.value);
+              }
+            })
+            .catch(() => {
+              // Session teardown or runtime-control failure is reflected by the
+              // session/gameplay state; input remains best-effort and bounded.
+            })
+            .finally(() => {
+              inputInFlightRef.current = false;
+            });
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(pump);
+    };
+
+    const handleFullscreenChange = () => {
+      releaseDesiredInputs();
+      if (document.fullscreenElement === surfaceRef.current) {
+        canvasRef.current?.focus();
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    animationFrame = window.requestAnimationFrame(pump);
+
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      inputOwnedRef.current = false;
+      releaseDesiredInputs();
+      const release = Array.from(acceptedInputsRef.current.keys()).map((token) => ({
+        token,
+        value: 0,
+      }));
+      acceptedInputsRef.current.clear();
+      if (release.length > 0) {
+        void setMameInputs({ sessionId: session.sessionId, updates: release.slice(0, 32) }).catch(
+          () => undefined,
+        );
+      }
+    };
+  }, [session.sessionId, session.state]);
+
+  const handleGameplayFocus = () => {
+    inputOwnedRef.current = true;
+  };
+
+  const handleGameplayBlur = () => {
+    inputOwnedRef.current = false;
+    keyboardInputsRef.current.clear();
+    gamepadInputsRef.current.clear();
+  };
+
+  const handleGameplayKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const token = KEYBOARD_INPUTS[event.code];
+    if (!token || event.repeat) return;
+    event.preventDefault();
+    keyboardInputsRef.current.set(token, 32767);
+  };
+
+  const handleGameplayKeyUp = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const token = KEYBOARD_INPUTS[event.code];
+    if (!token) return;
+    event.preventDefault();
+    keyboardInputsRef.current.delete(token);
+  };
+
   const toggleFullscreen = () => {
     const surface = surfaceRef.current;
     if (!surface) return;
@@ -221,7 +401,11 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
           ref={canvasRef}
           className={smoothScaling ? "is-smooth" : "is-nearest"}
           tabIndex={0}
-          aria-label="MAME gameplay video"
+          aria-label="MAME gameplay video. Focus this surface to control the game."
+          onFocus={handleGameplayFocus}
+          onBlur={handleGameplayBlur}
+          onKeyDown={handleGameplayKeyDown}
+          onKeyUp={handleGameplayKeyUp}
         />
         {frameState !== "active" && (
           <div className="game-surface-overlay" role={frameState === "error" ? "alert" : "status"}>
@@ -233,6 +417,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       <footer className="game-surface-status" aria-live="polite">
         <span>{statusLabel}</span>
         <span>{frameSummary}</span>
+        <span>Focus game: arrows · Z/X/C/V · Enter start · 5 coin · gamepad supported</span>
       </footer>
     </section>
   );

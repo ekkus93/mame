@@ -107,6 +107,29 @@ pub struct GetMameGameFrameRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct MameInputUpdate {
+    pub token: String,
+    pub value: i16,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetMameInputsRequest {
+    pub session_id: String,
+    pub updates: Vec<MameInputUpdate>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetMameInputsResult {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub accepted: bool,
+    pub update_count: usize,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PauseMameRequest {
     pub session_id: String,
 }
@@ -177,6 +200,25 @@ pub fn get_mame_game_frame(
 ) -> AppResult<Response> {
     let frame = supervisor.take_latest_frame(&request.session_id)?;
     Ok(Response::new(frame.to_client_bytes()?))
+}
+
+#[tauri::command]
+pub fn set_mame_inputs(request: SetMameInputsRequest) -> AppResult<SetMameInputsResult> {
+    let updates: Vec<_> = request
+        .updates
+        .iter()
+        .map(|update| control::InputUpdate {
+            token: update.token.clone(),
+            value: update.value,
+        })
+        .collect();
+    let accepted = control::send_session_inputs(&request.session_id, &updates)?;
+    Ok(SetMameInputsResult {
+        schema_version: 1,
+        session_id: request.session_id,
+        accepted,
+        update_count: updates.len(),
+    })
 }
 
 #[tauri::command]

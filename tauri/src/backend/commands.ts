@@ -29,6 +29,8 @@ import {
   type SaveMameStateResult,
   type SessionSnapshot,
   type SetLibraryFavoriteRequest,
+  type SetMameInputsRequest,
+  type SetMameInputsResult,
   type SetMameMuteRequest,
   type SetMameMuteResult,
   type StopMameRequest,
@@ -75,6 +77,10 @@ export async function getMameSession(): Promise<SessionSnapshot | null> {
 
 export async function getMameGameFrame(request: GetMameGameFrameRequest): Promise<ArrayBuffer> {
   return invoke<ArrayBuffer>("get_mame_game_frame", { request });
+}
+
+export async function setMameInputs(request: SetMameInputsRequest): Promise<SetMameInputsResult> {
+  return invoke<SetMameInputsResult>("set_mame_inputs", { request });
 }
 
 export async function stopMame(request: StopMameRequest): Promise<StopMameResult> {
