@@ -1,7 +1,8 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useReducer, useState } from "react";
 
-import { getAppInfo, getMameSession } from "../backend/commands";
+import { getAppInfo, getMameSession, stopMame } from "../backend/commands";
+import { errorMessage } from "../backend/errors";
 import {
   SESSION_CRASHED_EVENT,
   SESSION_EXITED_EVENT,
@@ -15,6 +16,7 @@ import { CollectionManager } from "../library/CollectionManager";
 import { isGameplaySessionState } from "../library/keyboardNavigation";
 import { RecentHistoryPanel } from "../library/RecentHistoryPanel";
 import { SessionControlPanel } from "../session/SessionControlPanel";
+import { libraryReturnAction } from "./sessionNavigation";
 import { DiagnosticsPanel } from "../settings/DiagnosticsPanel";
 import { GeneralSettingsPanel } from "../settings/GeneralSettingsPanel";
 import "./MameShell.css";
@@ -32,6 +34,8 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   const [mameReport, setMameReport] = useState(appInfo.mame);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [gameplayInputOwned, setGameplayInputOwned] = useState(true);
+  const [returningToLibrary, setReturningToLibrary] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
   const [availabilityRevision, bumpAvailabilityRevision] = useReducer(
     (value: number) => value + 1,
     0,
@@ -94,6 +98,30 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
   }, []);
 
   const returnToLibrary = () => {
+    if (returningToLibrary) return;
+    const action = libraryReturnAction(view, session?.state ?? null);
+    if (action === "wait") {
+      setReturnError("Wait for the MAME session to finish starting or stopping before returning.");
+      return;
+    }
+    if (action === "stop" && session) {
+      const sessionId = session.sessionId;
+      setReturningToLibrary(true);
+      setReturnError(null);
+      void stopMame({ sessionId })
+        .then(() => {
+          setSession(null);
+          setGameplayInputOwned(false);
+          setView("library");
+          void getAppInfo()
+            .then((info) => setMameReport(info.mame))
+            .catch(() => undefined);
+        })
+        .catch((error: unknown) => setReturnError(errorMessage(error)))
+        .finally(() => setReturningToLibrary(false));
+      return;
+    }
+    setReturnError(null);
     setView("library");
     void getAppInfo()
       .then((info) => setMameReport(info.mame))
@@ -126,9 +154,19 @@ export function MameShell({ appInfo }: { appInfo: AppInfoResponse }) {
         )}
         {view !== "library" && (
           <section className="mame-secondary-surface" aria-label="Secondary MAME tool surface">
-            <button type="button" className="mame-secondary-back" onClick={returnToLibrary}>
-              ← Machine Selection
+            <button
+              type="button"
+              className="mame-secondary-back"
+              disabled={returningToLibrary}
+              onClick={returnToLibrary}
+            >
+              {returningToLibrary ? "Stopping MAME…" : "← Machine Selection"}
             </button>
+            {returnError && (
+              <p className="error-message" role="alert">
+                {returnError}
+              </p>
+            )}
             {view === "session" && <SessionControlPanel />}
             {view === "settings" && (
               <GeneralSettingsPanel
