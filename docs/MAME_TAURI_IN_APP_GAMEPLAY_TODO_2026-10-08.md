@@ -83,9 +83,11 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Replace the primary `CONTROL_CHANNEL_CLOSED` message with the underlying MAME startup cause where output supports classification; retain the raw runtime-control code in developer details.
 - [x] Add separate no-first-frame and post-start stream-stall timeouts; frame metrics retain last sequence/dimensions/error state for diagnostics.
 - [x] Ensure diagnostics export includes bounded/sanitized startup output and separate runtime, video, input, session, and effective content-path states.
-- [ ] Test app shutdown and retry after each pre-ready and post-ready failure so a stale failed session cannot hide a new one.
+- [x] Test app shutdown and retry after pre-ready failure and post-ready crash so a stale failed session cannot hide a new one. Regression coverage launches successfully after both classes of terminal failure, while supervisor-drop coverage reaps active children and closes gameplay resources.
 
 **Exit gate:** Every failure in the spec produces a specific user-visible state, useful details, and a retry/return path; runtime ready is never misreported as video ready.
+
+> **2026-10-08 retry evidence:** commit `7ff890680d060ea0f1ac9cde51f91850f4b468e7` added pre-ready-failure and post-ready-crash relaunch regressions. The subsequent corrected binary head `ad605d64145d9bcca547bc0b689fe244c17b2744` completed the `linux-quality` job successfully in Tauri project run `37842790331`, including Rust tests.
 
 ## Phase 6 — Automated verification and full AppImage qualification
 
