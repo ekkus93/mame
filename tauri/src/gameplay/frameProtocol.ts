@@ -159,7 +159,9 @@ export function acceptFrameSequence(previous: bigint, next: bigint): bigint {
   return next;
 }
 
-export function framePollFailureDecision(context: FramePollContext): FramePollFailureDecision | null {
+export function framePollFailureDecision(
+  context: FramePollContext,
+): FramePollFailureDecision | null {
   if (context.errorCode !== "MAME_FRAME_NOT_READY") {
     return { state: "error", message: context.errorMessage };
   }
