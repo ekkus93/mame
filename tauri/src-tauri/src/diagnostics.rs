@@ -628,7 +628,7 @@ mod tests {
     };
 
     #[test]
-    fn content_path_diagnostics_use_effective_contract_without_exposing_paths() {
+    fn content_path_diagnostics_expose_effective_paths_and_validation_status() {
         let root = tempdir().expect("temporary content directory");
         let rom = root.path().join("roms");
         fs::create_dir_all(&rom).expect("create ROM directory");
@@ -652,9 +652,13 @@ mod tests {
         assert_eq!(summary.missing, 1);
         assert_eq!(summary.not_directory, 1);
 
-        let json = serde_json::to_string(&summary).expect("serialize safe diagnostics");
-        assert!(!json.contains(&rom.to_string_lossy().to_string()));
-        assert!(!json.contains(&missing.to_string_lossy().to_string()));
+        assert_eq!(summary.entries, effective.entries);
+
+        let json = serde_json::to_string(&summary).expect("serialize diagnostics");
+        assert!(json.contains(&rom.to_string_lossy().to_string()));
+        assert!(json.contains(&missing.to_string_lossy().to_string()));
+        assert!(json.contains("accessible"));
+        assert!(json.contains("notDirectory"));
     }
 
     #[test]
