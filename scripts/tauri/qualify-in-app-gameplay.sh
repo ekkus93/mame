@@ -43,6 +43,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 manifest="$output_dir/manifest.txt"
 app_stdout="$output_dir/app.stdout.log"
 app_stderr="$output_dir/app.stderr.log"
+resource_log="$output_dir/resource-usage.txt"
 note="$output_dir/qualification.md"
 start_epoch=$(date +%s)
 
@@ -155,8 +156,14 @@ printf '\nThe AppImage will now launch. Complete the checklist in the generated 
 printf 'save a Diagnostics bundle from the UI, then close the application to finish capture.\n\n'
 
 set +e
-"$appimage" >"$app_stdout" 2>"$app_stderr"
-app_status=$?
+if [[ -x /usr/bin/time ]]; then
+  /usr/bin/time -v -o "$resource_log" "$appimage" >"$app_stdout" 2>"$app_stderr"
+  app_status=$?
+else
+  "$appimage" >"$app_stdout" 2>"$app_stderr"
+  app_status=$?
+  printf '%s\n' 'resource_usage=unavailable (/usr/bin/time not installed)' >"$resource_log"
+fi
 set -e
 printf 'app_exit_code=%s\n' "$app_status" >>"$manifest"
 
