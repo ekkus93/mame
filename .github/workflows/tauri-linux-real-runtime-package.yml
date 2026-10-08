@@ -202,6 +202,21 @@ jobs:
         shell: bash
         run: ./scripts/tauri/test-real-mame-headless-frame.sh "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE"
 
+      - name: Qualify repeated headless snapshot capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="artifacts/in-app-gameplay/ci-frame-seam-${GITHUB_SHA}.txt"
+          ./scripts/tauri/qualify-mame-frame-seams.sh \
+            "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE" ___empty "" "$report"
+          {
+            echo '### Headless MAME snapshot frame-seam evidence (___empty)'
+            echo 'This measures repeatability and CPU capture overhead only; it does not qualify real-ROM raster/vector performance or the Tauri desktop surface.'
+            echo '~~~text'
+            cat "$report"
+            echo '~~~'
+          } >>"$GITHUB_STEP_SUMMARY"
+
       - name: Stage release-qualified bundled runtime
         shell: bash
         env:
@@ -309,6 +324,7 @@ jobs:
             tauri/src-tauri/target/release/bundle/deb/*.deb
             tauri/src-tauri/target/release/bundle/appimage/*.AppImage
             tauri/src-tauri/target/release/bundle/real-runtime-package-manifest.txt
+            artifacts/in-app-gameplay/ci-frame-seam-*.txt*
           if-no-files-found: error
           retention-days: 7
 
@@ -321,4 +337,5 @@ jobs:
             tauri/src-tauri/target/release/bundle/deb/*.deb
             tauri/src-tauri/target/release/bundle/appimage/*.AppImage
             tauri/src-tauri/target/release/bundle/real-runtime-package-manifest.txt
+            artifacts/in-app-gameplay/ci-frame-seam-*.txt*
           if-no-files-found: error
