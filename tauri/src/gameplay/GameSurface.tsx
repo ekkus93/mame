@@ -25,7 +25,15 @@ import {
 } from "./gameplayInput";
 import "./GameSurface.css";
 
-type FrameState = "starting" | "waitingFrame" | "active" | "stalled" | "stopping" | "error";
+type FrameState =
+  | "starting"
+  | "waitingFrame"
+  | "active"
+  | "stalled"
+  | "unsupported"
+  | "stopping"
+  | "ended"
+  | "error";
 
 type GameSurfaceProps = {
   session: SessionSnapshot;
@@ -177,7 +185,13 @@ export function GameSurface({
     if (!canvas) return;
 
     if (session.state !== "running") {
-      setFrameState(session.state === "stopping" ? "stopping" : "starting");
+      setFrameState(
+        session.state === "stopping"
+          ? "stopping"
+          : session.state === "exited" || session.state === "failed" || session.state === "crashed"
+            ? "ended"
+            : "starting",
+      );
       setFailure(null);
       return;
     }
@@ -404,7 +418,9 @@ export function GameSurface({
     waitingFrame: "Waiting for first gameplay frame…",
     active: "Gameplay active",
     stalled: "Gameplay video stalled",
+    unsupported: "Gameplay video unsupported",
     stopping: "Stopping MAME…",
+    ended: "Gameplay session ended",
     error: "Gameplay video unavailable",
   }[frameState];
 
@@ -465,7 +481,10 @@ export function GameSurface({
           onKeyUp={handleGameplayKeyUp}
         />
         {frameState !== "active" && (
-          <div className="game-surface-overlay" role={frameState === "error" ? "alert" : "status"}>
+          <div
+            className="game-surface-overlay"
+            role={frameState === "error" || frameState === "unsupported" ? "alert" : "status"}
+          >
             <strong>{statusLabel}</strong>
             {failure && <span>{failure}</span>}
           </div>

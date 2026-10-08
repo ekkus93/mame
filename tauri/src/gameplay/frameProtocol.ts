@@ -132,7 +132,10 @@ export function bgrxToRgba(frame: GameFrame): Uint8ClampedArray<ArrayBuffer> {
   return rgba;
 }
 
-export type FramePollFailureDecision = { state: "stalled" | "error"; message: string };
+export type FramePollFailureDecision = {
+  state: "stalled" | "unsupported" | "error";
+  message: string;
+};
 
 export interface FramePollContext {
   errorCode: string | null;
@@ -162,6 +165,13 @@ export function acceptFrameSequence(previous: bigint, next: bigint): bigint {
 export function framePollFailureDecision(
   context: FramePollContext,
 ): FramePollFailureDecision | null {
+  if (
+    context.errorCode === "MAME_FRAME_VERSION_UNSUPPORTED" ||
+    context.errorCode === "MAME_FRAME_PIXEL_FORMAT_UNSUPPORTED" ||
+    context.errorCode === "MAME_IN_APP_GAMEPLAY_UNSUPPORTED"
+  ) {
+    return { state: "unsupported", message: context.errorMessage };
+  }
   if (context.errorCode !== "MAME_FRAME_NOT_READY") {
     return { state: "error", message: context.errorMessage };
   }

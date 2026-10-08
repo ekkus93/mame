@@ -52,7 +52,7 @@ describe("game surface state", () => {
     });
   });
 
-  it("maps non-waiting frame failures to the error state verbatim", () => {
+  it("maps unsupported transport and protocol failures to the unsupported state", () => {
     expect(
       framePollFailureDecision({
         errorCode: "MAME_FRAME_VERSION_UNSUPPORTED",
@@ -65,7 +65,7 @@ describe("game surface state", () => {
         frameStallTimeoutMs: 2_000,
       }),
     ).toEqual({
-      state: "error",
+      state: "unsupported",
       message: "Unsupported gameplay frame version.",
     });
   });
