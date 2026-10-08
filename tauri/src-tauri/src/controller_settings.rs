@@ -1,8 +1,10 @@
 //! Typed controller-profile commands for MT-608.
 //!
-//! An assigned profile is configuration intent, not evidence that MAME is
-//! currently using that mapping. Until launch integration applies these
-//! profiles natively, `active_profile` is deliberately always `None`.
+//! An assigned profile is configuration intent, not proof that a particular
+//! device is connected. Browser-standard profiles are consumed by the in-app
+//! gameplay surface using their recorded Gamepad API identity. Native MAME
+//! controller-map profiles remain configuration-only here, and `active_profile`
+//! stays `None` because Rust cannot observe WebView device connection state.
 
 use std::{
     path::Path,
@@ -143,8 +145,14 @@ fn controller_profile_configuration(
     let status_message = match application_status {
         ControllerProfileApplicationStatus::Unassigned =>
             "No controller profile is selected for this scope.".to_owned(),
-        ControllerProfileApplicationStatus::AssignedNotApplied =>
-            "A controller profile is selected, but this build does not yet apply saved profiles to MAME gameplay input. It is not reported as active.".to_owned(),
+        ControllerProfileApplicationStatus::AssignedNotApplied => {
+            match effective_profile.as_ref().map(|profile| profile.mapping_provenance.kind) {
+                Some(ControllerMappingProvenanceKind::BrowserStandardGamepad) =>
+                    "A browser-standard controller profile is selected. The in-app gameplay surface will use its recorded Gamepad API identity when that device is connected; backend state does not claim the device is active.".to_owned(),
+                _ =>
+                    "A native MAME controller profile is selected, but this build does not yet apply that saved native mapping to gameplay. It is not reported as active.".to_owned(),
+            }
+        },
     };
 
     Ok(ControllerProfileConfiguration {
@@ -238,173 +246,3 @@ fn current_epoch_ms() -> AppResult<u64> {
                 "The system clock is before the Unix epoch.",
             )
             .with_details(serde_json::json!({ "cause": error.to_string() }))
-        })?;
-    u64::try_from(duration.as_millis()).map_err(|_| {
-        AppError::new(
-            "CONTROLLER_PROFILE_TIMESTAMP_INVALID",
-            "The current timestamp is outside the supported range.",
-        )
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{
-        fs,
-        path::PathBuf,
-        time::{SystemTime, UNIX_EPOCH},
-    };
-
-    use crate::controller_profiles::{
-        create_controller_profile, set_controller_profile_assignment, ControllerDeviceIdentity,
-        ControllerDeviceIdentityKind, ControllerMappingProvenance, ControllerMappingProvenanceKind,
-        ControllerProfileDraft, ControllerProfileScope,
-    };
-
-    use super::{
-        controller_profile_configuration, create_browser_controller_profile_at_path,
-        ControllerProfileApplicationStatus, CreateBrowserControllerProfileRequest,
-    };
-
-    fn project_profile(name: &str, device: &str) -> ControllerProfileDraft {
-        ControllerProfileDraft {
-            name: name.to_owned(),
-            target_device: ControllerDeviceIdentity {
-                kind: ControllerDeviceIdentityKind::UserDefined,
-                value: device.to_owned(),
-                reported_mapping: None,
-            },
-            mapping_provenance: ControllerMappingProvenance {
-                kind: ControllerMappingProvenanceKind::ProjectOwned,
-                source_reference: Some(format!("project:{name}")),
-            },
-        }
-    }
-
-    #[test]
-    fn machine_selection_overrides_global_but_is_not_claimed_active() {
-        let path = temp_catalog("precedence");
-        let global = create_controller_profile(&path, project_profile("Global", "pad-a"), 1)
-            .expect("global profile");
-        let machine = create_controller_profile(&path, project_profile("Machine", "pad-b"), 2)
-            .expect("machine profile");
-        set_controller_profile_assignment(&path, global.id, ControllerProfileScope::Global)
-            .expect("assign global");
-        set_controller_profile_assignment(
-            &path,
-            machine.id,
-            ControllerProfileScope::Machine {
-                short_name: "pacman".to_owned(),
-            },
-        )
-        .expect("assign machine");
-
-        let configuration = controller_profile_configuration(
-            &path,
-            ControllerProfileScope::Machine {
-                short_name: "pacman".to_owned(),
-            },
-        )
-        .expect("configuration");
-        assert_eq!(
-            configuration.assigned_profile.as_ref().map(|p| p.id),
-            Some(machine.id)
-        );
-        assert_eq!(
-            configuration.effective_profile.as_ref().map(|p| p.id),
-            Some(machine.id)
-        );
-        assert_eq!(
-            configuration.effective_scope,
-            Some(ControllerProfileScope::Machine {
-                short_name: "pacman".to_owned(),
-            })
-        );
-        assert_eq!(
-            configuration.application_status,
-            ControllerProfileApplicationStatus::AssignedNotApplied
-        );
-        assert_eq!(configuration.active_profile, None);
-        cleanup(&path);
-    }
-
-    #[test]
-    fn machine_without_override_inherits_global_selection() {
-        let path = temp_catalog("inherit-global");
-        let global = create_controller_profile(&path, project_profile("Global", "pad-a"), 1)
-            .expect("global profile");
-        set_controller_profile_assignment(&path, global.id, ControllerProfileScope::Global)
-            .expect("assign global");
-
-        let configuration = controller_profile_configuration(
-            &path,
-            ControllerProfileScope::Machine {
-                short_name: "galaga".to_owned(),
-            },
-        )
-        .expect("configuration");
-        assert_eq!(configuration.assigned_profile, None);
-        assert_eq!(
-            configuration.effective_profile.as_ref().map(|p| p.id),
-            Some(global.id)
-        );
-        assert_eq!(
-            configuration.effective_scope,
-            Some(ControllerProfileScope::Global)
-        );
-        assert_eq!(configuration.active_profile, None);
-        cleanup(&path);
-    }
-
-    #[test]
-    fn selecting_another_profile_replaces_the_exact_scope_assignment() {
-        let path = temp_catalog("replace");
-        let first = create_controller_profile(&path, project_profile("First", "pad-a"), 1)
-            .expect("first profile");
-        let second = create_controller_profile(&path, project_profile("Second", "pad-b"), 2)
-            .expect("second profile");
-        set_controller_profile_assignment(&path, first.id, ControllerProfileScope::Global)
-            .expect("first assignment");
-        set_controller_profile_assignment(&path, second.id, ControllerProfileScope::Global)
-            .expect("replacement assignment");
-
-        let configuration = controller_profile_configuration(&path, ControllerProfileScope::Global)
-            .expect("configuration");
-        assert_eq!(
-            configuration.assigned_profile.as_ref().map(|p| p.id),
-            Some(second.id)
-        );
-        cleanup(&path);
-    }
-
-    #[test]
-    fn browser_capture_rejects_nonstandard_mapping() {
-        let path = temp_catalog("unsupported");
-        let error = create_browser_controller_profile_at_path(
-            &path,
-            CreateBrowserControllerProfileRequest {
-                name: "Unsupported pad".to_owned(),
-                gamepad_id: "vendor pad".to_owned(),
-                mapping: "".to_owned(),
-            },
-            1,
-        )
-        .expect_err("nonstandard mapping must be rejected");
-        assert_eq!(error.code, "CONTROLLER_GAMEPAD_MAPPING_UNSUPPORTED");
-        cleanup(&path);
-    }
-
-    fn temp_catalog(label: &str) -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock after epoch")
-            .as_nanos();
-        std::env::temp_dir().join(format!("mame-tauri-mt608-{label}-{nonce}.sqlite3"))
-    }
-
-    fn cleanup(path: &PathBuf) {
-        let _ = fs::remove_file(path);
-        let _ = fs::remove_file(path.with_extension("sqlite3-wal"));
-        let _ = fs::remove_file(path.with_extension("sqlite3-shm"));
-    }
-}

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getMameFrameMetrics, getMameGameFrame, setMameInputs } from "../backend/commands";
+import {
+  getControllerProfileConfiguration,
+  getMameFrameMetrics,
+  getMameGameFrame,
+  setMameInputs,
+} from "../backend/commands";
 import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
 import type { SessionSnapshot } from "../backend/types";
 import { bgrxToRgba, parseGameFrame, type GameFrame } from "./frameProtocol";
@@ -93,6 +98,42 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
   const [failure, setFailure] = useState<string | null>(null);
   const [smoothScaling, setSmoothScaling] = useState(false);
   const [frameSummary, setFrameSummary] = useState<string>("No frame presented yet.");
+  const [preferredGamepadId, setPreferredGamepadId] = useState<string | null>(null);
+  const [controllerSummary, setControllerSummary] = useState(
+    "Gamepad: first connected W3C-standard controller",
+  );
+
+  useEffect(() => {
+    let disposed = false;
+    void getControllerProfileConfiguration({
+      scope: { kind: "machine", shortName: session.machine },
+    })
+      .then((configuration) => {
+        if (disposed) return;
+        const profile = configuration.effectiveProfile;
+        if (
+          profile?.targetDevice.kind === "browserGamepadId" &&
+          profile.targetDevice.reportedMapping === "standard" &&
+          profile.mappingProvenance.kind === "browserStandardGamepad"
+        ) {
+          setPreferredGamepadId(profile.targetDevice.value);
+          setControllerSummary(`Gamepad profile: ${profile.name}`);
+        } else {
+          setPreferredGamepadId(null);
+          setControllerSummary("Gamepad: first connected W3C-standard controller");
+        }
+      })
+      .catch(() => {
+        if (!disposed) {
+          setPreferredGamepadId(null);
+          setControllerSummary("Gamepad profile unavailable; using first standard controller");
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [session.machine]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -220,7 +261,10 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
         gamepadInputsRef.current = new Map();
         return;
       }
-      const gamepad = selectStandardGamepad(Array.from(navigator.getGamepads()));
+      const gamepad = selectStandardGamepad(
+        Array.from(navigator.getGamepads()),
+        preferredGamepadId,
+      );
       gamepadInputsRef.current = gamepad ? gamepadInputState(gamepad) : new Map();
     };
 
@@ -283,7 +327,7 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
         );
       }
     };
-  }, [session.sessionId, session.state]);
+  }, [preferredGamepadId, session.sessionId, session.state]);
 
   const handleGameplayFocus = () => {
     inputOwnedRef.current = true;
@@ -378,7 +422,9 @@ export function GameSurface({ session }: { session: SessionSnapshot }) {
       <footer className="game-surface-status" aria-live="polite">
         <span>{statusLabel}</span>
         <span>{frameSummary}</span>
-        <span>Focus game: arrows · Z/X/C/V · Enter start · 5 coin · gamepad supported</span>
+        <span>
+          Focus game: arrows · Z/X/C/V · Enter start · 5 coin · {controllerSummary}
+        </span>
       </footer>
     </section>
   );

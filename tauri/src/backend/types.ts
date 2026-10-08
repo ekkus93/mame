@@ -275,6 +275,46 @@ export type SetLibraryFavoriteRequest = {
   favorite: boolean;
 };
 
+export type ControllerProfileScope =
+  | { kind: "global" }
+  | { kind: "machine"; shortName: string };
+
+export type ControllerProfile = {
+  schemaVersion: 1;
+  id: number;
+  name: string;
+  targetDevice: {
+    kind: "browserGamepadId" | "mameInputDeviceId" | "userDefined";
+    value: string;
+    reportedMapping: string | null;
+  };
+  mappingProvenance: {
+    kind:
+      | "browserStandardGamepad"
+      | "mameControllerConfig"
+      | "mameOsdControllerMap"
+      | "projectOwned";
+    sourceReference: string | null;
+  };
+  createdAtEpochMs: number;
+  updatedAtEpochMs: number;
+};
+
+export type ControllerProfileConfigurationRequest = {
+  scope: ControllerProfileScope;
+};
+
+export type ControllerProfileConfiguration = {
+  schemaVersion: 1;
+  profiles: ControllerProfile[];
+  assignedProfile: ControllerProfile | null;
+  effectiveProfile: ControllerProfile | null;
+  effectiveScope: ControllerProfileScope | null;
+  activeProfile: ControllerProfile | null;
+  applicationStatus: "unassigned" | "assignedNotApplied";
+  statusMessage: string;
+};
+
 export type SessionState =
   "created" | "starting" | "running" | "stopping" | "exited" | "failed" | "crashed";
 

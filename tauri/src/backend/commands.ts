@@ -4,6 +4,8 @@ import {
   APP_PROTOCOL_VERSION,
   type AppInfoRequest,
   type AppInfoResponse,
+  type ControllerProfileConfiguration,
+  type ControllerProfileConfigurationRequest,
   type FavoritePage,
   type FavoritePageRequest,
   type FavoriteState,
@@ -75,6 +77,12 @@ export async function launchLibraryMachine(
 
 export async function getMameSession(): Promise<SessionSnapshot | null> {
   return invoke<SessionSnapshot | null>("get_mame_session");
+}
+
+export async function getControllerProfileConfiguration(
+  request: ControllerProfileConfigurationRequest,
+): Promise<ControllerProfileConfiguration> {
+  return invoke<ControllerProfileConfiguration>("get_controller_profile_configuration", { request });
 }
 
 export async function getMameGameFrame(request: GetMameGameFrameRequest): Promise<ArrayBuffer> {

@@ -25,7 +25,7 @@ describe("gameplay input mapping", () => {
     const preferred = gamepad({ id: "pad-b" });
     const nonstandard = gamepad({ id: "vendor-map", mapping: "" });
     expect(selectStandardGamepad([nonstandard, first, preferred], "pad-b")?.id).toBe("pad-b");
-    expect(selectStandardGamepad([nonstandard, first], "missing")?.id).toBe("pad-a");
+    expect(selectStandardGamepad([nonstandard, first], "missing")).toBeNull();
     expect(selectStandardGamepad([nonstandard])).toBeNull();
   });
 

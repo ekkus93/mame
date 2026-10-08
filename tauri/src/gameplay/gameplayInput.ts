@@ -47,8 +47,7 @@ export function selectStandardGamepad(
       gamepad !== null && gamepad.connected && gamepad.mapping === "standard",
   );
   if (preferredId) {
-    const preferred = connected.find((gamepad) => gamepad.id === preferredId);
-    if (preferred) return preferred;
+    return connected.find((gamepad) => gamepad.id === preferredId) ?? null;
   }
   return connected[0] ?? null;
 }
