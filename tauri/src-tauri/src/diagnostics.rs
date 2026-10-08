@@ -21,7 +21,7 @@ use tauri::{AppHandle, Manager, Runtime, State};
 use crate::{
     app::{self, AppInfoRequest, AppInfoResponse, APP_PROTOCOL_VERSION},
     config::{load_settings, settings_path, ContentPathKind, PathValidationStatus},
-    content_paths::{effective_content_paths, EffectiveContentPaths},
+    content_paths::{effective_content_paths, EffectiveContentPathEntry, EffectiveContentPaths},
     errors::{AppError, AppResult},
     mame::{MameExecutableSourceKind, MameExecutableTrust},
     sessions::{FrameMetricsSnapshot, SessionSnapshot, SessionState, SessionSupervisor},
@@ -69,6 +69,7 @@ pub struct RuntimeDiagnostics {
 pub struct ContentPathDiagnostics {
     pub schema_version: u32,
     pub resolution_policy: String,
+    pub entries: Vec<EffectiveContentPathEntry>,
     pub total: u32,
     pub rom: u32,
     pub software: u32,
@@ -356,7 +357,8 @@ fn diagnostics_snapshot(
 pub(crate) fn summarize_content_paths(paths: &EffectiveContentPaths) -> ContentPathDiagnostics {
     let mut summary = ContentPathDiagnostics {
         schema_version: 1,
-        resolution_policy: "configuredOnly".to_owned(),
+        resolution_policy: "configuredWithConventionalMameDefaults".to_owned(),
+        entries: paths.entries.clone(),
         total: 0,
         rom: 0,
         software: 0,

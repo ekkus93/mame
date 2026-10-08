@@ -7,6 +7,18 @@ import {
 } from "../backend/diagnostics";
 import { errorMessage } from "../backend/errors";
 
+function platformPathLabel(path: string | { encoding: string; data: string }): string {
+  return typeof path === "string" ? path : `<${path.encoding}:${path.data}>`;
+}
+
+function runtimeLabel(snapshot: DiagnosticsSnapshot): string {
+  const runtime = snapshot.runtime;
+  if (runtime.status === "available") {
+    return `${runtime.activeSource ?? "unknown"} · ${runtime.trust ?? "unknown trust"}`;
+  }
+  return [runtime.status, runtime.failureDomain, runtime.errorCode].filter(Boolean).join(" · ");
+}
+
 function mameLabel(snapshot: DiagnosticsSnapshot): string {
   switch (snapshot.app.mame.status) {
     case "notConfigured":
@@ -101,6 +113,37 @@ export function DiagnosticsPanel() {
               <dd>{mameLabel(snapshot)}</dd>
             </div>
             <div>
+              <dt>Runtime</dt>
+              <dd>{runtimeLabel(snapshot)}</dd>
+            </div>
+            <div>
+              <dt>Gameplay transport</dt>
+              <dd>{snapshot.gameplay.videoTransport}</dd>
+            </div>
+            <div>
+              <dt>Gameplay session</dt>
+              <dd>
+                {snapshot.gameplay.session
+                  ? `${snapshot.gameplay.session.machine} · ${snapshot.gameplay.session.state} · ${snapshot.gameplay.session.sessionId}`
+                  : "No recorded session"}
+              </dd>
+            </div>
+            <div>
+              <dt>Video</dt>
+              <dd>
+                {snapshot.gameplay.video
+                  ? `recv ${snapshot.gameplay.video.received} · drop ${snapshot.gameplay.video.dropped} · delivered ${snapshot.gameplay.video.delivered} · presented ${snapshot.gameplay.video.presented} · age ${snapshot.gameplay.video.latestAgeMs ?? "—"}ms`
+                  : "No frame metrics"}
+              </dd>
+            </div>
+            <div>
+              <dt>Input</dt>
+              <dd>
+                {snapshot.gameplay.input.state} · {snapshot.gameplay.input.bridge} · max{" "}
+                {snapshot.gameplay.input.maxUpdatesPerBatch} updates/batch
+              </dd>
+            </div>
+            <div>
               <dt>Settings</dt>
               <dd>
                 <code>{snapshot.settingsPath}</code>
@@ -115,12 +158,22 @@ export function DiagnosticsPanel() {
             <div>
               <dt>Content paths</dt>
               <dd>
-                {snapshot.contentPaths.total} configured · {snapshot.contentPaths.accessible}{" "}
+                {snapshot.contentPaths.total} effective · {snapshot.contentPaths.accessible}{" "}
                 accessible · {snapshot.contentPaths.missing} missing ·{" "}
                 {snapshot.contentPaths.notDirectory +
                   snapshot.contentPaths.permissionDenied +
                   snapshot.contentPaths.unreadable}{" "}
-                invalid/inaccessible
+                invalid/inaccessible · {snapshot.contentPaths.resolutionPolicy}
+                {snapshot.contentPaths.entries.length > 0 && (
+                  <ul>
+                    {snapshot.contentPaths.entries.map((entry, index) => (
+                      <li key={`${entry.kind}-${entry.source}-${index}`}>
+                        {entry.kind} · {entry.source} · {entry.validation.status} ·{" "}
+                        <code>{platformPathLabel(entry.validation.path)}</code>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </dd>
             </div>
             <div>

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { AppInfoResponse } from "./types";
+import type { AppInfoResponse, FrameMetricsSnapshot, SessionSnapshot } from "./types";
 
 export type DiagnosticLogEntry = {
   timestampEpochMs: number;
@@ -23,9 +23,25 @@ export type CatalogSchemaDiagnostics = {
   errorCode: string | null;
 };
 
+export type EncodedPlatformPath = {
+  encoding: "unixBytesHex" | "windowsWideHex";
+  data: string;
+};
+
+export type ContentPathDiagnosticsEntry = {
+  kind: "rom" | "software" | "chd";
+  source: "configured" | "mameDefault";
+  validation: {
+    path: string | EncodedPlatformPath;
+    status: "accessible" | "missing" | "notDirectory" | "permissionDenied" | "unreadable";
+    message: string | null;
+  };
+};
+
 export type ContentPathDiagnostics = {
   schemaVersion: 1;
-  resolutionPolicy: "configuredOnly";
+  resolutionPolicy: "configuredWithConventionalMameDefaults";
+  entries: ContentPathDiagnosticsEntry[];
   total: number;
   rom: number;
   software: number;
@@ -37,15 +53,39 @@ export type ContentPathDiagnostics = {
   unreadable: number;
 };
 
+export type RuntimeDiagnostics = {
+  status: "available" | "unavailable" | "notConfigured";
+  activeSource: "bundled" | "external" | "developmentTree" | null;
+  trust: "qualifiedBundled" | "userConfigured" | "development" | null;
+  failureDomain: string | null;
+  errorCode: string | null;
+  message: string | null;
+};
+
+export type GameplayInputDiagnostics = {
+  state: "ready" | "starting" | "stopping" | "ended" | "inactive";
+  bridge: "boundedAuthenticatedRuntimeControl";
+  maxUpdatesPerBatch: number;
+};
+
+export type GameplayDiagnostics = {
+  session: SessionSnapshot | null;
+  videoTransport: "privateAuthenticatedFifo" | "unsupported";
+  video: FrameMetricsSnapshot | null;
+  input: GameplayInputDiagnostics;
+};
+
 export type DiagnosticsSnapshot = {
   schemaVersion: 3;
   app: AppInfoResponse;
+  runtime: RuntimeDiagnostics;
   platform: string;
   architecture: string;
   settingsPath: string;
   catalogPath: string;
   catalogSchema: CatalogSchemaDiagnostics;
   contentPaths: ContentPathDiagnostics;
+  gameplay: GameplayDiagnostics;
   logPath: string;
   recentLogs: DiagnosticLogEntry[];
 };
