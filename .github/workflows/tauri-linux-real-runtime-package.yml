@@ -269,6 +269,33 @@ jobs:
           ./scripts/tauri/test-real-linux-package.sh "$deb" "$appimage"
           ./scripts/tauri/test-real-linux-package-metadata-bootstrap.sh "$deb"
 
+      - name: Record full-runtime package evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb=$(find tauri/src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -type f -print -quit)
+          appimage=$(find tauri/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -type f -print -quit)
+          runtime=tauri/src-tauri/bundle-resources/mame-runtime/bin/mame
+          manifest=tauri/src-tauri/target/release/bundle/real-runtime-package-manifest.txt
+          [[ -n "$deb" && -n "$appimage" && -x "$runtime" ]] || {
+            echo "Qualified package/runtime evidence inputs are incomplete" >&2
+            exit 1
+          }
+          {
+            printf 'source_sha=%s\n' "$GITHUB_SHA"
+            printf 'source_ref=%s\n' "$GITHUB_REF"
+            printf 'mame_subtarget=%s\n' "$MAME_TAURI_MAME_SUBTARGET"
+            printf 'mame_build_jobs=%s\n' "$MAME_TAURI_MAME_BUILD_JOBS"
+            printf 'mame_version=%s\n' "$("$runtime" -noreadconfig -version | head -n 1)"
+            printf 'tauri_bundle_command=%s\n' 'npm run tauri -- build --config src-tauri/tauri.linux-bundle.conf.json --bundles deb,appimage'
+            printf 'appimage_path=%s\n' "$appimage"
+            printf 'appimage_sha256=%s\n' "$(sha256sum "$appimage" | awk '{print $1}')"
+            printf 'appimage_size_bytes=%s\n' "$(stat -c '%s' "$appimage")"
+            printf 'deb_path=%s\n' "$deb"
+            printf 'deb_sha256=%s\n' "$(sha256sum "$deb" | awk '{print $1}')"
+            printf 'deb_size_bytes=%s\n' "$(stat -c '%s' "$deb")"
+          } | tee "$manifest"
+
       - name: Verify lockfiles remain unchanged
         working-directory: tauri
         run: git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
@@ -281,6 +308,7 @@ jobs:
           path: |
             tauri/src-tauri/target/release/bundle/deb/*.deb
             tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+            tauri/src-tauri/target/release/bundle/real-runtime-package-manifest.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -292,4 +320,5 @@ jobs:
           path: |
             tauri/src-tauri/target/release/bundle/deb/*.deb
             tauri/src-tauri/target/release/bundle/appimage/*.AppImage
+            tauri/src-tauri/target/release/bundle/real-runtime-package-manifest.txt
           if-no-files-found: error
