@@ -35,6 +35,7 @@ use crate::{
     storage,
 };
 
+pub use frame::FrameMetricsSnapshot;
 pub use load_state::{LoadMameStateFailedEventV1, LoadMameStateRequest, LoadMameStateResult};
 pub use save_state::{SaveMameStateFailedEventV1, SaveMameStateRequest, SaveMameStateResult};
 use supervisor::EventSink;
@@ -102,6 +103,16 @@ pub struct StopMameRequest {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct GetMameGameFrameRequest {
+    pub session_id: String,
+    #[serde(default)]
+    pub presented_sequence: Option<String>,
+    #[serde(default)]
+    pub presentation_duration_us: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMameFrameMetricsRequest {
     pub session_id: String,
 }
 
@@ -198,8 +209,44 @@ pub fn get_mame_game_frame(
     request: GetMameGameFrameRequest,
     supervisor: State<'_, SessionSupervisor>,
 ) -> AppResult<Response> {
+    match (&request.presented_sequence, request.presentation_duration_us) {
+        (Some(sequence), duration) => {
+            let sequence = sequence.parse::<u64>().map_err(|error| {
+                AppError::new(
+                    "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                    "The gameplay frame presentation acknowledgement sequence is invalid.",
+                )
+                .with_details(serde_json::json!({
+                    "sequence": sequence,
+                    "cause": error.to_string()
+                }))
+            })?;
+            supervisor.acknowledge_frame_presentation(
+                &request.session_id,
+                sequence,
+                duration,
+            )?;
+        }
+        (None, Some(_)) => {
+            return Err(AppError::new(
+                "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                "A gameplay frame presentation duration requires a frame sequence.",
+            )
+            .with_details(serde_json::json!({ "sessionId": request.session_id })));
+        }
+        (None, None) => {}
+    }
+
     let frame = supervisor.take_latest_frame(&request.session_id)?;
     Ok(Response::new(frame.to_client_bytes()?))
+}
+
+#[tauri::command]
+pub fn get_mame_frame_metrics(
+    request: GetMameFrameMetricsRequest,
+    supervisor: State<'_, SessionSupervisor>,
+) -> AppResult<FrameMetricsSnapshot> {
+    supervisor.frame_metrics(&request.session_id)
 }
 
 #[tauri::command]

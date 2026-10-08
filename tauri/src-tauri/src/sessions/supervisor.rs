@@ -12,7 +12,7 @@ use std::{
 
 use serde::Serialize;
 
-use super::frame::{FrameMailbox, FrameTransport, GameFrame};
+use super::frame::{FrameMailbox, FrameMetricsSnapshot, FrameTransport, GameFrame};
 
 use super::control::{
     control_state, set_control_state, ControlBootstrap, ControlChannel, ControlChannelState,
@@ -466,22 +466,66 @@ impl SessionSupervisor {
         Ok(inner.current.as_ref().map(snapshot_with_diagnostics))
     }
 
-    pub(super) fn take_latest_frame(&self, session_id: &str) -> AppResult<GameFrame> {
+    pub(super) fn frame_metrics(&self, session_id: &str) -> AppResult<FrameMetricsSnapshot> {
         let inner = recover_lock(&self.inner);
         let current = current_session(&inner, session_id)?;
-        let Some(frame) = current.frames.take_latest() else {
-            let mut error = AppError::new(
-                "MAME_FRAME_NOT_READY",
-                "No gameplay frame is currently available for this MAME session.",
+        Ok(current.frames.snapshot())
+    }
+
+    pub(super) fn acknowledge_frame_presentation(
+        &self,
+        session_id: &str,
+        sequence: u64,
+        presentation_duration_us: Option<u64>,
+    ) -> AppResult<()> {
+        let inner = recover_lock(&self.inner);
+        let current = current_session(&inner, session_id)?;
+        if current.snapshot.state != SessionState::Running {
+            return Err(AppError::new(
+                "MAME_FRAME_SESSION_NOT_RUNNING",
+                "Gameplay video is no longer accepting presentation acknowledgements.",
             )
             .with_details(serde_json::json!({
                 "sessionId": session_id,
+                "state": current.snapshot.state
+            })));
+        }
+        current
+            .frames
+            .record_presented(sequence, presentation_duration_us)
+    }
+
+    pub(super) fn take_latest_frame(&self, session_id: &str) -> AppResult<GameFrame> {
+        let inner = recover_lock(&self.inner);
+        let current = current_session(&inner, session_id)?;
+        if current.snapshot.state != SessionState::Running {
+            return Err(AppError::new(
+                "MAME_FRAME_SESSION_NOT_RUNNING",
+                "Gameplay video is not available because the MAME session is not running.",
+            )
+            .with_details(serde_json::json!({
+                "sessionId": session_id,
+                "state": current.snapshot.state,
                 "metrics": current.frames.snapshot()
-            }));
-            error.retryable = true;
-            return Err(error);
-        };
-        Ok(frame)
+            })));
+        }
+        if let Some(frame) = current.frames.take_latest() {
+            return Ok(frame);
+        }
+        let metrics = current.frames.snapshot();
+        if let Some(error) = current.frames.stream_error() {
+            return Err(frame_error_with_metrics(error, session_id, &metrics));
+        }
+        let mut error = AppError::new(
+            "MAME_FRAME_NOT_READY",
+            "No gameplay frame is currently available for this MAME session.",
+        )
+        .with_details(serde_json::json!({
+            "sessionId": session_id,
+            "metrics": metrics
+        }));
+        error.retryable = true;
+        Err(error)
     }
 
     pub(crate) fn stop(&self, session_id: &str) -> AppResult<StopSessionResult> {
@@ -501,6 +545,7 @@ impl SessionSupervisor {
             }
 
             transition(&mut current.snapshot, SessionState::Stopping)?;
+            current.frames.close();
             if let Some(control) = current.control.as_mut() {
                 control.begin_close();
             }

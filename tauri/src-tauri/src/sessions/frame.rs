@@ -30,6 +30,7 @@ const MAX_SESSION_ID_BYTES: usize = 96;
 const MAX_AUTH_TOKEN_BYTES: usize = 128;
 const MAX_FRAME_DIMENSION: u32 = 8192;
 const MAX_FRAME_PAYLOAD_BYTES: usize = 64 * 1024 * 1024;
+const MAX_PRESENTATION_DURATION_US: u64 = 10_000_000;
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 const FRAME_AUTH_TOKEN_BYTES: usize = 32;
 
@@ -54,18 +55,25 @@ impl FramePixelFormat {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct FrameMetricsSnapshot {
-    schema_version: u32,
-    session_id: String,
-    received: u64,
-    dropped: u64,
-    delivered: u64,
-    last_sequence: Option<u64>,
-    last_capture_timestamp_us: Option<u64>,
-    last_width: Option<u32>,
-    last_height: Option<u32>,
-    last_error_code: Option<String>,
-    last_error_message: Option<String>,
+pub struct FrameMetricsSnapshot {
+    pub schema_version: u32,
+    pub session_id: String,
+    pub received: u64,
+    pub dropped: u64,
+    pub delivered: u64,
+    pub presented: u64,
+    pub last_sequence: Option<u64>,
+    pub last_delivered_sequence: Option<u64>,
+    pub last_presented_sequence: Option<u64>,
+    pub last_capture_timestamp_us: Option<u64>,
+    pub last_received_at_epoch_ms: Option<u64>,
+    pub last_presented_at_epoch_ms: Option<u64>,
+    pub last_presentation_duration_us: Option<u64>,
+    pub latest_age_ms: Option<u64>,
+    pub last_width: Option<u32>,
+    pub last_height: Option<u32>,
+    pub last_error_code: Option<String>,
+    pub last_error_message: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -140,12 +148,17 @@ struct FrameMailboxInner {
     received: u64,
     dropped: u64,
     delivered: u64,
+    presented: u64,
     last_sequence: Option<u64>,
+    last_delivered_sequence: Option<u64>,
+    last_presented_sequence: Option<u64>,
     last_capture_timestamp_us: Option<u64>,
+    last_received_at_epoch_ms: Option<u64>,
+    last_presented_at_epoch_ms: Option<u64>,
+    last_presentation_duration_us: Option<u64>,
     last_width: Option<u32>,
     last_height: Option<u32>,
-    last_error_code: Option<String>,
-    last_error_message: Option<String>,
+    last_error: Option<AppError>,
 }
 
 impl FrameMailbox {
@@ -157,12 +170,17 @@ impl FrameMailbox {
                 received: 0,
                 dropped: 0,
                 delivered: 0,
+                presented: 0,
                 last_sequence: None,
+                last_delivered_sequence: None,
+                last_presented_sequence: None,
                 last_capture_timestamp_us: None,
+                last_received_at_epoch_ms: None,
+                last_presented_at_epoch_ms: None,
+                last_presentation_duration_us: None,
                 last_width: None,
                 last_height: None,
-                last_error_code: None,
-                last_error_message: None,
+                last_error: None,
             })),
         }
     }
@@ -193,10 +211,10 @@ impl FrameMailbox {
         inner.received = inner.received.saturating_add(1);
         inner.last_sequence = Some(frame.sequence);
         inner.last_capture_timestamp_us = Some(frame.capture_timestamp_us);
+        inner.last_received_at_epoch_ms = now_epoch_millis();
         inner.last_width = Some(frame.width);
         inner.last_height = Some(frame.height);
-        inner.last_error_code = None;
-        inner.last_error_message = None;
+        inner.last_error = None;
         inner.latest = Some(frame);
         Ok(())
     }
@@ -204,33 +222,109 @@ impl FrameMailbox {
     pub(super) fn take_latest(&self) -> Option<GameFrame> {
         let mut inner = recover_lock(&self.inner);
         let frame = inner.latest.take();
-        if frame.is_some() {
+        if let Some(frame) = frame.as_ref() {
             inner.delivered = inner.delivered.saturating_add(1);
+            inner.last_delivered_sequence = Some(frame.sequence);
         }
         frame
     }
 
+    pub(super) fn record_presented(
+        &self,
+        sequence: u64,
+        presentation_duration_us: Option<u64>,
+    ) -> AppResult<()> {
+        if presentation_duration_us.is_some_and(|duration| duration > MAX_PRESENTATION_DURATION_US) {
+            return Err(protocol_error(
+                "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                "The gameplay frame presentation duration exceeds the supported bound.",
+                serde_json::json!({
+                    "sequence": sequence,
+                    "maxPresentationDurationUs": MAX_PRESENTATION_DURATION_US
+                }),
+            ));
+        }
+
+        let mut inner = recover_lock(&self.inner);
+        let delivered = inner.last_delivered_sequence.ok_or_else(|| {
+            protocol_error(
+                "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                "No gameplay frame has been delivered for presentation acknowledgement.",
+                serde_json::json!({ "sequence": sequence }),
+            )
+        })?;
+        if sequence > delivered {
+            return Err(protocol_error(
+                "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                "The gameplay frame presentation acknowledgement is ahead of delivered video.",
+                serde_json::json!({
+                    "sequence": sequence,
+                    "lastDeliveredSequence": delivered
+                }),
+            ));
+        }
+        if let Some(previous) = inner.last_presented_sequence {
+            if sequence < previous {
+                return Err(protocol_error(
+                    "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                    "The gameplay frame presentation acknowledgement moved backwards.",
+                    serde_json::json!({
+                        "sequence": sequence,
+                        "lastPresentedSequence": previous
+                    }),
+                ));
+            }
+            if sequence == previous {
+                return Ok(());
+            }
+        }
+
+        inner.presented = inner.presented.saturating_add(1);
+        inner.last_presented_sequence = Some(sequence);
+        inner.last_presented_at_epoch_ms = now_epoch_millis();
+        inner.last_presentation_duration_us = presentation_duration_us;
+        Ok(())
+    }
+
+    pub(super) fn close(&self) {
+        recover_lock(&self.inner).latest = None;
+    }
+
+    pub(super) fn stream_error(&self) -> Option<AppError> {
+        recover_lock(&self.inner).last_error.clone()
+    }
+
     pub(super) fn snapshot(&self) -> FrameMetricsSnapshot {
         let inner = recover_lock(&self.inner);
+        let now = now_epoch_millis();
+        let latest_age_ms = match (now, inner.last_received_at_epoch_ms) {
+            (Some(now), Some(received)) => Some(now.saturating_sub(received)),
+            _ => None,
+        };
         FrameMetricsSnapshot {
             schema_version: 1,
             session_id: inner.session_id.clone(),
             received: inner.received,
             dropped: inner.dropped,
             delivered: inner.delivered,
+            presented: inner.presented,
             last_sequence: inner.last_sequence,
+            last_delivered_sequence: inner.last_delivered_sequence,
+            last_presented_sequence: inner.last_presented_sequence,
             last_capture_timestamp_us: inner.last_capture_timestamp_us,
+            last_received_at_epoch_ms: inner.last_received_at_epoch_ms,
+            last_presented_at_epoch_ms: inner.last_presented_at_epoch_ms,
+            last_presentation_duration_us: inner.last_presentation_duration_us,
+            latest_age_ms,
             last_width: inner.last_width,
             last_height: inner.last_height,
-            last_error_code: inner.last_error_code.clone(),
-            last_error_message: inner.last_error_message.clone(),
+            last_error_code: inner.last_error.as_ref().map(|error| error.code.clone()),
+            last_error_message: inner.last_error.as_ref().map(|error| error.message.clone()),
         }
     }
 
     fn mark_error(&self, error: &AppError) {
-        let mut inner = recover_lock(&self.inner);
-        inner.last_error_code = Some(error.code.clone());
-        inner.last_error_message = Some(error.message.clone());
+        recover_lock(&self.inner).last_error = Some(error.clone());
     }
 }
 
@@ -570,6 +664,13 @@ fn protocol_error(code: &str, message: &str, details: serde_json::Value) -> AppE
     AppError::new(code, message).with_details(details)
 }
 
+fn now_epoch_millis() -> Option<u64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| u64::try_from(duration.as_millis()).ok())
+}
+
 fn recover_lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     match mutex.lock() {
         Ok(guard) => guard,
@@ -694,6 +795,71 @@ mod tests {
         }
         assert_eq!(mailbox.snapshot().dropped, 1);
         assert_eq!(mailbox.take_latest().expect("latest").sequence, 2);
+        mailbox
+            .record_presented(2, Some(750))
+            .expect("presentation acknowledgement");
+        let metrics = mailbox.snapshot();
+        assert_eq!(metrics.delivered, 1);
+        assert_eq!(metrics.presented, 1);
+        assert_eq!(metrics.last_delivered_sequence, Some(2));
+        assert_eq!(metrics.last_presented_sequence, Some(2));
+        assert_eq!(metrics.last_presentation_duration_us, Some(750));
+        assert!(metrics.last_received_at_epoch_ms.is_some());
+        assert!(metrics.last_presented_at_epoch_ms.is_some());
+        assert!(mailbox.take_latest().is_none());
+    }
+
+    #[test]
+    fn rejects_invalid_presentation_acknowledgements() {
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        let error = mailbox
+            .record_presented(1, Some(1))
+            .expect_err("undelivered frame acknowledgement must fail");
+        assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+
+        mailbox
+            .publish(GameFrame {
+                session_id: SESSION.to_owned(),
+                sequence: 5,
+                width: 1,
+                height: 1,
+                stride: 4,
+                capture_timestamp_us: 5,
+                orientation_degrees: 0,
+                flags: 0,
+                pixel_format: FramePixelFormat::Bgrx8888Le,
+                payload: vec![0; 4],
+            })
+            .expect("publish");
+        let _ = mailbox.take_latest().expect("deliver");
+        let error = mailbox
+            .record_presented(6, Some(1))
+            .expect_err("future frame acknowledgement must fail");
+        assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+        let error = mailbox
+            .record_presented(5, Some(MAX_PRESENTATION_DURATION_US + 1))
+            .expect_err("unbounded duration must fail");
+        assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+    }
+
+    #[test]
+    fn close_discards_unpresented_latest_frame() {
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        mailbox
+            .publish(GameFrame {
+                session_id: SESSION.to_owned(),
+                sequence: 1,
+                width: 1,
+                height: 1,
+                stride: 4,
+                capture_timestamp_us: 1,
+                orientation_degrees: 0,
+                flags: 0,
+                pixel_format: FramePixelFormat::Bgrx8888Le,
+                payload: vec![0; 4],
+            })
+            .expect("publish");
+        mailbox.close();
         assert!(mailbox.take_latest().is_none());
     }
 
