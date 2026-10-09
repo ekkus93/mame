@@ -6,6 +6,15 @@
 
 This TODO replaces the former assumption that a supervised MAME process plus a separate SDL window constitutes playable Tauri gameplay. It tracks the complete path from discovered local ROMs through live video, controls, diagnostics, and validation in the full AppImage.
 
+## Deferred acceptance scope (2026-10-09 — user decision)
+
+**On hold, not complete:** All 14 currently unchecked tasks and subtasks below are deferred **to the extent they require the user's graphical desktop, locally installed ROMs or the original installed MAME and its user-specific configuration**. This includes Phase 0 user-case reproduction and startup-cause triage; Phase 1 representative raster/vector/high-resolution capture and Lua timing measurements plus real-machine headless behavior; Phase 3 native audio and representative game testing; Phase 4 original installed-MAME `rompath` parity; Phase 6 end-to-end AppImage gameplay, measured desktop performance, qualification evidence and repeat qualification after a relevant fix; and Phase 7 fresh-profile user review. Do **not** mark any of these checkboxes `[x]` based only on CI's ROM-less `___empty` or synthetic-frame tests. Do **not** request or invent the user's private ROMs, screenshots, performance measurements or machine configuration.
+
+**Not deferred:** Automated source fixes, regression/shell validation, build/package correctness, and exact-source CI investigation that require **neither** the user's desktop **nor** installed ROMs. In particular, the frame-seam script quoting regression in [run 37973227910](https://github.com/ekkus93/mame/actions/runs/37973227910) has been fixed on `master` in commit `7d1ed8426e5b3c8f436002edfd79fdf5cf74f3c1`; its new [real-runtime CI run 37983935896](https://github.com/ekkus93/mame/actions/runs/37983935896) is the outstanding automated gate as of this note. Continue diagnosing and fixing any genuine automated failure; do not conflate this with the deferred desktop acceptance.
+
+**Resumption condition:** When the user explicitly resumes desktop/ROM qualification, use the current passing exact-source AppImage (not a stale binary), the host-local evidence scripts documented below, and the user's own approved locally available MAME media. Reconcile completion only from observed evidence. Until then, preserve the outstanding checkboxes as deferred rather than finished.
+
+
 ## Phase 0 — Establish a reproducible baseline
 
 - [x] Record current branch/head and preserve all pre-existing user changes. The implementation baseline is preserved in Git history beginning at `bea14e376d9491cfb7a38b51d11371bb57a431fe`; Ralph writes use exact-head compare-and-swap on `master`.
@@ -137,7 +146,9 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 **Exit gate:** User-facing and engineering docs agree with actual behavior, and all remaining limitations are explicit and acceptable for the first supported release.
 
-> **2026-10-09 qualification-harness integrity improvement (not yet requalified):** The Lua diagnostic frame-seam report will mark zero collected `screen:pixels()` samples as `not_measured`, not `ok`; valid Lua success requires at least one sample. The fresh-profile wrapper isolates `XDG_STATE_HOME` alongside HOME, config, data, and cache. These are evidence-integrity improvements, not proof of real-ROM video, audio, rotation, or performance. Re-run exact-source CI for this script revision before relying on its results.\n\n> **2026-10-08 fresh-profile harness:** `scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh` isolates HOME/XDG state and exposes the selected ROM directory through the normal `~/mame/roms` convention. The Phase 7 first-run review remains unchecked until a real desktop operator records the UI observations and diagnostics from the full AppImage.
+> **2026-10-09 qualification-harness integrity improvement (not yet requalified):** The Lua diagnostic frame-seam report will mark zero collected `screen:pixels()` samples as `not_measured`, not `ok`; valid Lua success requires at least one sample. The fresh-profile wrapper isolates `XDG_STATE_HOME` alongside HOME, config, data, and cache. These are evidence-integrity improvements, not proof of real-ROM video, audio, rotation, or performance. Re-run exact-source CI for this script revision before relying on its results.
+
+> **2026-10-08 fresh-profile harness:** `scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh` isolates HOME/XDG state and exposes the selected ROM directory through the normal `~/mame/roms` convention. The Phase 7 first-run review remains unchecked until a real desktop operator records the UI observations and diagnostics from the full AppImage.
 
 ## Definition of done
 
