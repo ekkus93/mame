@@ -17,13 +17,32 @@ if [[ ! "$machine" =~ ^[a-z0-9_]{1,16}$ ]]; then
 fi
 rom_dir=""
 if [[ $# -ge 3 && -n "$3" ]]; then rom_dir=$(realpath -m "$3"); fi
+
+evidence_root=$(realpath -m "${MAME_TAURI_FRAME_SEAM_EVIDENCE_ROOT:-artifacts/in-app-gameplay}")
 if [[ $# -ge 4 && -n "$4" ]]; then
-  output=$4
+  if [[ "$4" = /* ]]; then
+    # Absolute output is an explicit caller-selected destination.
+    output=$(realpath -m "$4")
+  else
+    output=$(realpath -m "$evidence_root/$4")
+    case "$output" in
+      "$evidence_root"/*) ;;
+      *)
+        echo "Relative frame-seam output escapes evidence root: $4" >&2
+        exit 64
+        ;;
+    esac
+  fi
 else
-  output="artifacts/in-app-gameplay/frame-seam-$machine-$(date -u +%Y%m%dT%H%M%SZ).txt"
+  output="$evidence_root/frame-seam-$machine-$(date -u +%Y%m%dT%H%M%SZ).txt"
 fi
+
+if [[ "${MAME_TAURI_FRAME_SEAM_VALIDATE_OUTPUT_ONLY:-0}" == "1" ]]; then
+  printf '%s\n' "$output"
+  exit 0
+fi
+
 mkdir -p "$(dirname "$output")"
-output=$(realpath -m "$output")
 [[ -x "$runtime" ]] || { echo "MAME executable is not executable: $runtime" >&2; exit 1; }
 [[ -z "$rom_dir" || -d "$rom_dir" ]] || { echo "ROM directory does not exist: $rom_dir" >&2; exit 1; }
 

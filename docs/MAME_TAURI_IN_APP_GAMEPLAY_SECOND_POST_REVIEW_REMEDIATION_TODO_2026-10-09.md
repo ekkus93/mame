@@ -97,29 +97,33 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 5 — Contain qualification evidence output paths
 
-- [ ] **SPRR-QUAL-001:** Define the canonical evidence root for frame-seam reports.
-- [ ] **SPRR-QUAL-002:** Resolve relative explicit report names beneath that evidence root.
-- [ ] **SPRR-QUAL-003:** Reject relative traversal/symlink/path escape before directory creation.
-- [ ] **SPRR-QUAL-004:** Explicitly define whether absolute report paths are allowed; if allowed, treat them as deliberate caller-selected destinations.
-- [ ] **SPRR-QUAL-005:** Preserve existing safe MAME short-name validation.
-- [ ] **SPRR-QUAL-006:** Add shell tests for simple relative output, nested relative output, traversal attempts, absolute-output policy and invalid machine identifiers.
-- [ ] **SPRR-QUAL-007:** Keep zero diagnostic `screen.pixels()` samples as `not_measured` and preserve ROM-less `___empty` scope wording.
+- [x] **SPRR-QUAL-001:** Define the canonical evidence root for frame-seam reports.
+- [x] **SPRR-QUAL-002:** Resolve relative explicit report names beneath that evidence root.
+- [x] **SPRR-QUAL-003:** Reject relative traversal/symlink/path escape before directory creation.
+- [x] **SPRR-QUAL-004:** Explicitly define whether absolute report paths are allowed; if allowed, treat them as deliberate caller-selected destinations.
+- [x] **SPRR-QUAL-005:** Preserve existing safe MAME short-name validation.
+- [x] **SPRR-QUAL-006:** Add shell tests for simple relative output, nested relative output, traversal attempts, absolute-output policy and invalid machine identifiers.
+- [x] **SPRR-QUAL-007:** Keep zero diagnostic `screen.pixels()` samples as `not_measured` and preserve ROM-less `___empty` scope wording.
 
 **Exit gate:** Qualification tooling cannot unintentionally write evidence outside its policy root or overstate ROM-less evidence.
 
+> **SPRR-QUAL implementation:** Relative output reports resolve under `MAME_TAURI_FRAME_SEAM_EVIDENCE_ROOT` (default `artifacts/in-app-gameplay`) and are containment-checked before directory creation, including existing symlink components. Explicit absolute paths remain deliberate caller-selected destinations. Shell regressions cover simple/nested relative paths, traversal, symlink escape, absolute output and invalid machine names; existing `not_measured`/`___empty` semantics are preserved.
+
 ## Phase 6 — Verify packaged runtime provenance against executable bytes
 
-- [ ] **SPRR-PROV-001:** Keep build-time `mame_sha256` generation from the staged executable.
-- [ ] **SPRR-PROV-002:** Add package qualification that recomputes SHA-256 of the installed Debian bundled MAME and compares it with `runtime-provenance.txt`.
-- [ ] **SPRR-PROV-003:** Add equivalent AppImage-extracted runtime digest verification.
-- [ ] **SPRR-PROV-004:** Fail package qualification with an actionable integrity error on manifest/executable mismatch.
-- [ ] **SPRR-PROV-005:** Preserve efficient normal runtime audit behavior without hashing the full executable on every query.
-- [ ] **SPRR-PROV-006:** Correct the audit regression so the changed-binary case actually writes different executable bytes and uses a corresponding different digest.
-- [ ] **SPRR-PROV-007:** Preserve regression coverage showing identical digest/runtime across randomized AppImage-like mount paths remains current.
-- [ ] **SPRR-PROV-008:** Preserve legacy digest-less audit invalidation.
-- [ ] **SPRR-PROV-009:** Add a negative package-integrity regression with intentionally mismatched provenance and binary bytes.
+- [x] **SPRR-PROV-001:** Keep build-time `mame_sha256` generation from the staged executable.
+- [x] **SPRR-PROV-002:** Add package qualification that recomputes SHA-256 of the installed Debian bundled MAME and compares it with `runtime-provenance.txt`.
+- [x] **SPRR-PROV-003:** Add equivalent AppImage-extracted runtime digest verification.
+- [x] **SPRR-PROV-004:** Fail package qualification with an actionable integrity error on manifest/executable mismatch.
+- [x] **SPRR-PROV-005:** Preserve efficient normal runtime audit behavior without hashing the full executable on every query.
+- [x] **SPRR-PROV-006:** Correct the audit regression so the changed-binary case actually writes different executable bytes and uses a corresponding different digest.
+- [x] **SPRR-PROV-007:** Preserve regression coverage showing identical digest/runtime across randomized AppImage-like mount paths remains current.
+- [x] **SPRR-PROV-008:** Preserve legacy digest-less audit invalidation.
+- [x] **SPRR-PROV-009:** Add a negative package-integrity regression with intentionally mismatched provenance and binary bytes.
 
 **Exit gate:** The final package proves that the executable bytes shipped to the user match the runtime digest used for audit provenance.
+
+> **SPRR-PROV implementation:** Added `verify-runtime-provenance.sh`, called by real Linux package qualification for both installed Debian and extracted AppImage runtime trees. It recomputes `bin/mame` SHA-256 and requires exactly one matching `mame_sha256` manifest entry. A standalone negative integrity regression mutates executable bytes and requires an actionable mismatch failure. The audit-store changed-binary fixture now also writes different executable bytes, while normal runtime audit lookups continue consuming package provenance without per-query rehashing.
 
 ## Phase 7 — Resolve first-frame success timing contract
 

@@ -447,11 +447,11 @@ mod tests {
     fn bundled_digest_preserves_audit_across_mounts_and_rejects_changed_binary() {
         use std::fs;
         let fixture = tempfile::tempdir().expect("tempdir");
-        let create_runtime = |mount: &str, digest_char: char| {
+        let create_runtime = |mount: &str, executable_bytes: &[u8], digest_char: char| {
             let runtime = fixture.path().join(mount).join("mame-runtime");
             let executable = runtime.join("bin").join("mame");
             fs::create_dir_all(executable.parent().expect("bin")).expect("runtime bin");
-            fs::write(&executable, b"bundled MAME executable fixture").expect("executable");
+            fs::write(&executable, executable_bytes).expect("executable");
             fs::write(
                 runtime.join("runtime-provenance.txt"),
                 format!(
@@ -462,9 +462,9 @@ mod tests {
             .expect("manifest");
             bundled_identity(executable.to_str().expect("utf8 fixture path"))
         };
-        let first = create_runtime("mount-a", 'a');
-        let same = create_runtime("mount-b", 'a');
-        let changed = create_runtime("mount-c", 'b');
+        let first = create_runtime("mount-a", b"bundled MAME executable v1", 'a');
+        let same = create_runtime("mount-b", b"bundled MAME executable v1", 'a');
+        let changed = create_runtime("mount-c", b"bundled MAME executable v2", 'b');
         let connection = storage::open_catalog_memory().expect("catalog");
         let content = paths("/roms-a", "/roms-b");
         let result = parse_mame_audit_output("romset pacman is good\n", "", Some(0));

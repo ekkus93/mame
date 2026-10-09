@@ -29,6 +29,7 @@ fi
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 validator="$repo_root/scripts/tauri/validate-real-mame-runtime.sh"
+provenance_validator="$repo_root/scripts/tauri/verify-runtime-provenance.sh"
 smoke_machine=${MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE:-pacman}
 [[ -x "$validator" ]] || { echo "missing real runtime validator: $validator" >&2; exit 1; }
 
@@ -205,6 +206,7 @@ assert_runtime_tree() {
   require_any_file_under "$runtime_root/licenses/legal" '-type f' 'MAME legal/license resources'
   require_file_under "$runtime_root" 'runtime-provenance.txt' 'runtime provenance'
   assert_real_provenance "$runtime_root/runtime-provenance.txt"
+  "$provenance_validator" "$runtime_root"
   assert_real_executable_type "$runtime_bin"
   "$validator" "$runtime_bin"
   if [[ "${MAME_TAURI_REQUIRE_ARCADE_DRIVERS:-}" == "1" ]]; then
