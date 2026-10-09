@@ -305,6 +305,11 @@ impl SessionSupervisor {
         transition(&mut snapshot, SessionState::Starting)?;
 
         let mut command = Command::new(&executable_path);
+        // MAME's SDL OSD initializes its video subsystem even with -video none.
+        // Use the SDL null driver only for the supervised, Linux in-app MAME
+        // child: the Tauri canvas owns video, while SDL/native audio is untouched.
+        #[cfg(all(target_os = "linux", target_endian = "little"))]
+        command.env("SDL_VIDEODRIVER", "dummy");
         command
             .args(&argv)
             .stdin(Stdio::piped())

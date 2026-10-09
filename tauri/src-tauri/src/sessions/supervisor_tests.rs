@@ -98,6 +98,53 @@ mod tests {
         fs::remove_dir_all(root).expect("remove fake MAME directory");
     }
 
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    #[test]
+    fn in_app_gameplay_uses_headless_sdl_video_but_keeps_audio_configuration() {
+        let root = unique_temp_dir("headless-sdl-child");
+        let executable = write_fake_mame(
+            &root,
+            "printf 'child-video=%s\\n' \"\${SDL_VIDEODRIVER:-unset}\"\nprintf 'child-audio=%s\\n' \"\${SDL_AUDIODRIVER:-unset}\"\nexit 0\n",
+        );
+        let supervisor = SessionSupervisor::default();
+        let expected_audio =
+            std::env::var("SDL_AUDIODRIVER").unwrap_or_else(|_| "unset".to_owned());
+
+        let started = supervisor
+            .launch(
+                MameExecutableSource::external(&executable),
+                target("pacman"),
+                EffectiveLaunchConfig {
+                    project_paths: Vec::new(),
+                },
+                no_op_sink(),
+            )
+            .expect("supervised in-app MAME child must launch");
+        assert_eq!(started.state, SessionState::Running);
+        let exited = wait_for_terminal(&supervisor);
+        assert_eq!(exited.exit_code, Some(0));
+        assert!(
+            exited.stdout_tail.contains("child-video=dummy"),
+            "MAME SDL video must be null even when the host has no DISPLAY"
+        );
+        assert!(
+            exited
+                .stdout_tail
+                .contains(&format!("child-audio={expected_audio}")),
+            "Native audio environment must not be overridden by headless video"
+        );
+        assert!(
+            started
+                .effective_argv
+                .windows(2)
+                .any(|pair| pair[0] == "-video" && pair[1] == "none"),
+            "supervised MAME launch must disable the SDL gameplay window"
+        );
+
+        fs::remove_dir_all(root).expect("remove fake MAME directory");
+    }
+
     #[cfg(unix)]
     #[test]
     fn pre_ready_missing_content_exit_is_actionable_and_preserves_bounded_tails() {
