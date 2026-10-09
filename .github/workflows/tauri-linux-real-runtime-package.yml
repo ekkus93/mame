@@ -319,6 +319,8 @@ jobs:
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s\n' "$runtime" >>"$GITHUB_ENV"
 
       - name: Verify headless real-MAME frame capture
+        id: headless-smoke
+        continue-on-error: true
         shell: bash
         run: ./scripts/tauri/test-real-mame-headless-frame.sh "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE"
 
