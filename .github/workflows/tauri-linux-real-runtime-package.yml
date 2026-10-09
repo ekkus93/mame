@@ -119,6 +119,7 @@ jobs:
           echo "MAME_TAURI_REAL_RUNTIME_EXECUTABLE=$PWD/artifacts/real-mame-runtime/mame" >> "$GITHUB_ENV"
 
       - name: Build real MAME runtime from repository source
+        if: steps.reuse-verified.outcome != 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -230,6 +231,7 @@ jobs:
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
 
       - name: Preserve exact real MAME executable for package job
+        if: steps.reuse-verified.outcome != 'success'
         shell: bash
         run: |
           set -euo pipefail
