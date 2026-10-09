@@ -22,7 +22,7 @@ output=$(realpath -m "$output")
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-lua="$tmp/frame-seam.lua"
+lua="$tmp/boot.lua"
 
 cat >"$lua" <<'LUA'
 local report_path = assert(os.getenv("MAME_TAURI_FRAME_SEAM_REPORT"), "missing frame seam report path")
@@ -137,7 +137,7 @@ LUA
 
 # Screen-capture benchmarking deliberately disables video presentation and
 # sound. Native user-facing audio must be qualified separately on a desktop.
-cmd=("$runtime" "$machine" -video none -sound none -nothrottle -skip_gameinfo -autoboot_script "$lua")
+cmd=("$runtime" "$machine" -video none -sound none -nothrottle -skip_gameinfo -pluginspath "$tmp")
 if [[ -n "$rom_dir" ]]; then cmd+=(-rompath "$rom_dir"); fi
 
 set +e
