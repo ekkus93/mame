@@ -52,16 +52,18 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 2 — Make play-history finalization retry-safe
 
-- [ ] **SPRR-HIST-001:** Replace remove-before-write settlement with explicit backend-owned pending/decided/persisted state or an equivalent retry-safe model.
-- [ ] **SPRR-HIST-002:** Ensure first legitimate success/failure decides the outcome exactly once.
-- [ ] **SPRR-HIST-003:** Prevent a later competing lifecycle event from changing an already decided outcome.
-- [ ] **SPRR-HIST-004:** Retain a decided outcome after SQLite finalization failure so the same outcome can be retried safely.
-- [ ] **SPRR-HIST-005:** Keep emulator/session lifecycle independent from history-persistence failure and record actionable diagnostics.
-- [ ] **SPRR-HIST-006:** Define bounded app-shutdown behavior for any decided-but-not-yet-persisted history outcome.
-- [ ] **SPRR-HIST-007:** Add real SQLite regression coverage for runtime-ready pending state, first-presentation success, pre-frame exit/crash/stop failure and no-first-frame failure.
-- [ ] **SPRR-HIST-008:** Add race/retry regressions proving one decided outcome, independent retry sessions, persistence-failure retry and cross-session isolation.
+- [x] **SPRR-HIST-001:** Replace remove-before-write settlement with explicit backend-owned pending/decided/persisted state or an equivalent retry-safe model.
+- [x] **SPRR-HIST-002:** Ensure first legitimate success/failure decides the outcome exactly once.
+- [x] **SPRR-HIST-003:** Prevent a later competing lifecycle event from changing an already decided outcome.
+- [x] **SPRR-HIST-004:** Retain a decided outcome after SQLite finalization failure so the same outcome can be retried safely.
+- [x] **SPRR-HIST-005:** Keep emulator/session lifecycle independent from history-persistence failure and record actionable diagnostics.
+- [x] **SPRR-HIST-006:** Define bounded app-shutdown behavior for any decided-but-not-yet-persisted history outcome.
+- [x] **SPRR-HIST-007:** Add real SQLite regression coverage for runtime-ready pending state, first-presentation success, pre-frame exit/crash/stop failure and no-first-frame failure.
+- [x] **SPRR-HIST-008:** Add race/retry regressions proving one decided outcome, independent retry sessions, persistence-failure retry and cross-session isolation.
 
 **Exit gate:** A transient durable-history write failure cannot silently strand or discard a session's decided outcome.
+
+> **SPRR-HIST implementation:** History state now separates the winning decision from persistence-in-flight state. A failed SQLite finalization keeps the original decision retryable; competing callbacks retry but cannot change it. App shutdown makes one bounded retry pass. Real SQLite regression coverage deletes/restores the actual history row to prove persistence failure retains and later commits the original outcome.
 
 ## Phase 3 — Tighten presentation acknowledgement semantics
 
@@ -117,13 +119,15 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 7 — Resolve first-frame success timing contract
 
-- [ ] **SPRR-FIRST-001:** Choose and document either the accepted-ack contract or immediate-post-draw acknowledgement contract for first-frame durable success.
-- [ ] **SPRR-FIRST-002:** Keep durable history backend-authoritative; frontend draw state alone must not update SQLite.
-- [ ] **SPRR-FIRST-003:** If keeping delayed polling ACK, add a regression/documented behavior for process exit between draw and ACK.
-- [ ] **SPRR-FIRST-004:** If switching to immediate ACK, bound the command and preserve exact session/sequence validation.
-- [ ] **SPRR-FIRST-005:** Ensure no-first-frame reporting cannot overwrite a success already accepted by Rust.
+- [x] **SPRR-FIRST-001:** Choose and document either the accepted-ack contract or immediate-post-draw acknowledgement contract for first-frame durable success.
+- [x] **SPRR-FIRST-002:** Keep durable history backend-authoritative; frontend draw state alone must not update SQLite.
+- [x] **SPRR-FIRST-003:** If keeping delayed polling ACK, add a regression/documented behavior for process exit between draw and ACK.
+- [x] **SPRR-FIRST-004:** If switching to immediate ACK, bound the command and preserve exact session/sequence validation.
+- [x] **SPRR-FIRST-005:** Ensure no-first-frame reporting cannot overwrite a success already accepted by Rust.
 
 **Exit gate:** “Successful launch” has one precise, test-proven definition at the draw/ack boundary.
+
+> **SPRR-FIRST decision:** Keep the accepted-ACK contract. Browser draw alone is not durable success; only Rust accepting the queued presentation sequence settles success. A terminal event between draw and accepted ACK therefore decides failure. Backend history regressions cover draw-without-ACK failure and prove an accepted success decision cannot be overwritten. `SPRR-FIRST-004` is satisfied as not applicable because no immediate-ACK command was introduced.
 
 ## Phase 8 — Comprehensive automated regressions
 

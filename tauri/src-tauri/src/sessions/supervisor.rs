@@ -543,28 +543,45 @@ impl SessionSupervisor {
     pub(crate) fn shutdown_for_app_exit(&self) {
         let (child, session_id) = {
             let mut inner = recover_lock(&self.inner);
-            let Some(current) = inner.current.as_mut() else {
-                return;
-            };
-            current.frames.close();
-            if let Some(frame_transport) = current.frame_transport.take() {
-                frame_transport.cancel();
+            match inner.current.as_mut() {
+                Some(current) => {
+                    current.frames.close();
+                    if let Some(frame_transport) = current.frame_transport.take() {
+                        frame_transport.cancel();
+                    }
+                    if let Some(control) = current.control.as_mut() {
+                        control.mark_closed();
+                    }
+                    (current.child.clone(), Some(current.snapshot.session_id.clone()))
+                }
+                None => (None, None),
             }
-            if let Some(control) = current.control.as_mut() {
-                control.mark_closed();
-            }
-            (current.child.clone(), current.snapshot.session_id.clone())
         };
 
         // App exit does not necessarily emit a normal terminal session event.
-        // Resolve any not-yet-presented launch as unsuccessful here as well.
-        if let Err(error) = crate::history::settle_pending_session_launch(&session_id, false) {
+        // Decide the active session if needed, then make one bounded retry pass
+        // over any previously decided-but-unpersisted history rows.
+        if let Some(session_id) = session_id.as_deref() {
+            if let Err(error) = crate::history::settle_pending_session_launch(session_id, false) {
+                crate::diagnostics::record(
+                    "error",
+                    "mame.lifecycle",
+                    "Could not finalize pending play history during app shutdown.",
+                    serde_json::json!({
+                        "sessionId": session_id,
+                        "code": error.code,
+                        "message": error.message,
+                    }),
+                );
+            }
+        }
+        for (retry_session_id, error) in crate::history::retry_decided_session_launches_once() {
             crate::diagnostics::record(
                 "error",
                 "mame.lifecycle",
-                "Could not finalize pending play history during app shutdown.",
+                "Play history remained unpersisted after the bounded app-shutdown retry.",
                 serde_json::json!({
-                    "sessionId": session_id,
+                    "sessionId": retry_session_id,
                     "code": error.code,
                     "message": error.message,
                 }),
