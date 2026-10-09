@@ -106,6 +106,91 @@ export function createInputAcceptanceGuard(accepted: Map<string, number>) {
   };
 }
 
+
+export type SessionInputSender = (updates: readonly MameInputUpdate[]) => Promise<boolean>;
+
+const sessionCleanupBarriers = new Map<string, Promise<void>>();
+
+export function createSessionInputPump(sessionId: string, sender: SessionInputSender) {
+  const accepted = new Map<string, number>();
+  let active = true;
+  let pendingRequest: Promise<void> | null = null;
+  let pendingUpdates: MameInputUpdate[] = [];
+
+  const applyAccepted = (updates: readonly MameInputUpdate[]) => {
+    for (const update of updates) {
+      if (update.value === 0) accepted.delete(update.token);
+      else accepted.set(update.token, update.value);
+    }
+  };
+
+  const flush = (desired: ReadonlyMap<string, number>): void => {
+    if (!active || pendingRequest) return;
+    const updates = diffInputState(desired, accepted);
+    if (updates.length === 0) return;
+
+    const batch = updates.slice(0, 32);
+    pendingUpdates = batch;
+    const priorCleanup = sessionCleanupBarriers.get(sessionId);
+    let request!: Promise<void>;
+    request = (async () => {
+      if (priorCleanup) await priorCleanup;
+      const acceptedByBackend = await sender(batch);
+      if (active && acceptedByBackend) applyAccepted(batch);
+    })()
+      .catch(() => {
+        // Gameplay input is best-effort; session lifecycle owns fatal errors.
+      })
+      .finally(() => {
+        if (pendingRequest === request) {
+          pendingRequest = null;
+          pendingUpdates = [];
+        }
+      });
+    pendingRequest = request;
+  };
+
+  const teardown = (): Promise<void> => {
+    if (!active) return sessionCleanupBarriers.get(sessionId) ?? Promise.resolve();
+    active = false;
+
+    const toRelease = new Set<string>(accepted.keys());
+    for (const update of pendingUpdates) {
+      if (update.value !== 0) toRelease.add(update.token);
+    }
+    accepted.clear();
+    const releases = Array.from(toRelease, (token) => ({ token, value: 0 }));
+    const priorRequest = pendingRequest;
+    const olderCleanup = sessionCleanupBarriers.get(sessionId);
+
+    let cleanup!: Promise<void>;
+    cleanup = (async () => {
+      if (olderCleanup) await olderCleanup;
+      if (priorRequest) await priorRequest;
+      for (let offset = 0; offset < releases.length; offset += 32) {
+        try {
+          const acceptedByBackend = await sender(releases.slice(offset, offset + 32));
+          if (!acceptedByBackend) break;
+        } catch {
+          break;
+        }
+      }
+    })().finally(() => {
+      if (sessionCleanupBarriers.get(sessionId) === cleanup) {
+        sessionCleanupBarriers.delete(sessionId);
+      }
+    });
+    sessionCleanupBarriers.set(sessionId, cleanup);
+    return cleanup;
+  };
+
+  return {
+    flush,
+    teardown,
+    snapshotAccepted: (): ReadonlyMap<string, number> => new Map(accepted),
+  };
+}
+
 export function diffInputState(
   desired: ReadonlyMap<string, number>,
   accepted: ReadonlyMap<string, number>,

@@ -19,7 +19,7 @@ import {
 } from "./frameProtocol";
 import {
   combineInputState,
-  createInputAcceptanceGuard,
+  createSessionInputPump,
   diffInputState,
   gamepadInputState,
   KEYBOARD_INPUTS,
@@ -128,9 +128,7 @@ export function GameSurface({
   const surfaceRef = useRef<HTMLElement | null>(null);
   const keyboardInputsRef = useRef(new Map<string, number>());
   const gamepadInputsRef = useRef(new Map<string, number>());
-  const acceptedInputsRef = useRef(new Map<string, number>());
   const inputOwnedRef = useRef(false);
-  const inputGenerationRef = useRef(0);
   const presentationAckRef = useRef<{
     sequence: string;
     durationUs: number;
@@ -151,6 +149,12 @@ export function GameSurface({
   const [controllerSummary, setControllerSummary] = useState(
     "Gamepad: first connected W3C-standard controller",
   );
+  const preferredGamepadIdRef = useRef(preferredGamepadId);
+  preferredGamepadIdRef.current = preferredGamepadId;
+  const sessionStateRef = useRef(session.state);
+  sessionStateRef.current = session.state;
+  const stoppingRef = useRef(stopping);
+  stoppingRef.current = stopping;
 
   useEffect(() => {
     let disposed = false;
@@ -311,14 +315,13 @@ export function GameSurface({
   useEffect(() => {
     let disposed = false;
     let animationFrame = 0;
-    const generation = ++inputGenerationRef.current;
-    const acceptedInputs = acceptedInputsRef.current;
-    const guard = createInputAcceptanceGuard(acceptedInputs);
-    // The previous generation has already invalidated its callbacks and cleared
-    // this shared map. Each new session begins from neutral accepted input.
-    acceptedInputsRef.current.clear();
-    let pendingRequest: Promise<void> | null = null;
-    let pendingUpdates: { token: string; value: number }[] = [];
+    const inputPump = createSessionInputPump(session.sessionId, async (updates) => {
+      const result = await setMameInputs({
+        sessionId: session.sessionId,
+        updates: [...updates],
+      });
+      return result.accepted;
+    });
 
     const releaseDesiredInputs = () => {
       keyboardInputsRef.current.clear();
@@ -332,43 +335,24 @@ export function GameSurface({
       }
       const gamepad = selectStandardGamepad(
         Array.from(navigator.getGamepads()),
-        preferredGamepadId,
+        preferredGamepadIdRef.current,
       );
       gamepadInputsRef.current = gamepad ? gamepadInputState(gamepad) : new Map();
     };
 
     const pump = () => {
       if (disposed) return;
-      updateGamepad();
-
-      if (!pendingRequest && session.state === "running") {
-        const desired = combineInputState(keyboardInputsRef.current, gamepadInputsRef.current);
-        const updates = diffInputState(desired, acceptedInputsRef.current);
-        if (updates.length > 0) {
-          const batch = updates.slice(0, 32);
-          pendingUpdates = batch;
-          pendingRequest = setMameInputs({
-            sessionId: session.sessionId,
-            updates: batch,
-          })
-            .then((result) => {
-              if (result.accepted && !disposed && inputGenerationRef.current === generation) {
-                guard.commit(batch);
-              }
-            })
-            .catch(() => {
-              // Session teardown or runtime-control failure is reflected by the
-              // session/gameplay state; input remains best-effort and bounded.
-            })
-            .finally(() => {
-              if (!disposed && inputGenerationRef.current === generation) {
-                pendingRequest = null;
-                pendingUpdates = [];
-              }
-            });
-        }
+      const ownsRunningSession = sessionStateRef.current === "running" && !stoppingRef.current;
+      if (ownsRunningSession) {
+        updateGamepad();
+      } else {
+        releaseDesiredInputs();
       }
-
+      inputPump.flush(
+        ownsRunningSession
+          ? combineInputState(keyboardInputsRef.current, gamepadInputsRef.current)
+          : new Map(),
+      );
       animationFrame = window.requestAnimationFrame(pump);
     };
 
@@ -383,39 +367,13 @@ export function GameSurface({
 
     return () => {
       disposed = true;
-      inputGenerationRef.current += 1;
-      guard.invalidate();
       window.cancelAnimationFrame(animationFrame);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       inputOwnedRef.current = false;
       releaseDesiredInputs();
-
-      // Include not-yet-acknowledged non-zero inputs. The old stdin request may
-      // still succeed after cleanup; wait for it before submitting the releases,
-      // preserving IPC order without mutating the new generation's state.
-      const toRelease = new Set<string>(acceptedInputs.keys());
-      for (const update of pendingUpdates) {
-        if (update.value !== 0) toRelease.add(update.token);
-      }
-      const releases = Array.from(toRelease, (token) => ({ token, value: 0 }));
-      acceptedInputs.clear();
-      const priorRequest = pendingRequest;
-      void (async () => {
-        if (priorRequest) await priorRequest;
-        for (let offset = 0; offset < releases.length; offset += 32) {
-          try {
-            const result = await setMameInputs({
-              sessionId: session.sessionId,
-              updates: releases.slice(offset, offset + 32),
-            });
-            if (!result.accepted) break;
-          } catch {
-            break; // The old runtime may already have stopped; release is best-effort.
-          }
-        }
-      })();
+      void inputPump.teardown();
     };
-  }, [preferredGamepadId, session.sessionId, session.state]);
+  }, [session.sessionId]);
 
   const handleGameplayFocus = () => {
     inputOwnedRef.current = true;

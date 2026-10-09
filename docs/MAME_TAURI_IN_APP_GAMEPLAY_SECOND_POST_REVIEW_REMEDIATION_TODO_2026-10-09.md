@@ -24,27 +24,31 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 0 — Establish the second-review baseline
 
-- [ ] **SPRR-BASE-001:** Record the exact `master` SHA at implementation start and verify both second-remediation documents exist.
-- [ ] **SPRR-BASE-002:** Re-read the first remediation TODO and confirm its 14 deferred items remain deferred in the new checklist.
-- [ ] **SPRR-BASE-003:** Inspect current exact-head CI and separate gameplay-remediation failures from unrelated release/tag workflow behavior.
-- [ ] **SPRR-BASE-004:** Map every second-remediation implementation commit to one or more SPRR IDs.
-- [ ] **SPRR-BASE-005:** Treat prior runtime artifact source `0857595401d131080688baec2f3225b154787f2d` as historical evidence only once this remediation changes runtime behavior.
+- [x] **SPRR-BASE-001:** Record the exact `master` SHA at implementation start and verify both second-remediation documents exist.
+- [x] **SPRR-BASE-002:** Re-read the first remediation TODO and confirm its 14 deferred items remain deferred in the new checklist.
+- [x] **SPRR-BASE-003:** Inspect current exact-head CI and separate gameplay-remediation failures from unrelated release/tag workflow behavior.
+- [x] **SPRR-BASE-004:** Map every second-remediation implementation commit to one or more SPRR IDs.
+- [x] **SPRR-BASE-005:** Treat prior runtime artifact source `0857595401d131080688baec2f3225b154787f2d` as historical evidence only once this remediation changes runtime behavior.
 
 **Exit gate:** The second remediation is anchored to a known exact head without changing the user's deferred scope.
 
+> **2026-10-09 implementation baseline:** Started from exact `master` `0176498e59d0250c11a10bfbf961ebaeba588144`. The first-remediation TODO still contained exactly 14 unchecked deferred host tasks and current exact-head documentation CI was green. Runtime behavior changes in this remediation make the prior `08575954…` package historical rather than final qualification evidence.
+
 ## Phase 1 — Eliminate same-session stale input releases
 
-- [ ] **SPRR-IN-001:** Refactor the gameplay input pump so destructive release/teardown ownership follows the actual MAME session, not controller-preference changes.
-- [ ] **SPRR-IN-002:** Ensure changing `preferredGamepadId` during a live session cannot enqueue stale zero releases that override the successor input generation.
-- [ ] **SPRR-IN-003:** Ensure stale asynchronous `setMameInputs` completions cannot mutate current accepted-input bookkeeping.
-- [ ] **SPRR-IN-004:** Ensure stale generations cannot send semantically stale releases into a currently owned session.
-- [ ] **SPRR-IN-005:** Preserve correct releases on blur, fullscreen ownership loss, stop, terminal session transition, return-to-library, component teardown and real session replacement.
-- [ ] **SPRR-IN-006:** Preserve keyboard/gamepad coalescing, W3C-standard controller filtering and the 32-update message bound.
-- [ ] **SPRR-IN-007:** Ensure a genuinely new session begins with neutral desired/accepted input state.
-- [ ] **SPRR-IN-008:** Add a regression that reproduces the reviewed same-session race and fails against baseline `461b05174df7b80351b74f589eb40e11b5647390`.
-- [ ] **SPRR-IN-009:** Add asynchronous lifecycle coverage for actual session replacement, stale request completion and mixed keyboard/gamepad releases.
+- [x] **SPRR-IN-001:** Refactor the gameplay input pump so destructive release/teardown ownership follows the actual MAME session, not controller-preference changes.
+- [x] **SPRR-IN-002:** Ensure changing `preferredGamepadId` during a live session cannot enqueue stale zero releases that override the successor input generation.
+- [x] **SPRR-IN-003:** Ensure stale asynchronous `setMameInputs` completions cannot mutate current accepted-input bookkeeping.
+- [x] **SPRR-IN-004:** Ensure stale generations cannot send semantically stale releases into a currently owned session.
+- [x] **SPRR-IN-005:** Preserve correct releases on blur, fullscreen ownership loss, stop, terminal session transition, return-to-library, component teardown and real session replacement.
+- [x] **SPRR-IN-006:** Preserve keyboard/gamepad coalescing, W3C-standard controller filtering and the 32-update message bound.
+- [x] **SPRR-IN-007:** Ensure a genuinely new session begins with neutral desired/accepted input state.
+- [x] **SPRR-IN-008:** Add a regression that reproduces the reviewed same-session race and fails against baseline `461b05174df7b80351b74f589eb40e11b5647390`.
+- [x] **SPRR-IN-009:** Add asynchronous lifecycle coverage for actual session replacement, stale request completion and mixed keyboard/gamepad releases.
 
 **Exit gate:** No old frontend generation can release or reassert controls in a live session now owned by a successor generation.
+
+> **SPRR-IN implementation:** `GameSurface` now owns destructive input lifecycle by `session.sessionId` only and reads controller preference/session state/stopping through refs. `createSessionInputPump` owns accepted state, serializes same-session successor sends behind previous cleanup barriers, suppresses stale completion mutation, and releases pending/accepted controls in 32-update batches. Async and source-level regressions cover the original preference-change race and same-session replacement ordering.
 
 ## Phase 2 — Make play-history finalization retry-safe
 

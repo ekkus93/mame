@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   combineInputState,
   createInputAcceptanceGuard,
+  createSessionInputPump,
   diffInputState,
   gamepadInputState,
   normalizedAxis,
@@ -130,4 +131,38 @@ describe("gameplay input mapping", () => {
     ]);
     expect(diffInputState(state, new Map(state))).toEqual([]);
   });
+});
+
+it("serializes same-session teardown before a replacement pump may assert controls", async () => {
+  const calls: { token: string; value: number }[][] = [];
+  let resolveFirst!: (accepted: boolean) => void;
+  const firstResponse = new Promise<boolean>((resolve) => {
+    resolveFirst = resolve;
+  });
+  let invocation = 0;
+  const sender = async (updates: readonly { token: string; value: number }[]) => {
+    calls.push(updates.map((update) => ({ ...update })));
+    invocation += 1;
+    if (invocation === 1) return firstResponse;
+    return true;
+  };
+
+  const first = createSessionInputPump("same-session", sender);
+  first.flush(new Map([["P1_BUTTON1", 32767]]));
+  const teardown = first.teardown();
+  const successor = createSessionInputPump("same-session", sender);
+  successor.flush(new Map([["P1_BUTTON1", 32767]]));
+
+  expect(calls).toEqual([[{ token: "P1_BUTTON1", value: 32767 }]]);
+  resolveFirst(true);
+  await teardown;
+  await Promise.resolve();
+  await Promise.resolve();
+
+  expect(calls).toEqual([
+    [{ token: "P1_BUTTON1", value: 32767 }],
+    [{ token: "P1_BUTTON1", value: 0 }],
+    [{ token: "P1_BUTTON1", value: 32767 }],
+  ]);
+  expect(successor.snapshotAccepted().get("P1_BUTTON1")).toBe(32767);
 });
