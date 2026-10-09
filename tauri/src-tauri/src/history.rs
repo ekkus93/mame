@@ -153,10 +153,8 @@ pub(crate) fn retry_decided_session_launches_once() -> Vec<(String, AppError)> {
         let pending = recover_pending();
         pending
             .iter()
-            .filter_map(|(session_id, history)| {
-                (history.decided.is_some() && !history.persistence_in_flight)
-                    .then(|| session_id.clone())
-            })
+            .filter(|(_, history)| history.decided.is_some() && !history.persistence_in_flight)
+            .map(|(session_id, _)| session_id.clone())
             .collect::<Vec<_>>()
     };
     session_ids
