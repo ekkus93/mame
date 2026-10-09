@@ -552,7 +552,10 @@ impl SessionSupervisor {
                     if let Some(control) = current.control.as_mut() {
                         control.mark_closed();
                     }
-                    (current.child.clone(), Some(current.snapshot.session_id.clone()))
+                    (
+                        current.child.clone(),
+                        Some(current.snapshot.session_id.clone()),
+                    )
                 }
                 None => (None, None),
             }

@@ -118,12 +118,7 @@ fn persist_attempt(
     attempt: HistoryPersistenceAttempt<AppHandle>,
 ) -> AppResult<bool> {
     let result = finish_launch_history(&attempt.context, attempt.history_id, attempt.succeeded);
-    finish_settlement(
-        &mut recover_pending(),
-        session_id,
-        &attempt,
-        result.is_ok(),
-    );
+    finish_settlement(&mut recover_pending(), session_id, &attempt, result.is_ok());
     result.map(|_| true)
 }
 
@@ -166,10 +161,12 @@ pub(crate) fn retry_decided_session_launches_once() -> Vec<(String, AppError)> {
     };
     session_ids
         .into_iter()
-        .filter_map(|session_id| match retry_decided_session_launch(&session_id) {
-            Ok(_) => None,
-            Err(error) => Some((session_id, error)),
-        })
+        .filter_map(
+            |session_id| match retry_decided_session_launch(&session_id) {
+                Ok(_) => None,
+                Err(error) => Some((session_id, error)),
+            },
+        )
         .collect()
 }
 
@@ -339,10 +336,8 @@ mod post_review_history_tests {
             .expect("delete row to simulate persistence failure");
         drop(connection);
 
-        let mut histories = HashMap::from([(
-            "session-a".to_owned(),
-            state(catalog.clone(), history_id),
-        )]);
+        let mut histories =
+            HashMap::from([("session-a".to_owned(), state(catalog.clone(), history_id))]);
         let first = prepare_settlement(&mut histories, "session-a", Some(true)).unwrap();
         let error = persist_path(&first).expect_err("missing row must fail persistence");
         assert_eq!(error.code, "CATALOG_HISTORY_ENTRY_NOT_FOUND");

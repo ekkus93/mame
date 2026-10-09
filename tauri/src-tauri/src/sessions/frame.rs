@@ -908,7 +908,10 @@ mod tests {
         let transport = FrameTransport::create().unwrap().unwrap();
         let mailbox = FrameMailbox::new(SESSION.to_owned());
         transport.start_reader(SESSION.to_owned(), mailbox.clone());
-        let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+        let mut writer = OpenOptions::new()
+            .write(true)
+            .open(&transport.path)
+            .unwrap();
         writer
             .write_all(&wire_frame(1, 1, 1, SESSION, TOKEN))
             .unwrap();
@@ -918,7 +921,10 @@ mod tests {
             "reader must observe producer bytes",
         );
         drop(writer);
-        wait_for_atomic(&transport.reader_done, "reader must stop after producer EOF");
+        wait_for_atomic(
+            &transport.reader_done,
+            "reader must stop after producer EOF",
+        );
         let error = mailbox
             .stream_error()
             .expect("producer EOF must be diagnostic");
@@ -933,7 +939,10 @@ mod tests {
             let transport = FrameTransport::create().unwrap().unwrap();
             let mailbox = FrameMailbox::new(SESSION.to_owned());
             transport.start_reader(SESSION.to_owned(), mailbox.clone());
-            let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+            let mut writer = OpenOptions::new()
+                .write(true)
+                .open(&transport.path)
+                .unwrap();
             let bytes = wire_frame(1, 1, 1, SESSION, TOKEN);
             let cutoff = if payload_case { bytes.len() - 1 } else { 7 };
             writer.write_all(&bytes[..cutoff]).unwrap();
@@ -962,7 +971,10 @@ mod tests {
         let transport = FrameTransport::create().unwrap().unwrap();
         let mailbox = FrameMailbox::new(SESSION.to_owned());
         transport.start_reader(SESSION.to_owned(), mailbox.clone());
-        let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+        let mut writer = OpenOptions::new()
+            .write(true)
+            .open(&transport.path)
+            .unwrap();
         writer.write_all(&FRAME_WIRE_MAGIC[..4]).unwrap();
         writer.flush().unwrap();
         wait_for_atomic(
