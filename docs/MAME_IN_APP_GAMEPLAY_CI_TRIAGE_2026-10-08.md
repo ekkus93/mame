@@ -18,3 +18,7 @@ Static review found a compiler-cache restore-prefix mismatch in `.github/workflo
 Because the exact key puts the commit SHA before the subtarget but the specific restore prefix expects the subtarget immediately after `real-mame-`, cross-commit reuse **cannot match this specific prefix**. The generic `${{ runner.os }}-real-mame-` fallback can still restore cache entries, so do not claim that all caching is broken. After the active long-running run finishes, change the cache key layout to put the subtarget before the SHA, preserving a specific restore prefix that really matches and the generic fallback where appropriate. Requalify any workflow change at its new exact source SHA. Avoid unnecessary repeated six-hour builds.
 
 Full-runtime packaging and real-ROM desktop qualification are still pending; a compiling runtime is neither a passing artifact nor a user-playable AppImage.
+
+## 2026-10-09 — Native build succeeded; headless smoke timed out
+
+Real-MAME workflow 37906371265 successfully compiled MAME 0.289 and uploaded checksum-verified executable artifact 11611117284. The dependent qualification job failed at the headless frame smoke: the `___empty` driver with `-autoboot_script` produced no frame report and was terminated after the 30-second timeout (exit 137). The AppImage package steps were skipped. The test must distinguish an unexecuted autoboot callback from a failed snapshot API and re-run qualification without incorrectly claiming desktop acceptance.
