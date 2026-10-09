@@ -89,6 +89,12 @@ end
 emu.register_frame_done(function ()
     if done then return end
     frame_count = frame_count + 1
+    if not screen_checked then
+        screen_checked = true
+        local _, first = next(manager.machine.screens)
+        screen = first
+        if screen == nil then screen_error = "machine has no screen device" end
+    end
     if frame_count <= warmup then return end
 
     -- This diagnostic alternative may be absent or return non-RGBA pixels.
