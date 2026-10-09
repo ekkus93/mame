@@ -454,10 +454,11 @@ fn launch_mame_with_source_and_bios_policy(
                 &app_for_events,
                 &event.session.session_id,
                 history_id,
-            ).map(|_| ()),
-            "session.exited" | "session.crashed" | "session.failed" =>
-                history::settle_pending_session_launch(&event.session.session_id, false)
-                    .map(|_| ()),
+            )
+            .map(|_| ()),
+            "session.exited" | "session.crashed" | "session.failed" => {
+                history::settle_pending_session_launch(&event.session.session_id, false).map(|_| ())
+            }
             _ => Ok(()),
         };
         if let Err(error) = settlement {

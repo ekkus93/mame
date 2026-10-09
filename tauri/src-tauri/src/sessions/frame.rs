@@ -954,18 +954,20 @@ mod tests {
         assert!(empty["latestReceivedAgeMs"].is_null());
         assert!(empty["lastPresentedAgeMs"].is_null());
 
-        mailbox.publish(GameFrame {
-            session_id: SESSION.to_owned(),
-            sequence: 1,
-            width: 1,
-            height: 1,
-            stride: 4,
-            capture_timestamp_us: 17,
-            orientation_degrees: 0,
-            flags: 0,
-            pixel_format: FramePixelFormat::Bgrx8888Le,
-            payload: vec![0; 4],
-        }).expect("publish");
+        mailbox
+            .publish(GameFrame {
+                session_id: SESSION.to_owned(),
+                sequence: 1,
+                width: 1,
+                height: 1,
+                stride: 4,
+                capture_timestamp_us: 17,
+                orientation_degrees: 0,
+                flags: 0,
+                pixel_format: FramePixelFormat::Bgrx8888Le,
+                payload: vec![0; 4],
+            })
+            .expect("publish");
         let received = serde_json::to_value(mailbox.snapshot()).expect("receive metrics");
         assert_eq!(received["latestAgeMs"], received["latestReceivedAgeMs"]);
         assert!(received["latestReceivedAgeMs"].is_number());
@@ -992,30 +994,39 @@ mod tests {
     fn only_delivered_frames_can_be_acknowledged_and_duplicates_do_not_count() {
         let mailbox = FrameMailbox::new(SESSION.to_owned());
         let publish = |sequence: u64| {
-            mailbox.publish(GameFrame {
-                session_id: SESSION.to_owned(),
-                sequence,
-                width: 1,
-                height: 1,
-                stride: 4,
-                capture_timestamp_us: sequence,
-                orientation_degrees: 0,
-                flags: 0,
-                pixel_format: FramePixelFormat::Bgrx8888Le,
-                payload: vec![0; 4],
-            }).expect("frame publish")
+            mailbox
+                .publish(GameFrame {
+                    session_id: SESSION.to_owned(),
+                    sequence,
+                    width: 1,
+                    height: 1,
+                    stride: 4,
+                    capture_timestamp_us: sequence,
+                    orientation_degrees: 0,
+                    flags: 0,
+                    pixel_format: FramePixelFormat::Bgrx8888Le,
+                    payload: vec![0; 4],
+                })
+                .expect("frame publish")
         };
         publish(1);
         assert_eq!(mailbox.take_latest().expect("first delivered").sequence, 1);
-        mailbox.record_presented(1, Some(120)).expect("first presented");
-        mailbox.record_presented(1, Some(120)).expect("duplicate ack idempotent");
+        mailbox
+            .record_presented(1, Some(120))
+            .expect("first presented");
+        mailbox
+            .record_presented(1, Some(120))
+            .expect("duplicate ack idempotent");
         publish(2);
         publish(3); // sequence 2 was replaced, not delivered
         assert_eq!(mailbox.take_latest().expect("third delivered").sequence, 3);
-        let error = mailbox.record_presented(2, Some(120))
+        let error = mailbox
+            .record_presented(2, Some(120))
             .expect_err("mailbox-dropped sequence must not count as presented");
         assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
-        mailbox.record_presented(3, Some(120)).expect("third presented");
+        mailbox
+            .record_presented(3, Some(120))
+            .expect("third presented");
         assert_eq!(mailbox.snapshot().presented, 2);
         assert_eq!(mailbox.snapshot().dropped, 1);
     }

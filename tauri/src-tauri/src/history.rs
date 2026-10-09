@@ -32,7 +32,9 @@ fn pending_launches() -> &'static Mutex<HashMap<String, PendingLaunchHistory>> {
 }
 
 fn recover_pending() -> std::sync::MutexGuard<'static, HashMap<String, PendingLaunchHistory>> {
-    pending_launches().lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    pending_launches()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 pub(crate) fn register_pending_session_launch(
@@ -47,17 +49,17 @@ pub(crate) fn register_pending_session_launch(
             "The session already has a pending launch-history record.",
         ));
     }
-    pending.insert(session_id.to_owned(), PendingLaunchHistory {
-        app: app.clone(),
-        history_id,
-    });
+    pending.insert(
+        session_id.to_owned(),
+        PendingLaunchHistory {
+            app: app.clone(),
+            history_id,
+        },
+    );
     Ok(())
 }
 
-pub(crate) fn settle_pending_session_launch(
-    session_id: &str,
-    succeeded: bool,
-) -> AppResult<bool> {
+pub(crate) fn settle_pending_session_launch(session_id: &str, succeeded: bool) -> AppResult<bool> {
     let Some(launch) = recover_pending().remove(session_id) else {
         return Ok(false);
     };
@@ -66,7 +68,6 @@ pub(crate) fn settle_pending_session_launch(
     finish_launch_history(&launch.app, launch.history_id, succeeded)?;
     Ok(true)
 }
-
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
