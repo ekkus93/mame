@@ -89,16 +89,18 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 5 — Strengthen bundled-runtime audit provenance
 
-- [ ] **PRR-PROV-001:** Choose a stable bundled runtime/package digest source, preferably build-generated SHA-256/provenance already produced by packaging.
-- [ ] **PRR-PROV-002:** Extend audit provenance so randomized AppImage mount-path changes remain stable while changed bundled executable bytes invalidate prior audits.
-- [ ] **PRR-PROV-003:** Define backward-compatible handling or explicit invalidation for existing audit rows without the digest.
-- [ ] **PRR-PROV-004:** Avoid unnecessary repeated hashing of the large bundled executable if immutable packaged provenance can be verified and reused safely.
-- [ ] **PRR-PROV-005:** Preserve external/development runtime provenance semantics.
-- [ ] **PRR-PROV-006:** Add regression: identical packaged runtime, different AppImage mount path → audit remains current.
-- [ ] **PRR-PROV-007:** Add regression: same MAME version/build text, different bundled runtime digest → audit becomes stale/invalidated.
-- [ ] **PRR-PROV-008:** Re-run launch gating tests for complete, best-available, unknown/stale and missing-content classifications after provenance changes.
+- [x] **PRR-PROV-001:** Choose a stable bundled runtime/package digest source, preferably build-generated SHA-256/provenance already produced by packaging.
+- [x] **PRR-PROV-002:** Extend audit provenance so randomized AppImage mount-path changes remain stable while changed bundled executable bytes invalidate prior audits.
+- [x] **PRR-PROV-003:** Define backward-compatible handling or explicit invalidation for existing audit rows without the digest.
+- [x] **PRR-PROV-004:** Avoid unnecessary repeated hashing of the large bundled executable if immutable packaged provenance can be verified and reused safely.
+- [x] **PRR-PROV-005:** Preserve external/development runtime provenance semantics.
+- [x] **PRR-PROV-006:** Add regression: identical packaged runtime, different AppImage mount path → audit remains current.
+- [x] **PRR-PROV-007:** Add regression: same MAME version/build text, different bundled runtime digest → audit becomes stale/invalidated.
+- [x] **PRR-PROV-008:** Re-run launch gating tests for complete, best-available, unknown/stale and missing-content classifications after provenance changes.
 
 **Exit gate:** An audit is current only for the actual bundled runtime identity that produced it, without false invalidation from AppImage mount randomization.
+
+> **Bundled provenance change:** The staging script records `mame_sha256` in `runtime-provenance.txt`. Audit persistence extends stable `<bundled-mame>` identity with that package digest, preserving mount-path parity and invalidating legacy digest-less or changed-digest audit entries. Regression fixtures cover same-version/different-digest and same-digest/different-mount behavior. On Linux, release-qualified bundles come from an immutable AppImage; an arbitrary writable development tree is not considered a trusted digest source.
 
 ## Phase 6 — Make frame-reader shutdown deterministic
 

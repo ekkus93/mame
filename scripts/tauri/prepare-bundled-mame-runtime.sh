@@ -41,6 +41,16 @@ write_provenance() {
   local version_line=$5
   local release_qualified=$6
 
+  local runtime_digest
+  if command -v sha256sum >/dev/null 2>&1; then
+    runtime_digest=$(sha256sum "$runtime_root/bin/mame" | awk '{print $1}')
+  elif command -v shasum >/dev/null 2>&1; then
+    runtime_digest=$(shasum -a 256 "$runtime_root/bin/mame" | awk '{print $1}')
+  else
+    fail 'A SHA-256 command is required to stage verifiable bundled runtime provenance'
+  fi
+  [[ "$runtime_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Invalid staged MAME executable SHA-256'
+
   cat >"$runtime_root/runtime-provenance.txt" <<EOF
 mode=$mode
 release_qualified=$release_qualified
@@ -48,6 +58,7 @@ frontend_sha=${GITHUB_SHA:-unknown}
 mame_source_root=$source_root
 mame_executable=$executable
 mame_version_line=$version_line
+mame_sha256=$runtime_digest
 created_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 EOF
 }

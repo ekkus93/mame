@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,10 @@ use crate::{
     storage,
 };
 
-use super::{MameAuditClassification, MameAuditParseResult, MameExecutableIdentity};
+use super::{
+    MameAuditClassification, MameAuditParseResult, MameExecutableIdentity,
+    MameExecutableSourceKind,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -227,10 +230,63 @@ fn invalidate_stale_json_with_connection(
 }
 
 fn serialize_identity_json(identity: &MameExecutableIdentity) -> AppResult<String> {
-    identity.audit_provenance_json().map_err(|error| {
+    let baseline = identity.audit_provenance_json().map_err(|error| {
         AppError::new(
             "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
             "MAME audit identity could not be serialized.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    if identity.source != MameExecutableSourceKind::Bundled {
+        return Ok(baseline);
+    }
+
+    let executable = Path::new(&identity.path);
+    // Synthetic audit-store tests may supply a virtual bundled identity.
+    // Production inspectors require the executable to exist before auditing.
+    if !executable.is_file() {
+        return Ok(baseline);
+    }
+
+    let root = executable
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_AUDIT_PROVENANCE_UNAVAILABLE",
+                "The bundled MAME executable has no runtime resource root.",
+            )
+        })?;
+    let manifest = root.join("runtime-provenance.txt");
+    let raw = fs::read_to_string(&manifest).map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_UNAVAILABLE",
+            "The bundled MAME runtime's immutable executable identity is unavailable.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    let digest = raw
+        .lines()
+        .find_map(|line| line.strip_prefix("mame_sha256="))
+        .filter(|digest| digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_AUDIT_PROVENANCE_INVALID",
+                "The bundled MAME runtime provenance has no valid executable SHA-256.",
+            )
+        })?;
+    let mut value: serde_json::Value = serde_json::from_str(&baseline).map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
+            "Bundled MAME audit provenance could not be decoded.",
+        )
+        .with_details(serde_json::json!({ "cause": error.to_string() }))
+    })?;
+    value["runtimeDigestSha256"] = serde_json::Value::String(digest.to_ascii_lowercase());
+    serde_json::to_string(&value).map_err(|error| {
+        AppError::new(
+            "MAME_AUDIT_PROVENANCE_SERIALIZE_FAILED",
+            "Bundled MAME audit provenance could not be encoded.",
         )
         .with_details(serde_json::json!({ "cause": error.to_string() }))
     })
@@ -388,6 +444,79 @@ mod tests {
         assert_eq!(
             stored_identity,
             current_identity.audit_provenance_json().unwrap()
+        );
+    }
+
+    #[test]
+    fn bundled_digest_preserves_audit_across_mounts_and_rejects_changed_binary() {
+        use std::fs;
+        let fixture = tempfile::tempdir().expect("tempdir");
+        let create_runtime = |mount: &str, digest_char: char| {
+            let runtime = fixture.path().join(mount).join("mame-runtime");
+            let executable = runtime.join("bin").join("mame");
+            fs::create_dir_all(executable.parent().expect("bin")).expect("runtime bin");
+            fs::write(&executable, b"bundled MAME executable fixture").expect("executable");
+            fs::write(
+                runtime.join("runtime-provenance.txt"),
+                format!("mode=real\nrelease_qualified=true\nmame_sha256={}\n", digest_char.to_string().repeat(64)),
+            ).expect("manifest");
+            bundled_identity(executable.to_str().expect("utf8 fixture path"))
+        };
+        let first = create_runtime("mount-a", 'a');
+        let same = create_runtime("mount-b", 'a');
+        let changed = create_runtime("mount-c", 'b');
+        let connection = storage::open_catalog_memory().expect("catalog");
+        let content = paths("/roms-a", "/roms-b");
+        let result = parse_mame_audit_output("romset pacman is good\n", "", Some(0));
+
+        save_machine_audit_result_with_connection(
+            &connection, "pacman", &result, &first, &content, 1234,
+        ).expect("save digest-bearing audit");
+        assert!(
+            load_current_machine_audit_result_with_connection(&connection, "pacman", &same, &content)
+                .expect("different mount, same packaged executable digest")
+                .is_some()
+        );
+        assert!(
+            load_current_machine_audit_result_with_connection(&connection, "pacman", &changed, &content)
+                .expect("same version, changed bundled executable digest")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn legacy_bundled_audit_without_digest_is_invalidated_on_upgrade() {
+        use std::fs;
+        let fixture = tempfile::tempdir().expect("tempdir");
+        let root = fixture.path().join("mame-runtime");
+        let executable = root.join("bin").join("mame");
+        fs::create_dir_all(executable.parent().expect("bin")).expect("runtime bin");
+        fs::write(&executable, b"runtime").expect("executable");
+        fs::write(
+            root.join("runtime-provenance.txt"),
+            format!("mame_sha256={}\n", "a".repeat(64)),
+        ).expect("digest");
+        let current = bundled_identity(executable.to_str().expect("fixture utf8"));
+        let original = bundled_identity("/tmp/.mount_legacy/mame-runtime/bin/mame");
+        let connection = storage::open_catalog_memory().expect("catalog");
+        let content = paths("/roms-a", "/roms-b");
+        let result = parse_mame_audit_output("romset pacman is good\n", "", Some(0));
+        let original_json = serde_json::to_string(&original).expect("legacy identity");
+        connection.execute(
+            r#"INSERT INTO machine_audit_results(
+                machine_short_name, classification, result_json, audited_at_epoch_ms,
+                mame_identity_json, content_paths_json
+            ) VALUES ('pacman', 'complete', ?1, 1234, ?2, ?3)"#,
+            rusqlite::params![
+                serde_json::to_string(&result).unwrap(),
+                original_json,
+                serde_json::to_string(&content).unwrap()
+            ],
+        ).expect("old audit");
+        assert!(
+            load_current_machine_audit_result_with_connection(&connection, "pacman", &current, &content)
+                .expect("legacy audit requalification")
+                .is_none()
         );
     }
 
