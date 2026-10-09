@@ -8,6 +8,8 @@
 
 This is the authoritative implementation checklist for findings discovered by the 2026-10-09 source-level review of the in-app gameplay work. The prior TODO remains the historical feature checklist and evidence ledger. Do not erase or rewrite its completed history.
 
+> **Second-review notice (2026-10-09):** This checklist remains the historical record of the first remediation. A later review discovered additional work now governed by [MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md). Do not reinterpret this file's historical checkmarks as proof that the later SPRR findings were already resolved.
+
 ## Execution policy
 
 - Work directly on `master` with exact-head compare-and-swap commits.

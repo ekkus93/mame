@@ -5,7 +5,8 @@
 **Baseline reviewed:** `b412c3840da4ed665f3e249722e302abb3c7f2f8` on `master`  
 **Companion TODO:** [MAME Tauri In-App Gameplay Post-Review Remediation TODO](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md)  
 **Parent specification:** [MAME Tauri In-App Gameplay Specification](MAME_TAURI_IN_APP_GAMEPLAY_SPEC_2026-10-08.md)  
-**Prior checklist/evidence:** [MAME Tauri In-App Gameplay TODO](MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md) and [package evidence](MAME_TAURI_IN_APP_GAMEPLAY_PACKAGE_EVIDENCE_2026-10-09.md)
+**Prior checklist/evidence:** [MAME Tauri In-App Gameplay TODO](MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md) and [package evidence](MAME_TAURI_IN_APP_GAMEPLAY_PACKAGE_EVIDENCE_2026-10-09.md)  
+**Second-review follow-up:** [Second post-review remediation specification](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md) and [active second-remediation TODO](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md)
 
 ## 1. Purpose
 
@@ -285,3 +286,8 @@ This post-review remediation is complete only when:
 6. documentation accurately distinguishes automated qualification from real user acceptance.
 
 The final state before desktop acceptance may therefore be: **all post-review autonomous remediation complete; original 14 desktop/ROM acceptance items still deferred**.
+
+
+## 11. Second-review follow-up (2026-10-09)
+
+A later source review found additional independently actionable issues after this remediation had been qualified: same-session stale input releases, retry-safe history persistence, stricter outstanding-frame acknowledgement semantics, established frame-producer disconnect diagnosis, qualification output containment, and final package provenance-to-executable verification. Historical evidence and checked boxes in this remediation remain unchanged; new work is governed by the [second post-review remediation specification](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md) and its [TODO](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md).

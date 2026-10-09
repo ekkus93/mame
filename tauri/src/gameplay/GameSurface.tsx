@@ -242,6 +242,9 @@ export function GameSurface({
           0,
           Math.round((performance.now() - presentationStartedAt) * 1_000),
         );
+        // Accepted-ACK contract: drawing is not durable launch success by itself.
+        // The next frame poll sends this exact sequence to Rust, and only Rust's
+        // accepted acknowledgement is allowed to settle play-history success.
         presentationAckRef.current = {
           sequence: frame.sequence.toString(),
           durationUs: presentationDurationUs,

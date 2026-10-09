@@ -196,6 +196,8 @@ Choose and document one precise contract:
 
 Whichever contract is chosen must remain backend-authoritative and must not allow frontend-only state to write durable history directly.
 
+**Decision:** Use the **accepted-ack contract**. The existing next-poll acknowledgement remains the durable-success boundary: a successfully drawn frame is queued for acknowledgement, and only Rust accepting that exact sequence can settle history success. A process exit between draw and accepted ACK therefore remains a failure by definition. This avoids an additional per-frame IPC command and keeps durable truth entirely in the backend.
+
 ### SPRR-012 — Final source review and completion truth
 
 The previous remediation TODO currently says no known Moderate-or-higher defect remains and all autonomous remediation is complete. That statement is historical evidence of the state at the time; it must not be silently rewritten as though the second review never happened.

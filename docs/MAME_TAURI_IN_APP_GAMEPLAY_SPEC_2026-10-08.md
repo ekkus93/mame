@@ -194,3 +194,16 @@ The parent requirements remain authoritative for product behavior. Implement and
 - **Qualification evidence remains scoped.** Full-runtime Debian/AppImage checks and ROM-less `___empty` headless capture are necessary automated gates but are not evidence of real user-ROM gameplay, native sound or desktop frame performance.
 
 **User decision (2026-10-09):** The original 14 desktop, private-ROM and installed-MAME-configuration acceptance items are explicitly deferred, not satisfied. Preserve their checkboxes. Resume them only when the user explicitly authorizes that scope. Automated remediation and CI remain in scope.
+
+
+## 11. Second post-review runtime clarifications (2026-10-09)
+
+The [second post-review remediation](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md) tightens several lifecycle contracts without changing the core architecture.
+
+- **Input ownership is session-owned.** Controller-profile preference changes within one MAME session update mutable selection state but do not trigger destructive session teardown. Actual session teardown/replacement releases accepted and pending non-zero controls in bounded batches; any successor for the same session waits for an older cleanup barrier before sending new input.
+- **History decision and persistence are distinct.** The first legitimate presentation-success or terminal-failure event decides the outcome. A SQLite write failure retains that decision for retry; later competing callbacks cannot change it. Application shutdown performs only a bounded retry pass and records any remaining persistence failure diagnostically.
+- **Presentation ACKs use one outstanding-frame contract.** A newly delivered frame replaces the outstanding ACK target. The exact current ACK is counted once; an immediate transport retry for the already-acknowledged current frame is harmless, but an old duplicate after a newer delivery is invalid.
+- **Frame-producer EOF is stateful.** FIFO EOF before any producer bytes means “not connected yet”; EOF after producer bytes means the frame producer disappeared or truncated a frame and becomes an actionable stream diagnostic unless intentional cancellation is already in progress.
+- **First-frame durable success uses the accepted-ACK contract.** A browser draw alone is not durable success. The frontend queues the drawn sequence and Rust settles success only after accepting that exact presentation acknowledgement. If the process exits after draw but before ACK, the terminal event may settle failure under this contract. Frontend state never writes history directly.
+- **Frame-seam evidence paths are contained.** Relative explicit report names resolve beneath the configured/default `artifacts/in-app-gameplay` evidence root and may not escape it. Absolute paths are allowed only as deliberate caller-selected destinations.
+- **Package provenance is verified at qualification time.** Build staging records `mame_sha256`; Debian-installed and AppImage-extracted qualification recompute the bundled executable SHA-256 and require an exact match. Normal runtime audit lookups continue using the verified package provenance rather than rehashing the large executable for every query.

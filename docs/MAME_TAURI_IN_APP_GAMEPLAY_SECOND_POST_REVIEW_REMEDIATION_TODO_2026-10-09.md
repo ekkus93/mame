@@ -172,16 +172,18 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 10 — Documentation and completion reconciliation
 
-- [ ] **SPRR-DOC-001:** Add a second-review note to the previous remediation specification pointing to this active specification/TODO.
-- [ ] **SPRR-DOC-002:** Add a second-review note to the previous remediation TODO without erasing its historical checked state.
-- [ ] **SPRR-DOC-003:** Document the fixed same-session input lifecycle and history retry semantics in the appropriate gameplay architecture/runtime docs.
-- [ ] **SPRR-DOC-004:** Document the chosen first-frame success/ACK contract.
-- [ ] **SPRR-DOC-005:** Document qualification output-path policy and package provenance verification.
+- [x] **SPRR-DOC-001:** Add a second-review note to the previous remediation specification pointing to this active specification/TODO.
+- [x] **SPRR-DOC-002:** Add a second-review note to the previous remediation TODO without erasing its historical checked state.
+- [x] **SPRR-DOC-003:** Document the fixed same-session input lifecycle and history retry semantics in the appropriate gameplay architecture/runtime docs.
+- [x] **SPRR-DOC-004:** Document the chosen first-frame success/ACK contract.
+- [x] **SPRR-DOC-005:** Document qualification output-path policy and package provenance verification.
 - [ ] **SPRR-DOC-006:** Update package evidence with the final second-remediation exact-source artifact.
 - [ ] **SPRR-DOC-007:** Run and pass documentation CI.
 - [ ] **SPRR-DOC-008:** Perform a final source-level review of every SPRR item and verify no actionable non-deferred second-review defect remains.
 
 **Exit gate:** Repository documentation accurately distinguishes original work, first remediation, second remediation, automated qualification and deferred desktop acceptance.
+
+> **Documentation reconciliation in progress:** The parent gameplay specification now records session-owned input, retry-safe history, strict outstanding ACKs, stateful producer EOF, the accepted-ACK first-frame contract, contained evidence paths and package provenance verification. The first-remediation spec/TODO point forward without changing historical checkmarks. Final artifact evidence, documentation CI and the final source review remain open until exact-source qualification completes.
 
 ## Phase 11 — Deferred desktop/ROM acceptance — do not execute until user resumes
 
