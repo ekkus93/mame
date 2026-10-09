@@ -4,6 +4,7 @@ import {
   getControllerProfileConfiguration,
   getMameFrameMetrics,
   getMameGameFrame,
+  reportMameFirstFrameFailure,
   setMameInputs,
 } from "../backend/commands";
 import { errorMessage, isAppErrorEnvelope } from "../backend/errors";
@@ -206,6 +207,7 @@ export function GameSurface({
     let lastPresentedAt = startedAt;
     let lastSummaryAt = 0;
     let lastSequence = -1n;
+    let firstFrameFailureReported = false;
 
     if (!stagingRef.current) {
       stagingRef.current = document.createElement("canvas");
@@ -279,6 +281,14 @@ export function GameSurface({
         if (decision) {
           setFrameState(decision.state);
           setFailure(decision.message);
+          if (firstFrameAt === null && !firstFrameFailureReported) {
+            firstFrameFailureReported = true;
+            // An unpresented start must not leave its durable history pending.
+            // Rust re-checks that the session is current and no frame has been acked.
+            void reportMameFirstFrameFailure({ sessionId: session.sessionId }).catch(
+              () => undefined,
+            );
+          }
         }
       }
 

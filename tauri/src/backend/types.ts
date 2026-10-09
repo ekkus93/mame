@@ -360,6 +360,10 @@ export type GetMameGameFrameRequest = {
   presentationDurationUs?: number | null;
 };
 
+export type ReportMameFirstFrameFailureRequest = {
+  sessionId: string;
+};
+
 export type GetMameFrameMetricsRequest = {
   sessionId: string;
 };

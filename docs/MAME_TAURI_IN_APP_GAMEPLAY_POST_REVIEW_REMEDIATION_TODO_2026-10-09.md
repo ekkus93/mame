@@ -40,11 +40,13 @@ This is the authoritative implementation checklist for findings discovered by th
 - [x] **PRR-HIST-005:** Make history settlement idempotent across presentation/exit races and repeated terminal callbacks.
 - [x] **PRR-HIST-006:** Ensure stale/cross-session/duplicate presentation acknowledgements cannot settle another session's history.
 - [x] **PRR-HIST-007:** Preserve diagnostic reporting when history finalization itself fails without corrupting emulator/session state.
-- [ ] **PRR-HIST-008:** Add regressions for ready-without-frame, first-presented success, pre-frame crash/exit, stop-before-frame, retry/new-session, and duplicate acknowledgement behavior.
+- [x] **PRR-HIST-008:** Add regressions for ready-without-frame, first-presented success, pre-frame crash/exit, stop-before-frame, retry/new-session, and duplicate acknowledgement behavior.
 
 **Exit gate:** Durable history's success bit now means the in-app gameplay startup contract reached first valid presentation, not merely process/control readiness.
 
 > **2026-10-09 PRR-HIST code reconciliation:** Runtime-ready now registers a session-scoped pending play-history record; first accepted frame presentation claims success, while terminal events/app shutdown claim failure. Claims are serialized in a backend-owned registry and duplicate or stale claims have no effect. Existing pre-ready failures continue to be finalized as failure. Additional full lifecycle regression coverage is tracked separately by PRR-HIST-008.
+
+> **First-frame failure correction:** The frontend reports terminal first-frame presentation failures through a typed command. Rust checks the current session and absence of an accepted presentation acknowledgement before settling history as unsuccessful; first-success/exit/failure races remain idempotent. Added ownership/settlement race tests and no-frame reporting eligibility tests.
 
 ## Phase 2 — Eliminate asynchronous gameplay-input teardown races
 
@@ -56,7 +58,7 @@ This is the authoritative implementation checklist for findings discovered by th
 - [x] **PRR-IN-006:** Ensure a new session starts with no desired or accepted state inherited from the previous session.
 - [x] **PRR-IN-007:** Preserve coalescing and the 32-update message cap.
 - [x] **PRR-IN-008:** Add an asynchronous regression that resolves a previously in-flight input promise after teardown and proves stale state is not restored.
-- [ ] **PRR-IN-009:** Add regressions for session replacement and balanced release behavior across keyboard plus gamepad state.
+- [x] **PRR-IN-009:** Add regressions for session replacement and balanced release behavior across keyboard plus gamepad state.
 
 **Exit gate:** No asynchronous frontend completion can create stuck/reasserted gameplay input after ownership has ended.
 

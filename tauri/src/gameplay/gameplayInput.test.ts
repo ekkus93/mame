@@ -101,6 +101,28 @@ describe("gameplay input mapping", () => {
     ]);
   });
 
+  it("releases a mixed keyboard and gamepad session before replacement", () => {
+    const accepted = new Map([
+      ["P1_JOYSTICK_UP", 32767],
+      ["P1_BUTTON1", 32767],
+      ["P1_AD_STICK_X", -23000],
+    ]);
+    const outgoing = createInputAcceptanceGuard(accepted);
+    const releases = diffInputState(new Map(), accepted);
+    expect(releases).toEqual([
+      { token: "P1_JOYSTICK_UP", value: 0 },
+      { token: "P1_BUTTON1", value: 0 },
+      { token: "P1_AD_STICK_X", value: 0 },
+    ]);
+    outgoing.invalidate();
+    accepted.clear();
+    const successor = createInputAcceptanceGuard(accepted);
+    expect(outgoing.commit([{ token: "P1_BUTTON1", value: 32767 }])).toBe(false);
+    expect(successor.commit([{ token: "P1_BUTTON2", value: 32767 }])).toBe(true);
+    expect(accepted.get("P1_BUTTON2")).toBe(32767);
+    expect(accepted.has("P1_BUTTON1")).toBe(false);
+  });
+
   it("does not resend unchanged coalesced input", () => {
     const state = new Map([
       ["P1_BUTTON1", 32767],

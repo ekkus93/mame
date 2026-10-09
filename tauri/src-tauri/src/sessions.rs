@@ -112,6 +112,12 @@ pub struct GetMameGameFrameRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ReportMameFirstFrameFailureRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct GetMameFrameMetricsRequest {
     pub session_id: String,
 }
@@ -252,6 +258,53 @@ pub fn get_mame_game_frame(
 
     let frame = supervisor.take_latest_frame(&request.session_id)?;
     Ok(Response::new(frame.to_client_bytes()?))
+}
+
+fn may_settle_first_frame_failure(is_running: bool, presented_count: u64) -> bool {
+    is_running && presented_count == 0
+}
+
+#[tauri::command]
+pub fn report_mame_first_frame_failure(
+    request: ReportMameFirstFrameFailureRequest,
+    supervisor: State<'_, SessionSupervisor>,
+) -> AppResult<bool> {
+    let current = supervisor.current_session()?;
+    let active = current
+        .as_ref()
+        .filter(|session| session.session_id == request.session_id)
+        .ok_or_else(|| {
+            AppError::new(
+                "MAME_SESSION_NOT_FOUND",
+                "The reported gameplay session is no longer current.",
+            )
+        })?;
+    let metrics = supervisor.frame_metrics(&request.session_id)?;
+    if !may_settle_first_frame_failure(active.state == SessionState::Running, metrics.presented) {
+        return Ok(false);
+    }
+    let settled = history::settle_pending_session_launch(&request.session_id, false)?;
+    if settled {
+        diagnostics::record(
+            "warn",
+            "mame.lifecycle",
+            "First-frame startup failure; launch history finalized unsuccessful.",
+            serde_json::json!({ "sessionId": request.session_id }),
+        );
+    }
+    Ok(settled)
+}
+
+#[cfg(test)]
+mod first_frame_failure_tests {
+    use super::may_settle_first_frame_failure;
+
+    #[test]
+    fn no_frame_timeout_is_only_failure_before_first_valid_ack() {
+        assert!(may_settle_first_frame_failure(true, 0));
+        assert!(!may_settle_first_frame_failure(true, 1));
+        assert!(!may_settle_first_frame_failure(false, 0));
+    }
 }
 
 #[tauri::command]

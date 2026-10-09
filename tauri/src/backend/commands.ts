@@ -11,6 +11,7 @@ import {
   type FavoriteState,
   type FrameMetricsSnapshot,
   type GetMameFrameMetricsRequest,
+  type ReportMameFirstFrameFailureRequest,
   type GetMameGameFrameRequest,
   type LaunchLibraryMachineRequest,
   type LoadMameStateRequest,
@@ -89,6 +90,12 @@ export async function getControllerProfileConfiguration(
 
 export async function getMameGameFrame(request: GetMameGameFrameRequest): Promise<ArrayBuffer> {
   return invoke<ArrayBuffer>("get_mame_game_frame", { request });
+}
+
+export async function reportMameFirstFrameFailure(
+  request: ReportMameFirstFrameFailureRequest,
+): Promise<boolean> {
+  return invoke<boolean>("report_mame_first_frame_failure", { request });
 }
 
 export async function getMameFrameMetrics(

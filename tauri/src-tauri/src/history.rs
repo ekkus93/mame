@@ -59,8 +59,12 @@ pub(crate) fn register_pending_session_launch(
     Ok(())
 }
 
+fn claim_pending<T>(map: &mut HashMap<String, T>, session_id: &str) -> Option<T> {
+    map.remove(session_id)
+}
+
 pub(crate) fn settle_pending_session_launch(session_id: &str, succeeded: bool) -> AppResult<bool> {
-    let Some(launch) = recover_pending().remove(session_id) else {
+    let Some(launch) = claim_pending(&mut recover_pending(), session_id) else {
         return Ok(false);
     };
     // Never hold the registry mutex across SQLite I/O. A failed write is
@@ -141,4 +145,41 @@ fn now_epoch_ms() -> AppResult<u64> {
 
 const fn default_history_page_size() -> u32 {
     DEFAULT_HISTORY_PAGE_SIZE
+}
+
+#[cfg(test)]
+mod post_review_history_tests {
+    use super::claim_pending;
+    use std::{collections::HashMap, sync::{Arc, Mutex}, thread};
+
+    #[test]
+    fn readiness_keeps_history_pending_until_first_ack_or_terminal_claim() {
+        let mut history = HashMap::from([("session-a".to_owned(), 101_i64)]);
+        assert_eq!(history.get("session-a"), Some(&101));
+        assert_eq!(claim_pending(&mut history, "session-b"), None);
+        assert_eq!(claim_pending(&mut history, "session-a"), Some(101));
+        assert_eq!(claim_pending(&mut history, "session-a"), None);
+    }
+
+    #[test]
+    fn first_ack_and_terminal_event_settle_only_once_in_a_race() {
+        let registry = Arc::new(Mutex::new(HashMap::from([
+            ("original".to_owned(), 10_i64),
+            ("retry".to_owned(), 11_i64),
+        ])));
+        let mut workers = Vec::new();
+        for succeeded in [true, false] {
+            let registry = Arc::clone(&registry);
+            workers.push(thread::spawn(move || {
+                let mut registry = registry.lock().expect("pending registry");
+                claim_pending(&mut registry, "original").map(|history_id| (history_id, succeeded))
+            }));
+        }
+        let claims: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().expect("worker")).collect();
+        assert_eq!(claims.len(), 1, "first valid ack or terminal failure wins");
+        assert_eq!(claims[0].0, 10);
+        let mut registry = registry.lock().expect("registry");
+        assert_eq!(claim_pending(&mut registry, "retry"), Some(11));
+        assert_eq!(claim_pending(&mut registry, "original"), None);
+    }
 }
