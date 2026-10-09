@@ -76,14 +76,16 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 4 — Make frame metrics semantically precise
 
-- [ ] **PRR-METRIC-001:** Audit every field in `FrameMetricsSnapshot` and document its clock domain and exact meaning.
-- [ ] **PRR-METRIC-002:** Rename or supersede `latestAgeMs` so it is explicitly backend latest-receive age rather than implied end-to-end latency.
-- [ ] **PRR-METRIC-003:** Preserve separate last-received, last-presented, presentation-duration, dimensions, sequence and drop metrics.
-- [ ] **PRR-METRIC-004:** Keep MAME `capture_timestamp_us` explicitly identified as a MAME/emulated-time-domain value unless a valid cross-clock conversion is implemented.
-- [ ] **PRR-METRIC-005:** Update frontend status text and Diagnostics UI/types so labels match the actual semantics.
-- [ ] **PRR-METRIC-006:** Add serialization/UI regression coverage for the revised metric names and compatibility behavior.
+- [x] **PRR-METRIC-001:** Audit every field in `FrameMetricsSnapshot` and document its clock domain and exact meaning.
+- [x] **PRR-METRIC-002:** Rename or supersede `latestAgeMs` so it is explicitly backend latest-receive age rather than implied end-to-end latency.
+- [x] **PRR-METRIC-003:** Preserve separate last-received, last-presented, presentation-duration, dimensions, sequence and drop metrics.
+- [x] **PRR-METRIC-004:** Keep MAME `capture_timestamp_us` explicitly identified as a MAME/emulated-time-domain value unless a valid cross-clock conversion is implemented.
+- [x] **PRR-METRIC-005:** Update frontend status text and Diagnostics UI/types so labels match the actual semantics.
+- [x] **PRR-METRIC-006:** Add serialization/UI regression coverage for the revised metric names and compatibility behavior.
 
 **Exit gate:** Diagnostics never represent backend receive-age as capture-to-screen latency.
+
+> **Metric semantics:** `latestAgeMs` is retained only as a deprecated alias for `latestReceivedAgeMs`, the host receive-age. `lastPresentedAgeMs` independently measures time since the backend accepted a presentation acknowledgement. `lastCaptureTimestampUs` is MAME emulated-time-domain data and must not be subtracted from host timestamps. UI labels and Rust/Vitest regressions now enforce this distinction.
 
 ## Phase 5 — Strengthen bundled-runtime audit provenance
 
@@ -111,14 +113,16 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 7 — Harden qualification tooling and evidence language
 
-- [ ] **PRR-QUAL-001:** Validate or safely encode the machine identifier used by `scripts/tauri/qualify-mame-frame-seams.sh`, including its default report filename.
-- [ ] **PRR-QUAL-002:** Add shell regressions for invalid machine identifiers and output-path behavior.
-- [ ] **PRR-QUAL-003:** Preserve pre-build `bash -n` checks for gameplay qualification scripts in the real-runtime workflow.
-- [ ] **PRR-QUAL-004:** Preserve `screen_status=not_measured` when zero diagnostic `screen:pixels()` samples are collected.
-- [ ] **PRR-QUAL-005:** Audit comments/docs/output so `___empty` and ROM-less headless results are never described as real-game acceptance.
-- [ ] **PRR-QUAL-006:** Ensure evidence notes distinguish automated package qualification, frame-seam smoke, and deferred desktop acceptance.
+- [x] **PRR-QUAL-001:** Validate or safely encode the machine identifier used by `scripts/tauri/qualify-mame-frame-seams.sh`, including its default report filename.
+- [x] **PRR-QUAL-002:** Add shell regressions for invalid machine identifiers and output-path behavior.
+- [x] **PRR-QUAL-003:** Preserve pre-build `bash -n` checks for gameplay qualification scripts in the real-runtime workflow.
+- [x] **PRR-QUAL-004:** Preserve `screen_status=not_measured` when zero diagnostic `screen:pixels()` samples are collected.
+- [x] **PRR-QUAL-005:** Audit comments/docs/output so `___empty` and ROM-less headless results are never described as real-game acceptance.
+- [x] **PRR-QUAL-006:** Ensure evidence notes distinguish automated package qualification, frame-seam smoke, and deferred desktop acceptance.
 
 **Exit gate:** Qualification tooling cannot accidentally overstate what its evidence proves or create unsafe/ambiguous default evidence paths.
+
+> **Qualification scope:** The script now enforces the backend's short-name policy before deriving report names, and pre-build CI runs the adversarial argument script. `screen_status=not_measured` remains mandatory when no valid samples exist. `___empty` is explicitly ROM-less smoke, not real-game acceptance; the 14 host tests remain deferred.
 
 ## Phase 8 — Regression and exact-source automated qualification
 

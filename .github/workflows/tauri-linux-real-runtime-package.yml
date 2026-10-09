@@ -44,6 +44,8 @@ jobs:
           bash -n scripts/tauri/qualify-mame-frame-seams.sh
           bash -n scripts/tauri/qualify-in-app-gameplay.sh
           bash -n scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh
+          bash -n scripts/tauri/test-frame-seam-arguments.sh
+          bash scripts/tauri/test-frame-seam-arguments.sh
 
       - name: Install MAME, Tauri, and package qualification prerequisites
         shell: bash

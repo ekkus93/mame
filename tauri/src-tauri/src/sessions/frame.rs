@@ -71,7 +71,12 @@ pub struct FrameMetricsSnapshot {
     pub last_received_at_epoch_ms: Option<u64>,
     pub last_presented_at_epoch_ms: Option<u64>,
     pub last_presentation_duration_us: Option<u64>,
+    /// Deprecated compatibility alias: host age since the latest frame was received.
     pub latest_age_ms: Option<u64>,
+    /// Host-wall-clock age of the latest received frame (not capture-to-display latency).
+    pub latest_received_age_ms: Option<u64>,
+    /// Host-wall-clock age since the last acknowledged presentation.
+    pub last_presented_age_ms: Option<u64>,
     pub last_width: Option<u32>,
     pub last_height: Option<u32>,
     pub last_error_code: Option<String>,
@@ -306,6 +311,10 @@ impl FrameMailbox {
             (Some(now), Some(received)) => Some(now.saturating_sub(received)),
             _ => None,
         };
+        let last_presented_age_ms = match (now, inner.last_presented_at_epoch_ms) {
+            (Some(now), Some(presented)) => Some(now.saturating_sub(presented)),
+            _ => None,
+        };
         FrameMetricsSnapshot {
             schema_version: 1,
             session_id: inner.session_id.clone(),
@@ -321,6 +330,8 @@ impl FrameMailbox {
             last_presented_at_epoch_ms: inner.last_presented_at_epoch_ms,
             last_presentation_duration_us: inner.last_presentation_duration_us,
             latest_age_ms,
+            latest_received_age_ms: latest_age_ms,
+            last_presented_age_ms,
             last_width: inner.last_width,
             last_height: inner.last_height,
             last_error_code: inner.last_error.as_ref().map(|error| error.code.clone()),
@@ -857,6 +868,38 @@ mod tests {
             .record_presented(5, Some(MAX_PRESENTATION_DURATION_US + 1))
             .expect_err("unbounded duration must fail");
         assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+    }
+
+    #[test]
+    fn frame_age_metrics_distinguish_backend_receipt_from_presentation() {
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        let empty = serde_json::to_value(mailbox.snapshot()).expect("serialize metrics");
+        assert!(empty["latestReceivedAgeMs"].is_null());
+        assert!(empty["lastPresentedAgeMs"].is_null());
+
+        mailbox.publish(GameFrame {
+            session_id: SESSION.to_owned(),
+            sequence: 1,
+            width: 1,
+            height: 1,
+            stride: 4,
+            capture_timestamp_us: 17,
+            orientation_degrees: 0,
+            flags: 0,
+            pixel_format: FramePixelFormat::Bgrx8888Le,
+            payload: vec![0; 4],
+        }).expect("publish");
+        let received = serde_json::to_value(mailbox.snapshot()).expect("receive metrics");
+        assert_eq!(received["latestAgeMs"], received["latestReceivedAgeMs"]);
+        assert!(received["latestReceivedAgeMs"].is_number());
+        assert_eq!(received["lastCaptureTimestampUs"], 17);
+        assert!(received["lastPresentedAgeMs"].is_null());
+
+        mailbox.take_latest().expect("deliver");
+        mailbox.record_presented(1, Some(125)).expect("ack");
+        let presented = serde_json::to_value(mailbox.snapshot()).expect("presented metrics");
+        assert!(presented["lastPresentedAgeMs"].is_number());
+        assert_eq!(presented["lastPresentationDurationUs"], 125);
     }
 
     #[test]

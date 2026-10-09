@@ -8,6 +8,13 @@ fi
 
 runtime=$(realpath "$1")
 machine=$2
+# Match the backend MAME short-name policy before deriving a report filename.
+# Reject traversal, separators and command-like machine names even when a
+# caller explicitly selected an output report path.
+if [[ ! "$machine" =~ ^[a-z0-9_]{1,16}$ ]]; then
+  echo "Invalid MAME machine short name: $machine" >&2
+  exit 64
+fi
 rom_dir=""
 if [[ $# -ge 3 && -n "$3" ]]; then rom_dir=$(realpath -m "$3"); fi
 if [[ $# -ge 4 && -n "$4" ]]; then

@@ -132,7 +132,7 @@ export function DiagnosticsPanel() {
               <dt>Video</dt>
               <dd>
                 {snapshot.gameplay.video
-                  ? `recv ${snapshot.gameplay.video.received} · drop ${snapshot.gameplay.video.dropped} · delivered ${snapshot.gameplay.video.delivered} · presented ${snapshot.gameplay.video.presented} · age ${snapshot.gameplay.video.latestAgeMs ?? "—"}ms`
+                  ? `recv ${snapshot.gameplay.video.received} · drop ${snapshot.gameplay.video.dropped} · delivered ${snapshot.gameplay.video.delivered} · presented ${snapshot.gameplay.video.presented} · last recv age ${snapshot.gameplay.video.latestReceivedAgeMs ?? "—"}ms · last present age ${snapshot.gameplay.video.lastPresentedAgeMs ?? "—"}ms`
                   : "No frame metrics"}
               </dd>
             </div>

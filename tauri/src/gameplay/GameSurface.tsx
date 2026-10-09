@@ -25,6 +25,7 @@ import {
   selectStandardGamepad,
 } from "./gameplayInput";
 import { ensureCanvasBackingSize } from "./canvasSizing";
+import { formatFrameAges } from "./frameMetrics";
 import "./GameSurface.css";
 
 type FrameState =
@@ -255,10 +256,9 @@ export function GameSurface({
           void getMameFrameMetrics({ sessionId: session.sessionId })
             .then((metrics) => {
               if (disposed) return;
-              const age = metrics.latestAgeMs === null ? "age —" : `age ${metrics.latestAgeMs}ms`;
               setFrameSummary(
                 `${baseSummary} · recv ${metrics.received} · drop ${metrics.dropped} · ` +
-                  `presented ${metrics.presented} · ${age}`,
+                  `presented ${metrics.presented} · ${formatFrameAges(metrics)}`,
               );
             })
             .catch(() => undefined);

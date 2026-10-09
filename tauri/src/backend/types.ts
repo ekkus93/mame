@@ -378,7 +378,12 @@ export type FrameMetricsSnapshot = {
   lastReceivedAtEpochMs: number | null;
   lastPresentedAtEpochMs: number | null;
   lastPresentationDurationUs: number | null;
+  /** @deprecated Host receive age; retained for old consumers. Not capture-to-screen latency. */
   latestAgeMs: number | null;
+  /** Wall-clock time since Rust last received a gameplay frame. */
+  latestReceivedAgeMs: number | null;
+  /** Wall-clock time since the last acknowledged presentation. */
+  lastPresentedAgeMs: number | null;
   lastWidth: number | null;
   lastHeight: number | null;
   lastErrorCode: string | null;
