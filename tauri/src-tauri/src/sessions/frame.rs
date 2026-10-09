@@ -913,7 +913,7 @@ mod tests {
             .open(&transport.path)
             .unwrap();
         writer
-            .write_all(&wire_frame(1, 1, 1, SESSION, TOKEN))
+            .write_all(&wire_frame(1, 1, 1, SESSION, &transport.auth_token))
             .unwrap();
         writer.flush().unwrap();
         wait_for_atomic(
@@ -943,7 +943,7 @@ mod tests {
                 .write(true)
                 .open(&transport.path)
                 .unwrap();
-            let bytes = wire_frame(1, 1, 1, SESSION, TOKEN);
+            let bytes = wire_frame(1, 1, 1, SESSION, &transport.auth_token);
             let cutoff = if payload_case { bytes.len() - 1 } else { 7 };
             writer.write_all(&bytes[..cutoff]).unwrap();
             writer.flush().unwrap();
