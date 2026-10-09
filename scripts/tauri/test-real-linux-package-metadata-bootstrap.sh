@@ -85,6 +85,7 @@ status = report.get('status') or {}
 current = status.get('currentExecutable') or {}
 query = report.get('query') or {}
 items = query.get('items') or []
+probe_detail = report.get('probeMachineDetail') or {}
 
 if generation.get('sourceKind') != 'bundled':
     errors.append(f"generation.sourceKind={generation.get('sourceKind')!r}")
@@ -107,8 +108,13 @@ if int(query.get('total') or 0) <= 0:
     errors.append('query.total must be positive')
 if not items:
     errors.append('query.items must be non-empty')
-if not any(item.get('shortName') == probe_machine for item in items):
-    errors.append(f"query.items does not contain probe machine {probe_machine!r}")
+# The text-search page is fuzzy and limited to 25 results; a valid driver
+# can appear beyond that page. The backend verifies it by exact short name.
+if probe_detail.get('shortName') != probe_machine:
+    errors.append(
+        f"probeMachineDetail.shortName={probe_detail.get('shortName')!r} "
+        f"expected={probe_machine!r}"
+    )
 if not os.path.exists(catalog_path):
     errors.append(f"catalog was not created: {catalog_path}")
 

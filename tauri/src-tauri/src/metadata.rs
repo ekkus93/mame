@@ -87,6 +87,7 @@ pub struct PackagedMetadataBootstrapReport {
     pub status: MetadataStatus,
     pub query: MachinePage,
     pub probe_machine: Option<String>,
+    pub probe_machine_detail: Option<MachineDetail>,
 }
 
 #[tauri::command]
@@ -197,11 +198,19 @@ pub fn verify_bundled_metadata_bootstrap(
         })));
     }
 
+    // Text search is fuzzy and paginated: many machine descriptions can match
+    // a popular short name before the exact machine reaches the first page.
+    // Qualify the requested driver through an exact catalog lookup instead.
+    let probe_machine_detail = probe_machine
+        .map(|short_name| repository.machine_detail(short_name))
+        .transpose()?;
+
     Ok(PackagedMetadataBootstrapReport {
         refresh,
         status,
         query,
         probe_machine: probe_machine.map(str::to_owned),
+        probe_machine_detail,
     })
 }
 
