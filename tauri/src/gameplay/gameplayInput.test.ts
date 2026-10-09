@@ -25,8 +25,12 @@ describe("gameplay input mapping", () => {
     const accepted = new Map<string, number>();
     const oldGeneration = createInputAcceptanceGuard(accepted);
     let resolve!: () => void;
-    const outstanding = new Promise<void>((complete) => { resolve = complete; });
-    const response = outstanding.then(() => oldGeneration.commit([{ token: "P1_BUTTON1", value: 32767 }]));
+    const outstanding = new Promise<void>((complete) => {
+      resolve = complete;
+    });
+    const response = outstanding.then(() =>
+      oldGeneration.commit([{ token: "P1_BUTTON1", value: 32767 }]),
+    );
     oldGeneration.invalidate();
     accepted.clear();
     resolve();
@@ -37,7 +41,6 @@ describe("gameplay input mapping", () => {
     expect(accepted.has("P1_BUTTON1")).toBe(false);
     expect(accepted.get("P1_BUTTON2")).toBe(32767);
   });
-
 
   it("selects only connected W3C-standard gamepads and honors a preferred device", () => {
     const first = gamepad({ id: "pad-a" });
