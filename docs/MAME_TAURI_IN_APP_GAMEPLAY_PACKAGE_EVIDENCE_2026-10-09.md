@@ -1,6 +1,21 @@
 # In-app gameplay — successful full-runtime package qualification (2026-10-09)
 
-## Latest exact-source full-runtime build — canvas optimization included
+## Current qualified full runtime — frame-seam syntax and report fix
+
+**Binary/source commit:** `7d1ed8426e5b3c8f436002edfd79fdf5cf74f3c1` (the subsequent `89fdde8a` commit is documentation/deferral only and does not modify the runtime). [Exact-source full-runtime CI #37983935896](https://github.com/ekkus93/mame/actions/runs/37983935896) passed both jobs, including the real-MAME executable checks, headless `___empty` frame-seam smoke with the corrected shell syntax, full Debian/AppImage packaging, installed-package verification, dependency augmentation, provenance manifest, and mandatory frame-seam enforcement. Tauri project [37983935928](https://github.com/ekkus93/mame/actions/runs/37983935928), Linux [37983935818](https://github.com/ekkus93/mame/actions/runs/37983935818), Windows [37983935859](https://github.com/ekkus93/mame/actions/runs/37983935859), and macOS [37983935806](https://github.com/ekkus93/mame/actions/runs/37983935806) also passed at the same source.
+
+**[Full Debian/AppImage/provenance artifact 11643041469](https://github.com/ekkus93/mame/actions/runs/37983935896/artifacts/11643041469)** expires **2026-10-12 19:59:23 UTC**; preserve its bytes independently if needed after this GitHub Actions retention deadline. Bundled MAME version: `0.289 (unknown)`.
+
+| Packaged file | SHA-256 | Size (bytes) |
+| --- | --- | ---: |
+| `MAME Tauri Frontend_0.1.1_amd64.AppImage` | `2067f00a13a328ce45468fce5621766fdc2dbdf643bd3563078551d983bee5f5` | 230410744 |
+| `MAME Tauri Frontend_0.1.1_amd64.deb` | `3c3df57b21dbba41f2b1a306627559a42b0cef1468f5cbc5bd9e3c52be4cfb0b` | 125453488 |
+
+AppImage build path: `tauri/src-tauri/target/release/bundle/appimage/MAME Tauri Frontend_0.1.1_amd64.AppImage`. Bundle command: `npm run tauri -- build --config src-tauri/tauri.linux-bundle.conf.json --bundles deb,appimage`.
+
+**Scope:** This is *automated package and ROM-less headless frame qualification*, not proof that a real game runs on the user's graphical desktop. The corrected frame report differentiates Lua `screen:pixels()` results that are `not_measured` from real samples. The user has explicitly deferred all remaining graphical-desktop, private-ROM and installed-MAME-configuration tests; the 14 associated TODO items stay unchecked. No tagged release was published by these checks: the `v0.1.1` tag has a different historical source commit.
+
+## Previous qualified full runtime — canvas optimization included
 
 Binary source: `b7c12a82e4d412305dc323168b221970dc99acaa`. The [full-runtime workflow 37969476682](https://github.com/ekkus93/mame/actions/runs/37969476682) passed both jobs: MAME executable/provenance validation, `___empty` headless frame and repeated snapshot checks, full Debian/AppImage packaging, Debian dependency augmentation, installed-package/metadata smoke, manifest recording, and artifact upload. [Tauri project 37969476609](https://github.com/ekkus93/mame/actions/runs/37969476609), [standard Linux 37969476754](https://github.com/ekkus93/mame/actions/runs/37969476754), [Windows 37969476591](https://github.com/ekkus93/mame/actions/runs/37969476591), [macOS 37969476753](https://github.com/ekkus93/mame/actions/runs/37969476753), [security 37969476741](https://github.com/ekkus93/mame/actions/runs/37969476741), and [documentation 37969476504](https://github.com/ekkus93/mame/actions/runs/37969476504) passed at the same source.
 
