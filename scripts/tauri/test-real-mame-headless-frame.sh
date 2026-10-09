@@ -68,7 +68,7 @@ set +e
 # SDL initializes its video subsystem before applying -video none. A headless
 # CI runner has no DISPLAY, so provide a null SDL video backend explicitly.
 # This is a smoke-test setting; it is not applied to desktop gameplay/audio.
-timeout 30s env \
+timeout --kill-after=5s 30s env \
   SDL_VIDEODRIVER=dummy \
   MAME_TAURI_HEADLESS_FRAME_REPORT="$report" \
   "$runtime" ___empty \

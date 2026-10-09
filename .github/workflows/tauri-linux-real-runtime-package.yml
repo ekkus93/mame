@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  real-runtime-deb-appimage-qualification:
+  build-real-mame-runtime:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
@@ -197,6 +197,93 @@ jobs:
           ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
           ./scripts/tauri/validate-release-driver-coverage.sh "$runtime"
           printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s/%s\n' "$PWD" "${runtime#./}" >>"$GITHUB_ENV"
+
+      - name: Preserve exact real MAME executable for package job
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/real-mame-runtime
+          cp "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE" artifacts/real-mame-runtime/mame
+          (cd artifacts/real-mame-runtime && sha256sum mame > mame.sha256)
+          file artifacts/real-mame-runtime/mame
+          ls -lh artifacts/real-mame-runtime/mame
+
+      - name: Upload real MAME executable
+        uses: actions/upload-artifact@v6
+        with:
+          name: real-mame-executable-${{ github.sha }}
+          path: |
+            artifacts/real-mame-runtime/mame
+            artifacts/real-mame-runtime/mame.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  real-runtime-deb-appimage-qualification:
+    needs: build-real-mame-runtime
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      MAME_TAURI_MAME_BUILD_JOBS: "2"
+      MAME_TAURI_MAME_SUBTARGET: "mame"
+      MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "pacman"
+      MAME_TAURI_REQUIRE_ARCADE_DRIVERS: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install MAME, Tauri, and package qualification prerequisites
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            ccache \
+            clang \
+            curl \
+            file \
+            git \
+            libasound2-dev \
+            libayatana-appindicator3-dev \
+            libfontconfig1-dev \
+            libfuse2 \
+            libgl1-mesa-dev \
+            libgtk-3-dev \
+            libpulse-dev \
+            librsvg2-dev \
+            libsdl2-dev \
+            libsdl2-ttf-dev \
+            libssl-dev \
+            libutf8proc-dev \
+            libwebkit2gtk-4.1-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            patchelf \
+            pkg-config \
+            python3 \
+            wget \
+            xdotool \
+            xvfb
+
+      - name: Download exact-source real MAME executable
+        uses: actions/download-artifact@v6
+        with:
+          name: real-mame-executable-${{ github.sha }}
+          path: artifacts/real-mame-runtime
+
+      - name: Restore and validate real MAME executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime="$PWD/artifacts/real-mame-runtime/mame"
+          (cd artifacts/real-mame-runtime && sha256sum -c mame.sha256)
+          chmod 0755 "$runtime"
+          ./scripts/tauri/validate-real-mame-runtime.sh "$runtime"
+          ./scripts/tauri/validate-release-driver-coverage.sh "$runtime"
+          printf 'MAME_TAURI_REAL_RUNTIME_EXECUTABLE=%s\n' "$runtime" >>"$GITHUB_ENV"
 
       - name: Verify headless real-MAME frame capture
         shell: bash

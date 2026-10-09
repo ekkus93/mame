@@ -101,6 +101,9 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Add a supervisor integration test using a deterministic fake frame producer and child process, plus a bundled-MAME smoke test where the environment permits.
 - [x] Run frontend lint, typecheck, build, and all Vitest tests; run Rust formatting, clippy where project CI requires it, and all Rust tests.
 - [ ] Build the actual full Linux AppImage after source changes. Keep and inspect the full-runtime artifact; do not substitute a slim image or test only the unpacked AppDir.
+
+> **2026-10-09 CI hardening (qualification pending):** The real-MAME compile and full AppImage package/qualification phases now use separate dependent jobs, passing the exact built executable through a SHA-named Actions artifact with checksum verification. This prevents a nearly six-hour native compile from consuming the entire package job's GitHub-hosted time budget and allows the compiler cache to save independently of package failures. Headless smoke and frame-seam timeouts now include a bounded SIGKILL grace period to avoid indefinitely stuck MAME descendants. Neither the job split nor a successful headless smoke proves interactive gameplay; keep this item unchecked until the complete full-runtime package artifact is built and inspected.
+
 - [ ] Launch that AppImage from a real desktop session with the user's default ROM path and verify the game renders in the Tauri window, with no separate visible MAME window.
 - [ ] Capture evidence for frame rate, frame age, dropped frames, emulation speed, CPU/memory, input, sound, resize, fullscreen, stop, and relaunch.
 - [ ] Record exact AppImage path/hash, build configuration, MAME version, machine short name, ROM path configuration, test result, known limitations, and screenshots/logs in a dated qualification note.

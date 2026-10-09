@@ -141,7 +141,7 @@ cmd=("$runtime" "$machine" -video none -sound none -nothrottle -skip_gameinfo -a
 if [[ -n "$rom_dir" ]]; then cmd+=(-rompath "$rom_dir"); fi
 
 set +e
-SDL_VIDEODRIVER=dummy MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SEAM_MACHINE="$machine" timeout 120s "${cmd[@]}" >"$output.stdout.log" 2>"$output.stderr.log"
+SDL_VIDEODRIVER=dummy MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SEAM_MACHINE="$machine" timeout --kill-after=5s 120s "${cmd[@]}" >"$output.stdout.log" 2>"$output.stderr.log"
 status=$?
 set -e
 [[ $status -eq 0 ]] || { echo "MAME frame-seam qualification failed with status $status" >&2; tail -n 120 "$output.stderr.log" >&2 || true; exit $status; }
