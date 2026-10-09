@@ -80,7 +80,7 @@ pub struct MetadataStatusRequest {
     pub executable: MetadataExecutableRequest,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PackagedMetadataBootstrapReport {
     pub refresh: MetadataRefreshResult,
