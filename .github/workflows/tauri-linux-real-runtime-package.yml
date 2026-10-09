@@ -82,7 +82,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .ccache
-          key: ${{ runner.os }}-real-mame-${{ github.sha }}-${{ env.MAME_TAURI_MAME_SUBTARGET }}
+          key: ${{ runner.os }}-real-mame-${{ env.MAME_TAURI_MAME_SUBTARGET }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-real-mame-${{ env.MAME_TAURI_MAME_SUBTARGET }}-
             ${{ runner.os }}-real-mame-
