@@ -106,7 +106,6 @@ export function createInputAcceptanceGuard(accepted: Map<string, number>) {
   };
 }
 
-
 export type SessionInputSender = (updates: readonly MameInputUpdate[]) => Promise<boolean>;
 
 const sessionCleanupBarriers = new Map<string, Promise<void>>();
