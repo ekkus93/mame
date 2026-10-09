@@ -302,7 +302,8 @@ export function GameSurface({
     let disposed = false;
     let animationFrame = 0;
     const generation = ++inputGenerationRef.current;
-    const guard = createInputAcceptanceGuard(acceptedInputsRef.current);
+    const acceptedInputs = acceptedInputsRef.current;
+    const guard = createInputAcceptanceGuard(acceptedInputs);
     // The previous generation has already invalidated its callbacks and cleared
     // this shared map. Each new session begins from neutral accepted input.
     acceptedInputsRef.current.clear();
@@ -382,12 +383,12 @@ export function GameSurface({
       // Include not-yet-acknowledged non-zero inputs. The old stdin request may
       // still succeed after cleanup; wait for it before submitting the releases,
       // preserving IPC order without mutating the new generation's state.
-      const toRelease = new Set<string>(acceptedInputsRef.current.keys());
+      const toRelease = new Set<string>(acceptedInputs.keys());
       for (const update of pendingUpdates) {
         if (update.value !== 0) toRelease.add(update.token);
       }
       const releases = Array.from(toRelease, (token) => ({ token, value: 0 }));
-      acceptedInputsRef.current.clear();
+      acceptedInputs.clear();
       const priorRequest = pendingRequest;
       void (async () => {
         if (priorRequest) await priorRequest;
