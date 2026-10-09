@@ -1,5 +1,22 @@
 # In-app gameplay — successful full-runtime package qualification (2026-10-09)
 
+## Latest exact-source full-runtime build — canvas optimization included
+
+Binary source: `b7c12a82e4d412305dc323168b221970dc99acaa`. The [full-runtime workflow 37969476682](https://github.com/ekkus93/mame/actions/runs/37969476682) passed both jobs: MAME executable/provenance validation, `___empty` headless frame and repeated snapshot checks, full Debian/AppImage packaging, Debian dependency augmentation, installed-package/metadata smoke, manifest recording, and artifact upload. [Tauri project 37969476609](https://github.com/ekkus93/mame/actions/runs/37969476609), [standard Linux 37969476754](https://github.com/ekkus93/mame/actions/runs/37969476754), [Windows 37969476591](https://github.com/ekkus93/mame/actions/runs/37969476591), [macOS 37969476753](https://github.com/ekkus93/mame/actions/runs/37969476753), [security 37969476741](https://github.com/ekkus93/mame/actions/runs/37969476741), and [documentation 37969476504](https://github.com/ekkus93/mame/actions/runs/37969476504) passed at the same source.
+
+The [SHA-pinned full package artifact (ID 11636880295)](https://github.com/ekkus93/mame/actions/runs/37969476682/artifacts/11636880295) is uploaded and currently unexpired. Its GitHub artifact retention deadline is **2026-10-12 17:53:44 UTC**. Download and retain this exact artifact for desktop qualification.
+
+| Packaged item | SHA-256 | Bytes |
+| --- | --- | ---: |
+| `MAME Tauri Frontend_0.1.1_amd64.AppImage` | `4cba0ff2107b50a12dee2a30021b8d2b91e9370138adb47da891b888ea30a5a2` | 230410744 |
+| `MAME Tauri Frontend_0.1.1_amd64.deb` | `57d02fdee6981ebc1d072ac4d927d9baf5c62a6675e925eb11f52bcf2a566d17` | 125453430 |
+
+Bundled real MAME version: `0.289 (unknown)`. Build command: `npm run tauri -- build --config src-tauri/tauri.linux-bundle.conf.json --bundles deb,appimage`. The binaries were produced in the workflow paths `tauri/src-tauri/target/release/bundle/appimage/` and `tauri/src-tauri/target/release/bundle/deb/` and are contained in the artifact.
+
+**Qualification scope limit:** No test has yet established a playable ROM from the user's `/home/phil/mame/roms` directory rendering inside the actual Tauri canvas with functioning audio/gamepad or target presentation performance. Headless `___empty` and installed-package window smoke do **not** count as those observations. Original installed-MAME ROM path, high-resolution/raster/vector capture seam overhead, full desktop interaction, and first-run qualification remain open. The filename `0.1.1` is not proof of release publication: the existing historical `v0.1.1` tag points elsewhere, and release-start run [37970387562](https://github.com/ekkus93/mame/actions/runs/37970387562) refused to move it.
+
+## Previous passing full-runtime build — historical binary
+
 The exact-source Linux full-runtime workflow [37923443872](https://github.com/ekkus93/mame/actions/runs/37923443872) **passed** at commit `3da835f8cb7d15910f363448d4d0bc95d1456834`. Both jobs passed: real MAME executable validation and full Debian/AppImage packaging, including headless snapshot capture, repeated frame capture, installed Debian smoke, and metadata bootstrap. MAME version: `0.289 (unknown)`.
 
 The uploaded [full package artifact (ID 11614039521)](https://github.com/ekkus93/mame/actions/runs/37923443872/artifacts/11614039521) includes the AppImage, Debian package, provenance manifest, and frame-seam report. It **expires 2026-10-12 11:23:41 UTC** because repository retention is capped at three days. Preserve a copy before expiration.
