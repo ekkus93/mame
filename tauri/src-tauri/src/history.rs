@@ -150,7 +150,11 @@ const fn default_history_page_size() -> u32 {
 #[cfg(test)]
 mod post_review_history_tests {
     use super::claim_pending;
-    use std::{collections::HashMap, sync::{Arc, Mutex}, thread};
+    use std::{
+        collections::HashMap,
+        sync::{Arc, Mutex},
+        thread,
+    };
 
     #[test]
     fn readiness_keeps_history_pending_until_first_ack_or_terminal_claim() {
@@ -175,7 +179,10 @@ mod post_review_history_tests {
                 claim_pending(&mut registry, "original").map(|history_id| (history_id, succeeded))
             }));
         }
-        let claims: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().expect("worker")).collect();
+        let claims: Vec<_> = workers
+            .into_iter()
+            .filter_map(|worker| worker.join().expect("worker"))
+            .collect();
         assert_eq!(claims.len(), 1, "first valid ack or terminal failure wins");
         assert_eq!(claims[0].0, 10);
         let mut registry = registry.lock().expect("registry");
