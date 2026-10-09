@@ -67,7 +67,18 @@ local function finish(status, detail)
         f:write(string.format("callback_frames=%d\n", frame_count))
         f:write(string.format("samples=%d\n", sample_count))
         if detail then f:write(string.format("detail=%s\n", tostring(detail))) end
-        f:write(string.format("screen_status=%s\n", screen_error and "unsupported" or "ok"))
+        local screen_status
+        if screen_error then
+            screen_status = "unsupported"
+        elseif screen_samples > 0 then
+            screen_status = "ok"
+        else
+            screen_status = "not_measured"
+        end
+        f:write(string.format("screen_status=%s\n", screen_status))
+        if screen_status == "not_measured" then
+            f:write("screen_note=No valid Lua screen:pixels() samples were collected; do not claim Lua capture qualified.\n")
+        end
         if screen_error then f:write(string.format("screen_error=%s\n", tostring(screen_error))) end
         f:write(string.format("screen_samples=%d\n", screen_samples))
         f:write(string.format("screen=%dx%d bytes=%d first=%s\n", sw, sh, sb, screen_first))
@@ -152,7 +163,43 @@ SDL_VIDEODRIVER=dummy MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SE
 status=$?
 set -e
 [[ $status -eq 0 ]] || { echo "MAME frame-seam qualification failed with status $status" >&2; tail -n 120 "$output.stderr.log" >&2 || true; exit $status; }
-grep -q '^status=ok$' "$output" || { cat "$output" >&2; exit 1; }
+grep -q '^status=ok
+{
+  printf 'sdl_video_driver=dummy\n'
+  printf 'runtime_path=%s\n' "$runtime"
+  printf 'runtime_sha256=%s\n' "$(sha256sum "$runtime" | awk '{print $1}')"
+  printf 'runtime_version=%s\n' "$("$runtime" -noreadconfig -version | head -n 1)"
+  printf 'rom_directory=%s\n' "$rom_dir"
+  printf 'invocation='
+  printf '%q ' "${cmd[@]}"
+  printf '\n'
+} >>"$output"
+printf 'Frame-seam qualification report: %s\n' "$output"
+cat "$output"
+ "$output" || { cat "$output" >&2; exit 1; }
+# A ROM-less CI driver can qualify native snapshot capture without measuring
+# screen:pixels(). The report must not mislabel zero samples as a successful
+# Lua-screen benchmark or let that unmeasured alternative close Phase 1.
+screen_status=$(sed -n 's/^screen_status=//p' "$output")
+screen_samples=$(sed -n 's/^screen_samples=//p' "$output")
+case "$screen_status" in
+  ok)
+    [[ "$screen_samples" =~ ^[1-9][0-9]*$ ]] || {
+      echo 'Lua screen capture reported success without any valid samples.' >&2
+      exit 1
+    }
+    ;;
+  unsupported|not_measured)
+    [[ "$screen_samples" =~ ^[0-9]+$ ]] || {
+      echo 'Lua screen capture report has invalid sample accounting.' >&2
+      exit 1
+    }
+    ;;
+  *)
+    echo "Unknown screen capture report state: $screen_status" >&2
+    exit 1
+    ;;
+esac
 {
   printf 'sdl_video_driver=dummy\n'
   printf 'runtime_path=%s\n' "$runtime"

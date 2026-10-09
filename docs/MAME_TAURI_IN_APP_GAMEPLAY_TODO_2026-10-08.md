@@ -137,7 +137,7 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 **Exit gate:** User-facing and engineering docs agree with actual behavior, and all remaining limitations are explicit and acceptable for the first supported release.
 
-> **2026-10-08 fresh-profile harness:** `scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh` isolates HOME/XDG state and exposes the selected ROM directory through the normal `~/mame/roms` convention. The Phase 7 first-run review remains unchecked until a real desktop operator records the UI observations and diagnostics from the full AppImage.
+> **2026-10-09 qualification-harness integrity improvement (not yet requalified):** The Lua diagnostic frame-seam report will mark zero collected `screen:pixels()` samples as `not_measured`, not `ok`; valid Lua success requires at least one sample. The fresh-profile wrapper isolates `XDG_STATE_HOME` alongside HOME, config, data, and cache. These are evidence-integrity improvements, not proof of real-ROM video, audio, rotation, or performance. Re-run exact-source CI for this script revision before relying on its results.\n\n> **2026-10-08 fresh-profile harness:** `scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh` isolates HOME/XDG state and exposes the selected ROM directory through the normal `~/mame/roms` convention. The Phase 7 first-run review remains unchecked until a real desktop operator records the UI observations and diagnostics from the full AppImage.
 
 ## Definition of done
 

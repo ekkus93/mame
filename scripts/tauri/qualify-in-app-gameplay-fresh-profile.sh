@@ -7,7 +7,7 @@ Usage:
   qualify-in-app-gameplay-fresh-profile.sh <full.AppImage> <machine> [rom-directory] [output-directory]
 
 Runs the full AppImage gameplay qualification using a brand-new temporary HOME,
-XDG_CONFIG_HOME, XDG_DATA_HOME and XDG_CACHE_HOME. The normal ROM directory is
+XDG_CONFIG_HOME, XDG_DATA_HOME, XDG_STATE_HOME and XDG_CACHE_HOME. The normal ROM directory is
 made visible at the fresh profile's ~/mame/roms via a symlink; no ROMs are copied.
 The temporary profile is removed after the AppImage exits, while the evidence
 directory and exported diagnostics are retained.
@@ -47,7 +47,7 @@ output_dir=$(realpath "$output_dir")
 profile_root=$(mktemp -d)
 cleanup() { rm -rf -- "$profile_root"; }
 trap cleanup EXIT
-mkdir -p "$profile_root/home/mame" "$profile_root/config" "$profile_root/data" "$profile_root/cache"
+mkdir -p "$profile_root/home/mame" "$profile_root/config" "$profile_root/data" "$profile_root/state" "$profile_root/cache"
 ln -s -- "$rom_dir" "$profile_root/home/mame/roms"
 
 {
@@ -55,6 +55,7 @@ ln -s -- "$rom_dir" "$profile_root/home/mame/roms"
   printf 'profile_created_utc=%s\n' "$timestamp"
   printf 'profile_home=%s\n' "$profile_root/home"
   printf 'default_rompath=%s\n' "$profile_root/home/mame/roms"
+  printf 'xdg_state_home=%s\n' "$profile_root/state"
   printf 'rompath_symlink_target=%s\n' "$rom_dir"
   printf 'existing_user_config_used=no\n'
   printf 'desktop_display=%s\n' "${DISPLAY:-}"
@@ -79,6 +80,7 @@ env \
   HOME="$profile_root/home" \
   XDG_CONFIG_HOME="$profile_root/config" \
   XDG_DATA_HOME="$profile_root/data" \
+  XDG_STATE_HOME="$profile_root/state" \
   XDG_CACHE_HOME="$profile_root/cache" \
   "$repo_root/scripts/tauri/qualify-in-app-gameplay.sh" \
     "$appimage" "$machine" "$rom_dir" "$output_dir"
