@@ -29,6 +29,7 @@ pub use bios::BiosChoice;
 pub(crate) use bios::{
     get_machine_bios_choices, validate_bios_identifier, validate_bios_selection,
 };
+pub(crate) use executable::spawn_mame_command;
 pub use executable::{
     configured_external_source, inspect_executable, validate_executable_path,
     MameExecutableIdentity, MameExecutableSource, MameExecutableSourceKind, MameExecutableTrust,

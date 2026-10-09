@@ -24,7 +24,8 @@ use crate::{
     errors::{AppError, AppResult},
     mame::{
         build_launch_argv_with_preferences, force_in_app_gameplay_video, inspect_executable,
-        validate_executable_path, MameExecutableIdentity, MameExecutableSource, MameLaunchTarget,
+        spawn_mame_command, validate_executable_path, MameExecutableIdentity,
+        MameExecutableSource, MameLaunchTarget,
     },
 };
 
@@ -331,7 +332,7 @@ impl SessionSupervisor {
             });
         }
 
-        let mut child = match command.spawn() {
+        let mut child = match spawn_mame_command(&mut command) {
             Ok(child) => child,
             Err(error) => {
                 mark_launch_failed(

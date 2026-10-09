@@ -4,7 +4,7 @@ use std::{
     fs,
     io::{self, Read},
     path::{Path, PathBuf},
-    process::{Command, ExitStatus, Stdio},
+    process::{Child, Command, ExitStatus, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -15,6 +15,26 @@ use crate::errors::{AppError, AppResult};
 
 const VERSION_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 const VERSION_OUTPUT_LIMIT: usize = 64 * 1024;
+// Linux can briefly reject execve(2) with ETXTBSY while a generated executable
+// is still open for writing. Never retry unrelated errors or wait indefinitely.
+const TEXT_BUSY_RETRY_LIMIT: usize = 20;
+const TEXT_BUSY_RETRY_DELAY: Duration = Duration::from_millis(25);
+
+pub(crate) fn spawn_mame_command(command: &mut Command) -> io::Result<Child> {
+    for attempt in 0..=TEXT_BUSY_RETRY_LIMIT {
+        match command.spawn() {
+            Err(error)
+                if cfg!(target_os = "linux")
+                    && error.raw_os_error() == Some(26) // Linux ETXTBSY
+                    && attempt < TEXT_BUSY_RETRY_LIMIT =>
+            {
+                thread::sleep(TEXT_BUSY_RETRY_DELAY);
+            }
+            result => return result,
+        }
+    }
+    unreachable!("the final attempt must return from the bounded retry loop")
+}
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -284,7 +304,7 @@ fn capture_command(
     timeout: Duration,
     output_limit: usize,
 ) -> Result<ProbeOutput, CaptureError> {
-    let mut child = command.spawn().map_err(CaptureError::Spawn)?;
+    let mut child = spawn_mame_command(&mut command).map_err(CaptureError::Spawn)?;
     let stdout = child
         .stdout
         .take()
@@ -401,7 +421,7 @@ mod tests {
     use std::{
         fs,
         path::PathBuf,
-        time::{SystemTime, UNIX_EPOCH},
+        time::{Duration, Instant, SystemTime, UNIX_EPOCH},
     };
 
     use super::{
@@ -479,6 +499,76 @@ mod tests {
                 .into_owned()
         );
 
+        fs::remove_dir_all(root).expect("remove test directory");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn transient_text_busy_is_retried_without_masking_version_probe_failure() {
+        use std::{fs::OpenOptions, os::unix::fs::PermissionsExt, thread};
+
+        let root = unique_temp_dir("mame-transient-etxtbsy");
+        fs::create_dir_all(&root).expect("create test directory");
+        let executable = root.join("busy fake mame");
+        fs::write(&executable, "#!/bin/sh\nprintf '0.289\\n'\n").expect("write fake MAME");
+        let mut permissions = fs::metadata(&executable).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable, permissions).expect("executable permissions");
+
+        let open_writer = OpenOptions::new()
+            .write(true)
+            .open(&executable)
+            .expect("hold executable writable");
+        let close_writer = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(100));
+            drop(open_writer);
+        });
+
+        let started = Instant::now();
+        let identity = inspect_executable(MameExecutableSource::external(&executable))
+            .expect("bounded ETXTBSY retry must recover after writer closes");
+        close_writer.join().expect("close test writer");
+        assert_eq!(identity.version, "0.289");
+        assert!(
+            started.elapsed() >= Duration::from_millis(25),
+            "the writable executable should initially be busy"
+        );
+        fs::remove_dir_all(root).expect("remove test directory");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn persistently_busy_executable_fails_after_bounded_retries() {
+        use std::{fs::OpenOptions, os::unix::fs::PermissionsExt};
+
+        let root = unique_temp_dir("mame-persistent-etxtbsy");
+        fs::create_dir_all(&root).expect("create test directory");
+        let executable = root.join("busy fake mame");
+        fs::write(&executable, "#!/bin/sh\nprintf '0.289\\n'\n").expect("write fake MAME");
+        let mut permissions = fs::metadata(&executable).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable, permissions).expect("executable permissions");
+        let held_writer = OpenOptions::new()
+            .write(true)
+            .open(&executable)
+            .expect("hold executable writable");
+
+        let started = Instant::now();
+        let error = inspect_executable(MameExecutableSource::external(&executable))
+            .expect_err("persistently busy executable must not launch");
+        assert_eq!(error.code, "MAME_EXECUTABLE_LAUNCH_FAILED");
+        assert!(
+            error.details["cause"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("Text file busy"),
+            "persistent Linux ETXTBSY must preserve its actionable OS error"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(3),
+            "an executable writer must not cause unbounded retries"
+        );
+        drop(held_writer);
         fs::remove_dir_all(root).expect("remove test directory");
     }
 
