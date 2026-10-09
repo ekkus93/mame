@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   combineInputState,
+  createInputAcceptanceGuard,
   diffInputState,
   gamepadInputState,
   normalizedAxis,
@@ -20,6 +21,24 @@ function gamepad(overrides: Partial<GamepadSample> & Pick<GamepadSample, "id">):
 }
 
 describe("gameplay input mapping", () => {
+  it("cannot commit an old IPC response into accepted state after teardown", async () => {
+    const accepted = new Map<string, number>();
+    const oldGeneration = createInputAcceptanceGuard(accepted);
+    let resolve!: () => void;
+    const outstanding = new Promise<void>((complete) => { resolve = complete; });
+    const response = outstanding.then(() => oldGeneration.commit([{ token: "P1_BUTTON1", value: 32767 }]));
+    oldGeneration.invalidate();
+    accepted.clear();
+    resolve();
+    expect(await response).toBe(false);
+    expect(accepted.size).toBe(0);
+    const successor = createInputAcceptanceGuard(accepted);
+    expect(successor.commit([{ token: "P1_BUTTON2", value: 32767 }])).toBe(true);
+    expect(accepted.has("P1_BUTTON1")).toBe(false);
+    expect(accepted.get("P1_BUTTON2")).toBe(32767);
+  });
+
+
   it("selects only connected W3C-standard gamepads and honors a preferred device", () => {
     const first = gamepad({ id: "pad-a" });
     const preferred = gamepad({ id: "pad-b" });

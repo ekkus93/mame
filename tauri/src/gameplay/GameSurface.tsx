@@ -18,6 +18,7 @@ import {
 } from "./frameProtocol";
 import {
   combineInputState,
+  createInputAcceptanceGuard,
   diffInputState,
   gamepadInputState,
   KEYBOARD_INPUTS,
@@ -127,7 +128,7 @@ export function GameSurface({
   const gamepadInputsRef = useRef(new Map<string, number>());
   const acceptedInputsRef = useRef(new Map<string, number>());
   const inputOwnedRef = useRef(false);
-  const inputInFlightRef = useRef(false);
+  const inputGenerationRef = useRef(0);
   const presentationAckRef = useRef<{
     sequence: string;
     durationUs: number;
@@ -300,7 +301,13 @@ export function GameSurface({
   useEffect(() => {
     let disposed = false;
     let animationFrame = 0;
-    const acceptedInputs = acceptedInputsRef.current;
+    const generation = ++inputGenerationRef.current;
+    const guard = createInputAcceptanceGuard(acceptedInputsRef.current);
+    // The previous generation has already invalidated its callbacks and cleared
+    // this shared map. Each new session begins from neutral accepted input.
+    acceptedInputsRef.current.clear();
+    let pendingRequest: Promise<void> | null = null;
+    let pendingUpdates: { token: string; value: number }[] = [];
 
     const releaseDesiredInputs = () => {
       keyboardInputsRef.current.clear();
@@ -323,20 +330,19 @@ export function GameSurface({
       if (disposed) return;
       updateGamepad();
 
-      if (!inputInFlightRef.current && session.state === "running") {
+      if (!pendingRequest && session.state === "running") {
         const desired = combineInputState(keyboardInputsRef.current, gamepadInputsRef.current);
         const updates = diffInputState(desired, acceptedInputsRef.current);
         if (updates.length > 0) {
-          inputInFlightRef.current = true;
-          void setMameInputs({
+          const batch = updates.slice(0, 32);
+          pendingUpdates = batch;
+          pendingRequest = setMameInputs({
             sessionId: session.sessionId,
-            updates: updates.slice(0, 32),
+            updates: batch,
           })
             .then((result) => {
-              if (!result.accepted) return;
-              for (const update of updates.slice(0, 32)) {
-                if (update.value === 0) acceptedInputsRef.current.delete(update.token);
-                else acceptedInputsRef.current.set(update.token, update.value);
+              if (result.accepted && !disposed && inputGenerationRef.current === generation) {
+                guard.commit(batch);
               }
             })
             .catch(() => {
@@ -344,7 +350,10 @@ export function GameSurface({
               // session/gameplay state; input remains best-effort and bounded.
             })
             .finally(() => {
-              inputInFlightRef.current = false;
+              if (!disposed && inputGenerationRef.current === generation) {
+                pendingRequest = null;
+                pendingUpdates = [];
+              }
             });
         }
       }
@@ -363,20 +372,37 @@ export function GameSurface({
 
     return () => {
       disposed = true;
+      inputGenerationRef.current += 1;
+      guard.invalidate();
       window.cancelAnimationFrame(animationFrame);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       inputOwnedRef.current = false;
       releaseDesiredInputs();
-      const release = Array.from(acceptedInputs.keys()).map((token) => ({
-        token,
-        value: 0,
-      }));
-      acceptedInputs.clear();
-      if (release.length > 0) {
-        void setMameInputs({ sessionId: session.sessionId, updates: release.slice(0, 32) }).catch(
-          () => undefined,
-        );
+
+      // Include not-yet-acknowledged non-zero inputs. The old stdin request may
+      // still succeed after cleanup; wait for it before submitting the releases,
+      // preserving IPC order without mutating the new generation's state.
+      const toRelease = new Set<string>(acceptedInputsRef.current.keys());
+      for (const update of pendingUpdates) {
+        if (update.value !== 0) toRelease.add(update.token);
       }
+      const releases = Array.from(toRelease, (token) => ({ token, value: 0 }));
+      acceptedInputsRef.current.clear();
+      const priorRequest = pendingRequest;
+      void (async () => {
+        if (priorRequest) await priorRequest;
+        for (let offset = 0; offset < releases.length; offset += 32) {
+          try {
+            const result = await setMameInputs({
+              sessionId: session.sessionId,
+              updates: releases.slice(offset, offset + 32),
+            });
+            if (!result.accepted) break;
+          } catch {
+            break; // The old runtime may already have stopped; release is best-effort.
+          }
+        }
+      })();
     };
   }, [preferredGamepadId, session.sessionId, session.state]);
 

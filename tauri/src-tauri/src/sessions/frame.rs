@@ -31,6 +31,8 @@ const MAX_AUTH_TOKEN_BYTES: usize = 128;
 const MAX_FRAME_DIMENSION: u32 = 8192;
 const MAX_FRAME_PAYLOAD_BYTES: usize = 64 * 1024 * 1024;
 const MAX_PRESENTATION_DURATION_US: u64 = 10_000_000;
+// Bit 0 reflects horizontal, bit 1 vertical; future flag bits are not yet supported.
+const SUPPORTED_FRAME_FLAGS: u16 = 0b11;
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 const FRAME_AUTH_TOKEN_BYTES: usize = 32;
 
@@ -263,30 +265,21 @@ impl FrameMailbox {
                 serde_json::json!({ "sequence": sequence }),
             )
         })?;
-        if sequence > delivered {
+        if inner.last_presented_sequence == Some(sequence) {
+            // A duplicate acknowledgement of an already presented frame is harmless,
+            // but it must never increment presented metrics a second time.
+            return Ok(());
+        }
+        if sequence != delivered {
             return Err(protocol_error(
                 "MAME_FRAME_PRESENTATION_ACK_INVALID",
-                "The gameplay frame presentation acknowledgement is ahead of delivered video.",
+                "The gameplay acknowledgement does not match the latest delivered frame.",
                 serde_json::json!({
                     "sequence": sequence,
-                    "lastDeliveredSequence": delivered
+                    "lastDeliveredSequence": delivered,
+                    "lastPresentedSequence": inner.last_presented_sequence
                 }),
             ));
-        }
-        if let Some(previous) = inner.last_presented_sequence {
-            if sequence < previous {
-                return Err(protocol_error(
-                    "MAME_FRAME_PRESENTATION_ACK_INVALID",
-                    "The gameplay frame presentation acknowledgement moved backwards.",
-                    serde_json::json!({
-                        "sequence": sequence,
-                        "lastPresentedSequence": previous
-                    }),
-                ));
-            }
-            if sequence == previous {
-                return Ok(());
-            }
         }
 
         inner.presented = inner.presented.saturating_add(1);
@@ -504,6 +497,13 @@ fn read_wire_frame(
             "MAME_FRAME_HEADER_INVALID",
             "The MAME frame stream header contains unsupported reserved flags.",
             serde_json::json!({}),
+        ));
+    }
+    if flags & !SUPPORTED_FRAME_FLAGS != 0 {
+        return Err(protocol_error(
+            "MAME_FRAME_FLAGS_UNSUPPORTED",
+            "The MAME frame stream contains unsupported orientation flags.",
+            serde_json::json!({ "flags": flags, "supportedMask": SUPPORTED_FRAME_FLAGS }),
         ));
     }
     if width == 0 || height == 0 || width > MAX_FRAME_DIMENSION || height > MAX_FRAME_DIMENSION {
@@ -857,6 +857,47 @@ mod tests {
             .record_presented(5, Some(MAX_PRESENTATION_DURATION_US + 1))
             .expect_err("unbounded duration must fail");
         assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+    }
+
+    #[test]
+    fn rejects_unknown_native_frame_flags_before_presentation() {
+        let mut bytes = wire_frame(1, 1, 1, SESSION, TOKEN);
+        bytes[46..48].copy_from_slice(&4_u16.to_le_bytes());
+        let error = read_wire_frame(&mut Cursor::new(bytes), SESSION, TOKEN)
+            .expect_err("unsupported flags must fail natively");
+        assert_eq!(error.code, "MAME_FRAME_FLAGS_UNSUPPORTED");
+    }
+
+    #[test]
+    fn only_delivered_frames_can_be_acknowledged_and_duplicates_do_not_count() {
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        let publish = |sequence: u64| {
+            mailbox.publish(GameFrame {
+                session_id: SESSION.to_owned(),
+                sequence,
+                width: 1,
+                height: 1,
+                stride: 4,
+                capture_timestamp_us: sequence,
+                orientation_degrees: 0,
+                flags: 0,
+                pixel_format: FramePixelFormat::Bgrx8888Le,
+                payload: vec![0; 4],
+            }).expect("frame publish")
+        };
+        publish(1);
+        assert_eq!(mailbox.take_latest().expect("first delivered").sequence, 1);
+        mailbox.record_presented(1, Some(120)).expect("first presented");
+        mailbox.record_presented(1, Some(120)).expect("duplicate ack idempotent");
+        publish(2);
+        publish(3); // sequence 2 was replaced, not delivered
+        assert_eq!(mailbox.take_latest().expect("third delivered").sequence, 3);
+        let error = mailbox.record_presented(2, Some(120))
+            .expect_err("mailbox-dropped sequence must not count as presented");
+        assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
+        mailbox.record_presented(3, Some(120)).expect("third presented");
+        assert_eq!(mailbox.snapshot().presented, 2);
+        assert_eq!(mailbox.snapshot().dropped, 1);
     }
 
     #[test]

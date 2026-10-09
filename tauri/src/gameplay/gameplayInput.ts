@@ -84,6 +84,28 @@ export function combineInputState(
   return combined;
 }
 
+/**
+ * A single input-pump generation owns accepted-state bookkeeping. Invalidate
+ * before clearing the shared map so a late IPC completion cannot restore keys
+ * after teardown or overwrite a successor session's accepted state.
+ */
+export function createInputAcceptanceGuard(accepted: Map<string, number>) {
+  let active = true;
+  return {
+    commit(updates: readonly MameInputUpdate[]): boolean {
+      if (!active) return false;
+      for (const update of updates) {
+        if (update.value === 0) accepted.delete(update.token);
+        else accepted.set(update.token, update.value);
+      }
+      return true;
+    },
+    invalidate(): void {
+      active = false;
+    },
+  };
+}
+
 export function diffInputState(
   desired: ReadonlyMap<string, number>,
   accepted: ReadonlyMap<string, number>,

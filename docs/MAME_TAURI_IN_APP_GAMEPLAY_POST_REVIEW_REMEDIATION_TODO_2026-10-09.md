@@ -22,12 +22,14 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 0 — Establish the post-review remediation baseline
 
-- [ ] **PRR-BASE-001:** Record the exact `master` SHA used when implementation begins and verify the two post-review documents are present.
-- [ ] **PRR-BASE-002:** Re-read the parent TODO and preserve its 14 deferred desktop/ROM items unchanged in completion meaning.
-- [ ] **PRR-BASE-003:** Inspect current exact-head CI and ensure no unrelated failing automated gate is being mistaken for a review finding.
-- [ ] **PRR-BASE-004:** Map each code change made by this remediation to one or more PRR requirement IDs in commit messages or reconciliation notes.
+- [x] **PRR-BASE-001:** Record the exact `master` SHA used when implementation begins and verify the two post-review documents are present.
+- [x] **PRR-BASE-002:** Re-read the parent TODO and preserve its 14 deferred desktop/ROM items unchanged in completion meaning.
+- [x] **PRR-BASE-003:** Inspect current exact-head CI and ensure no unrelated failing automated gate is being mistaken for a review finding.
+- [x] **PRR-BASE-004:** Map each code change made by this remediation to one or more PRR requirement IDs in commit messages or reconciliation notes.
 
 **Exit gate:** The implementation run is anchored to a known exact head and the deferred/user-dependent scope is not accidentally reopened.
+
+> **2026-10-09 implementation baseline:** Started from exact `master` `f3bea95dedc03613909e32e895cc218255545e2b`. The parent checklist's 14 deferred desktop/ROM items remain unchanged. The new documents' exact-head documentation CI was inspected. Changes to frame validation and frontend input generations are mapped to PRR-FRAME-* and PRR-IN-*; full exact-head CI still determines final qualification. Checkboxes in this remediation TODO represent implemented code and focused added regressions, not user-desktop acceptance.
 
 ## Phase 1 — Correct startup success and durable play history
 
@@ -44,28 +46,28 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 2 — Eliminate asynchronous gameplay-input teardown races
 
-- [ ] **PRR-IN-001:** Introduce an input generation/session ownership token for each active `GameSurface` input pump.
-- [ ] **PRR-IN-002:** Prevent an old/in-flight `setMameInputs` completion from mutating `acceptedInputsRef` after cleanup or session replacement.
-- [ ] **PRR-IN-003:** Invalidate the active generation before teardown clears desired/accepted state.
-- [ ] **PRR-IN-004:** Best-effort release all known accepted non-zero controls while the old session channel is still usable.
-- [ ] **PRR-IN-005:** Ensure blur, fullscreen transitions, stop, return-to-library, terminal process events and component teardown neutralize desired input.
-- [ ] **PRR-IN-006:** Ensure a new session starts with no desired or accepted state inherited from the previous session.
-- [ ] **PRR-IN-007:** Preserve coalescing and the 32-update message cap.
-- [ ] **PRR-IN-008:** Add an asynchronous regression that resolves a previously in-flight input promise after teardown and proves stale state is not restored.
+- [x] **PRR-IN-001:** Introduce an input generation/session ownership token for each active `GameSurface` input pump.
+- [x] **PRR-IN-002:** Prevent an old/in-flight `setMameInputs` completion from mutating `acceptedInputsRef` after cleanup or session replacement.
+- [x] **PRR-IN-003:** Invalidate the active generation before teardown clears desired/accepted state.
+- [x] **PRR-IN-004:** Best-effort release all known accepted non-zero controls while the old session channel is still usable.
+- [x] **PRR-IN-005:** Ensure blur, fullscreen transitions, stop, return-to-library, terminal process events and component teardown neutralize desired input.
+- [x] **PRR-IN-006:** Ensure a new session starts with no desired or accepted state inherited from the previous session.
+- [x] **PRR-IN-007:** Preserve coalescing and the 32-update message cap.
+- [x] **PRR-IN-008:** Add an asynchronous regression that resolves a previously in-flight input promise after teardown and proves stale state is not restored.
 - [ ] **PRR-IN-009:** Add regressions for session replacement and balanced release behavior across keyboard plus gamepad state.
 
 **Exit gate:** No asynchronous frontend completion can create stuck/reasserted gameplay input after ownership has ended.
 
 ## Phase 3 — Harden frame protocol and presentation accounting
 
-- [ ] **PRR-FRAME-001:** Define the supported native frame flag mask and reject unknown flag bits in Rust.
-- [ ] **PRR-FRAME-002:** Keep TypeScript unknown-flag rejection as defense in depth.
-- [ ] **PRR-FRAME-003:** Track the exact outstanding delivered frame eligible for acknowledgement.
-- [ ] **PRR-FRAME-004:** Require presentation acknowledgement to match the exact outstanding delivered sequence under the current polling model.
-- [ ] **PRR-FRAME-005:** Reject acknowledgements for mailbox-dropped/never-delivered sequences.
-- [ ] **PRR-FRAME-006:** Preserve idempotence only for a legitimately already-acknowledged sequence; do not increment presented metrics twice.
-- [ ] **PRR-FRAME-007:** Keep duration, session-state, sequence and protocol bounds fail-closed.
-- [ ] **PRR-FRAME-008:** Add Rust tests for unknown flags, skipped/dropped sequence acknowledgement, duplicate acknowledgement and future/backward sequences.
+- [x] **PRR-FRAME-001:** Define the supported native frame flag mask and reject unknown flag bits in Rust.
+- [x] **PRR-FRAME-002:** Keep TypeScript unknown-flag rejection as defense in depth.
+- [x] **PRR-FRAME-003:** Track the exact outstanding delivered frame eligible for acknowledgement.
+- [x] **PRR-FRAME-004:** Require presentation acknowledgement to match the exact outstanding delivered sequence under the current polling model.
+- [x] **PRR-FRAME-005:** Reject acknowledgements for mailbox-dropped/never-delivered sequences.
+- [x] **PRR-FRAME-006:** Preserve idempotence only for a legitimately already-acknowledged sequence; do not increment presented metrics twice.
+- [x] **PRR-FRAME-007:** Keep duration, session-state, sequence and protocol bounds fail-closed.
+- [x] **PRR-FRAME-008:** Add Rust tests for unknown flags, skipped/dropped sequence acknowledgement, duplicate acknowledgement and future/backward sequences.
 - [ ] **PRR-FRAME-009:** Run existing Rust and TypeScript frame protocol suites and confirm no regression in BGRX conversion, dimensions, orientation, stale-session or payload validation.
 
 **Exit gate:** Native validation and presentation metrics cannot claim a frame was presented unless that frame was actually delivered and acknowledged correctly.
