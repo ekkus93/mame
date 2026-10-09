@@ -21,7 +21,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-lua="$tmp/headless-frame.lua"
+lua="$tmp/boot.lua"
 report="$tmp/headless-frame.txt"
 stdout_log="$tmp/mame.stdout.log"
 stderr_log="$tmp/mame.stderr.log"
@@ -76,7 +76,7 @@ timeout --kill-after=5s 30s env \
     -sound none \
     -nothrottle \
     -skip_gameinfo \
-    -autoboot_script "$lua" \
+    -pluginspath "$tmp" \
     >"$stdout_log" 2>"$stderr_log"
 status=$?
 set -e
