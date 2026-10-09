@@ -135,16 +135,19 @@ emu.register_frame_done(function ()
 end, "mame_tauri_frame_seam_qualification")
 LUA
 
-cmd=("$runtime" "$machine" -video none -nothrottle -skip_gameinfo -autoboot_script "$lua")
+# Screen-capture benchmarking deliberately disables video presentation and
+# sound. Native user-facing audio must be qualified separately on a desktop.
+cmd=("$runtime" "$machine" -video none -sound none -nothrottle -skip_gameinfo -autoboot_script "$lua")
 if [[ -n "$rom_dir" ]]; then cmd+=(-rompath "$rom_dir"); fi
 
 set +e
-MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SEAM_MACHINE="$machine" timeout 120s "${cmd[@]}" >"$output.stdout.log" 2>"$output.stderr.log"
+SDL_VIDEODRIVER=dummy MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SEAM_MACHINE="$machine" timeout 120s "${cmd[@]}" >"$output.stdout.log" 2>"$output.stderr.log"
 status=$?
 set -e
 [[ $status -eq 0 ]] || { echo "MAME frame-seam qualification failed with status $status" >&2; tail -n 120 "$output.stderr.log" >&2 || true; exit $status; }
 grep -q '^status=ok$' "$output" || { cat "$output" >&2; exit 1; }
 {
+  printf 'sdl_video_driver=dummy\n'
   printf 'runtime_path=%s\n' "$runtime"
   printf 'runtime_sha256=%s\n' "$(sha256sum "$runtime" | awk '{print $1}')"
   printf 'runtime_version=%s\n' "$("$runtime" -noreadconfig -version | head -n 1)"
