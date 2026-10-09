@@ -9,7 +9,7 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 ## Phase 0 — Establish a reproducible baseline
 
 - [x] Record current branch/head and preserve all pre-existing user changes. The implementation baseline is preserved in Git history beginning at `bea14e376d9491cfb7a38b51d11371bb57a431fe`; Ralph writes use exact-head compare-and-swap on `master`.
-- [ ] Record current full AppImage path, hash, bundled MAME version, and build command/configuration.
+- [x] Record the qualified CI full AppImage identity, path within its artifact, SHA-256, bundled MAME version, and exact build command/configuration. The host-local installation path remains to be captured separately during desktop acceptance; see `docs/MAME_TAURI_IN_APP_GAMEPLAY_PACKAGE_EVIDENCE_2026-10-09.md` and Phase 6.
 - [ ] Reproduce the current user's case with a machine from `/home/phil/mame/roms` and save the complete launch request, child exit code, bounded stdout/stderr, effective paths/argv, runtime-control transition, and UI state.
 - [x] Add a repeatable local launch/diagnostic recipe that does not depend on a screenshot or manually searching session logs. See `scripts/tauri/qualify-in-app-gameplay.sh` and `docs/MAME_TAURI_IN_APP_GAMEPLAY_LOCAL_QUALIFICATION_2026-10-08.md`.
 - [ ] Determine whether recent `CONTROL_CHANNEL_CLOSED`/`MAME_EARLY_EXIT` reports are an independent startup defect, a consequence of launching with an incompatible display mode, or both. Keep the causes separate until evidence identifies them.
@@ -102,7 +102,7 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [x] Add TypeScript tests for canvas conversion/pixel format, sizing/aspect/rotation, sequence/stale-frame handling, loading/stalled/error states, and input ownership.
 - [x] Add a supervisor integration test using a deterministic fake frame producer and child process, plus a bundled-MAME smoke test where the environment permits.
 - [x] Run frontend lint, typecheck, build, and all Vitest tests; run Rust formatting, clippy where project CI requires it, and all Rust tests.
-- [ ] Build the actual full Linux AppImage after source changes. Keep and inspect the full-runtime artifact; do not substitute a slim image or test only the unpacked AppDir.
+- [x] Build and qualify the actual full Linux AppImage after source changes; retain its SHA-pinned CI artifact and provenance manifest. Both real-runtime jobs passed at `3da835f8cb7d15910f363448d4d0bc95d1456834` in [run 37923443872](https://github.com/ekkus93/mame/actions/runs/37923443872). Full desktop real-ROM gameplay remains unchecked below.
 
 > **2026-10-09 CI hardening (qualification pending):** The real-MAME compile and full AppImage package/qualification phases now use separate dependent jobs, passing the exact built executable through a SHA-named Actions artifact with checksum verification. This prevents a nearly six-hour native compile from consuming the entire package job's GitHub-hosted time budget and allows the compiler cache to save independently of package failures. Headless smoke and frame-seam timeouts now include a bounded SIGKILL grace period to avoid indefinitely stuck MAME descendants. Neither the job split nor a successful headless smoke proves interactive gameplay; keep this item unchecked until the complete full-runtime package artifact is built and inspected.
 
@@ -115,6 +115,9 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [ ] Capture evidence for frame rate, frame age, dropped frames, emulation speed, CPU/memory, input, sound, resize, fullscreen, stop, and relaunch.
 - [ ] Record exact AppImage path/hash, build configuration, MAME version, machine short name, ROM path configuration, test result, known limitations, and screenshots/logs in a dated qualification note.
 - [ ] Rebuild and repeat qualification after fixes to launch, frame transport, pixel conversion, packaging, or runtime options; do not validate a stale artifact.
+
+
+> **2026-10-09 package-gate closure (not desktop gameplay acceptance):** full-runtime [run 37923443872](https://github.com/ekkus93/mame/actions/runs/37923443872) succeeded on binary source `3da835f8cb7d15910f363448d4d0bc95d1456834`. It validated/reused the exact real MAME executable, passed `___empty` headless capture and repeated frame-seam tests, packaged and qualified an actual Debian package and **full AppImage**, and uploaded the package/provenance artifact [11614039521](https://github.com/ekkus93/mame/actions/runs/37923443872/artifacts/11614039521). AppImage filename: `MAME Tauri Frontend_0.1.1_amd64.AppImage`; CI build path: `tauri/src-tauri/target/release/bundle/appimage/MAME Tauri Frontend_0.1.1_amd64.AppImage`; SHA-256: `0dee88f12cd09c8468ebb70f0c1bcd533a24fb1cf186b243a5fc47f19fcfa835`; MAME version: `0.289 (unknown)`. Build: `npm run tauri -- build --config src-tauri/tauri.linux-bundle.conf.json --bundles deb,appimage`. The documented CI artifact expires **2026-10-12 11:23:41 UTC** and must be saved for host qualification. No installed machine from `/home/phil/mame/roms`, real WebView video/audio, keyboard/gamepad, performance, or first-run desktop acceptance has been demonstrated by this CI. The old `v0.1.1` tag remains a different historical source. See `docs/MAME_TAURI_IN_APP_GAMEPLAY_PACKAGE_EVIDENCE_2026-10-09.md`.
 
 **Exit gate:** All automated checks pass and the exact full AppImage passes the desktop gameplay acceptance criteria in the spec.
 
