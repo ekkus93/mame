@@ -163,20 +163,7 @@ SDL_VIDEODRIVER=dummy MAME_TAURI_FRAME_SEAM_REPORT="$output" MAME_TAURI_FRAME_SE
 status=$?
 set -e
 [[ $status -eq 0 ]] || { echo "MAME frame-seam qualification failed with status $status" >&2; tail -n 120 "$output.stderr.log" >&2 || true; exit $status; }
-grep -q '^status=ok
-{
-  printf 'sdl_video_driver=dummy\n'
-  printf 'runtime_path=%s\n' "$runtime"
-  printf 'runtime_sha256=%s\n' "$(sha256sum "$runtime" | awk '{print $1}')"
-  printf 'runtime_version=%s\n' "$("$runtime" -noreadconfig -version | head -n 1)"
-  printf 'rom_directory=%s\n' "$rom_dir"
-  printf 'invocation='
-  printf '%q ' "${cmd[@]}"
-  printf '\n'
-} >>"$output"
-printf 'Frame-seam qualification report: %s\n' "$output"
-cat "$output"
- "$output" || { cat "$output" >&2; exit 1; }
+grep -q '^status=ok$' "$output" || { cat "$output" >&2; exit 1; }
 # A ROM-less CI driver can qualify native snapshot capture without measuring
 # screen:pixels(). The report must not mislabel zero samples as a successful
 # Lua-screen benchmark or let that unmeasured alternative close Phase 1.

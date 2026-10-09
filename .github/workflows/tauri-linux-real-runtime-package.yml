@@ -38,6 +38,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Validate gameplay qualification shell syntax before native build
+        shell: bash
+        run: |
+          bash -n scripts/tauri/qualify-mame-frame-seams.sh
+          bash -n scripts/tauri/qualify-in-app-gameplay.sh
+          bash -n scripts/tauri/qualify-in-app-gameplay-fresh-profile.sh
+
       - name: Install MAME, Tauri, and package qualification prerequisites
         shell: bash
         run: |
