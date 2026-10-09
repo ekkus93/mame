@@ -32,10 +32,11 @@ local samples = math.max(1, math.floor(tonumber(os.getenv("MAME_TAURI_FRAME_SEAM
 local frame_count, sample_count, screen_samples = 0, 0, 0
 local screen_cpu, snapshot_cpu = 0.0, 0.0
 local screen_max_cpu, snapshot_max_cpu = 0.0, 0.0
-local _, screen = next(manager.machine.screens)
+local screen = nil
+local screen_checked = false
 local sw, sh, vw, vh, sb, vb = 0, 0, 0, 0, 0, 0
 local screen_first, snapshot_first = "none", "none"
-local screen_error = screen == nil and "machine has no screen device" or nil
+local screen_error = nil
 local done = false
 
 local function quad(data)
