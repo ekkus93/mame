@@ -72,6 +72,8 @@ timeout --kill-after=5s 30s env \
   SDL_VIDEODRIVER=dummy \
   MAME_TAURI_HEADLESS_FRAME_REPORT="$report" \
   "$runtime" ___empty \
+    -noreadconfig \
+    -snapsize 320x240 \
     -video none \
     -sound none \
     -nothrottle \
@@ -81,7 +83,7 @@ timeout --kill-after=5s 30s env \
 status=$?
 set -e
 
-if [[ $status -eq 124 ]]; then
+if [[ $status -eq 124 || $status -eq 137 ]]; then
   echo "real MAME headless frame smoke timed out" >&2
   cat "$stderr_log" >&2 || true
   exit 1
