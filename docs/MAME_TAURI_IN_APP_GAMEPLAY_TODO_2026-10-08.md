@@ -16,6 +16,8 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 - [ ] Record baseline behavior for an available ROM machine, a best-available/no-ROM machine, and a known missing-content machine.
 
 **Exit gate:** A developer can reproduce and identify each current failure from saved diagnostics, and knows exactly which full AppImage/runtime was tested.
+> **Original-MAME baseline capture helper:** `scripts/tauri/capture-original-mame-baseline.sh` records the independently installed MAME binary/version/configuration and available/missing ROM audit results under the user's normal profile. It is a reproducibility aid, **not** a substitute for host evidence or full-AppImage gameplay acceptance. The unchecked Phase 0/4 observations still require a desktop run.
+
 
 ## Phase 1 — Prove the frame capture and transport seam
 

@@ -170,3 +170,27 @@ Source changes to launch, transport, pixel conversion, or packaging require a
 fresh package and a repeat qualification. An in-progress, cancelled, or skipped
 CI run is not a passing artifact.
 
+
+## Automated original installed-MAME baseline capture
+
+The independent installed-MAME configuration and audit baseline can be
+collected without starting a gameplay window or modifying MAME settings:
+
+```bash
+scripts/tauri/capture-original-mame-baseline.sh \
+  <locally-available-machine> \
+  <known-missing-content-machine>
+```
+
+Run this from the **normal user profile** with the original installed `mame`
+on `PATH`, not inside the isolated first-run HOME or an extracted AppImage.
+The helper records the executable path and SHA-256, version, full
+`-showconfig` output, effective path settings, bounded `-verifyroms` audit
+output, exit codes, and commands. The optional missing-content machine must be
+a known MAME short name whose content is absent. A nonzero missing-content
+audit is expected; a nonzero available-machine audit is a finding to
+investigate, not a passing baseline. The helper does **not** start a game,
+validate video, or prove the installed MAME and bundled runtime have identical
+configuration. Retain these files locally because they may reveal private
+filesystem paths. Compare them with the AppImage diagnostics and then perform
+the separate interactive desktop qualification above.
