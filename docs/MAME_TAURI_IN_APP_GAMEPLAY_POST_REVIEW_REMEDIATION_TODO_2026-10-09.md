@@ -104,14 +104,16 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 6 — Make frame-reader shutdown deterministic
 
-- [ ] **PRR-LIFE-001:** Reproduce/test cancellation before the FIFO reader opens.
-- [ ] **PRR-LIFE-002:** Add a deterministic wake/cancel path for a reader already blocked on an open FIFO.
-- [ ] **PRR-LIFE-003:** Ensure stop, launch failure, child crash, app shutdown and supervisor drop all cancel the frame transport.
-- [ ] **PRR-LIFE-004:** Ensure cancellation cannot authenticate or accept a fake gameplay frame.
-- [ ] **PRR-LIFE-005:** Keep teardown bounded and avoid joining indefinitely on application/UI paths.
-- [ ] **PRR-LIFE-006:** Add tests proving no frame-reader task remains logically active after finalized session teardown in both pre-open and post-open blocked states.
+- [x] **PRR-LIFE-001:** Reproduce/test cancellation before the FIFO reader opens.
+- [x] **PRR-LIFE-002:** Add a deterministic wake/cancel path for a reader already blocked on an open FIFO.
+- [x] **PRR-LIFE-003:** Ensure stop, launch failure, child crash, app shutdown and supervisor drop all cancel the frame transport.
+- [x] **PRR-LIFE-004:** Ensure cancellation cannot authenticate or accept a fake gameplay frame.
+- [x] **PRR-LIFE-005:** Keep teardown bounded and avoid joining indefinitely on application/UI paths.
+- [x] **PRR-LIFE-006:** Add tests proving no frame-reader task remains logically active after finalized session teardown in both pre-open and post-open blocked states.
 
 **Exit gate:** Fully finalized sessions cannot leave a frame-reader blocked indefinitely waiting for a producer.
+
+> **FIFO cancellation model:** The reader opens its private FIFO nonblocking and polls a session-local cancellation flag on EOF/WouldBlock/partial payload boundaries. The frame parser/authentication remains unchanged. Tests cover cancellation with no writer and with a writer that remains open. Session stop, crash, app exit and supervisor drop retain their existing cancellation calls.
 
 ## Phase 7 — Harden qualification tooling and evidence language
 

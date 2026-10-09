@@ -8,13 +8,15 @@ use std::{
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 use std::{
     fs::{File, OpenOptions},
+    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     sync::atomic::{AtomicBool, Ordering},
     thread,
+    time::Duration,
 };
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
-use rustix::fs::{mkfifoat, Mode, CWD};
+use rustix::fs::{mkfifoat, Mode, OFlags, CWD};
 use serde::Serialize;
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 use tempfile::{Builder, TempDir};
@@ -352,7 +354,7 @@ pub(super) struct FrameTransport {
     #[cfg(all(target_os = "linux", target_endian = "little"))]
     auth_token: String,
     #[cfg(all(target_os = "linux", target_endian = "little"))]
-    reader_opened: Arc<AtomicBool>,
+    reader_done: Arc<AtomicBool>,
     #[cfg(all(target_os = "linux", target_endian = "little"))]
     cancelled: Arc<AtomicBool>,
 }
@@ -379,7 +381,7 @@ impl FrameTransport {
                 root,
                 path,
                 auth_token: generate_auth_token()?,
-                reader_opened: Arc::new(AtomicBool::new(false)),
+                reader_done: Arc::new(AtomicBool::new(false)),
                 cancelled: Arc::new(AtomicBool::new(false)),
             }))
         }
@@ -410,22 +412,30 @@ impl FrameTransport {
             let _root = self.root.clone();
             let path = self.path.clone();
             let auth_token = self.auth_token.clone();
-            let reader_opened = self.reader_opened.clone();
+            let reader_done = self.reader_done.clone();
             let cancelled = self.cancelled.clone();
             thread::spawn(move || {
-                let mut reader = match File::open(&path) {
-                    Ok(reader) => {
-                        reader_opened.store(true, Ordering::Release);
-                        reader
-                    }
+                // Nonblocking FIFO I/O plus a bounded retry loop lets cancellation
+                // interrupt reads even when the producer retains its write end.
+                let file = OpenOptions::new()
+                    .read(true)
+                    .custom_flags(OFlags::NONBLOCK.bits() as i32)
+                    .open(&path);
+                let file = match file {
+                    Ok(file) => file,
                     Err(error) => {
                         if !cancelled.load(Ordering::Acquire) {
                             mailbox.mark_error(&transport_io_error("open private FIFO", error));
                         }
+                        reader_done.store(true, Ordering::Release);
                         return;
                     }
                 };
-                loop {
+                let mut reader = CancellableFifoReader {
+                    file,
+                    cancelled: cancelled.clone(),
+                };
+                while !cancelled.load(Ordering::Acquire) {
                     match read_wire_frame(&mut reader, &session_id, &auth_token) {
                         Ok(frame) => {
                             if cancelled.load(Ordering::Acquire) {
@@ -446,6 +456,7 @@ impl FrameTransport {
                         }
                     }
                 }
+                reader_done.store(true, Ordering::Release);
             });
         }
         #[cfg(not(all(target_os = "linux", target_endian = "little")))]
@@ -456,8 +467,38 @@ impl FrameTransport {
         #[cfg(all(target_os = "linux", target_endian = "little"))]
         {
             self.cancelled.store(true, Ordering::Release);
-            if !self.reader_opened.load(Ordering::Acquire) {
-                let _ = OpenOptions::new().write(true).open(&self.path);
+            // The nonblocking reader checks this token while waiting for the
+            // initial writer, between frames, and during partial payload reads.
+        }
+    }
+}
+
+#[cfg(all(target_os = "linux", target_endian = "little"))]
+struct CancellableFifoReader {
+    file: File,
+    cancelled: Arc<AtomicBool>,
+}
+
+#[cfg(all(target_os = "linux", target_endian = "little"))]
+impl Read for CancellableFifoReader {
+    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
+        loop {
+            if self.cancelled.load(Ordering::Acquire) {
+                return Err(io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "MAME frame reader cancelled",
+                ));
+            }
+            match self.file.read(bytes) {
+                Ok(0) => {
+                    // A FIFO opened without a writer returns EOF; it may also
+                    // temporarily return EOF between producer reconnects.
+                    thread::sleep(Duration::from_millis(5));
+                }
+                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(5));
+                }
+                other => return other,
             }
         }
     }
@@ -765,6 +806,42 @@ mod tests {
         bytes.extend_from_slice(token.as_bytes());
         bytes.resize(bytes.len() + payload_len as usize, sequence as u8);
         bytes
+    }
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    #[test]
+    fn fifo_reader_shutdown_is_bounded_before_writer_and_while_writer_remains_open() {
+        use std::time::{Duration, Instant};
+        for with_writer in [false, true] {
+            let transport = FrameTransport::create()
+                .expect("transport creation")
+                .expect("Linux FIFO supported");
+            let mailbox = FrameMailbox::new(SESSION.to_owned());
+            transport.start_reader(SESSION.to_owned(), mailbox);
+            let writer = if with_writer {
+                Some(
+                    OpenOptions::new()
+                        .write(true)
+                        .open(&transport.path)
+                        .expect("open FIFO writer"),
+                )
+            } else {
+                None
+            };
+            std::thread::sleep(Duration::from_millis(30));
+            transport.cancel();
+            let started = Instant::now();
+            while !transport.reader_done.load(Ordering::Acquire)
+                && started.elapsed() < Duration::from_secs(2)
+            {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            assert!(
+                transport.reader_done.load(Ordering::Acquire),
+                "FIFO reader must exit despite a missing or still-open writer"
+            );
+            drop(writer);
+        }
     }
 
     #[test]
