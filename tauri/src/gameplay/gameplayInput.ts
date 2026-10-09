@@ -131,8 +131,7 @@ export function createSessionInputPump(sessionId: string, sender: SessionInputSe
     const batch = updates.slice(0, 32);
     pendingUpdates = batch;
     const priorCleanup = sessionCleanupBarriers.get(sessionId);
-    let request!: Promise<void>;
-    request = (async () => {
+    const request: Promise<void> = (async () => {
       if (priorCleanup) await priorCleanup;
       const acceptedByBackend = await sender(batch);
       if (active && acceptedByBackend) applyAccepted(batch);
@@ -162,8 +161,7 @@ export function createSessionInputPump(sessionId: string, sender: SessionInputSe
     const priorRequest = pendingRequest;
     const olderCleanup = sessionCleanupBarriers.get(sessionId);
 
-    let cleanup!: Promise<void>;
-    cleanup = (async () => {
+    const cleanup: Promise<void> = (async () => {
       if (olderCleanup) await olderCleanup;
       if (priorRequest) await priorRequest;
       for (let offset = 0; offset < releases.length; offset += 32) {

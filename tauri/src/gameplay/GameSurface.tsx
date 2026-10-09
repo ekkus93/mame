@@ -20,7 +20,6 @@ import {
 import {
   combineInputState,
   createSessionInputPump,
-  diffInputState,
   gamepadInputState,
   KEYBOARD_INPUTS,
   selectStandardGamepad,
