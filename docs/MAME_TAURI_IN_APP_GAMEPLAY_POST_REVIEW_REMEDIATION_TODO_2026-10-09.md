@@ -33,16 +33,18 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 1 — Correct startup success and durable play history
 
-- [ ] **PRR-HIST-001:** Change launch history so runtime-control readiness alone does not finalize `succeeded=true`.
-- [ ] **PRR-HIST-002:** Associate the pending history record with the exact supervised session using backend-owned state.
-- [ ] **PRR-HIST-003:** Finalize success only when Rust accepts the first valid presentation acknowledgement for that session.
-- [ ] **PRR-HIST-004:** Finalize failure when the session reaches failed/crashed/exited or user stop before first presentation.
-- [ ] **PRR-HIST-005:** Make history settlement idempotent across presentation/exit races and repeated terminal callbacks.
-- [ ] **PRR-HIST-006:** Ensure stale/cross-session/duplicate presentation acknowledgements cannot settle another session's history.
-- [ ] **PRR-HIST-007:** Preserve diagnostic reporting when history finalization itself fails without corrupting emulator/session state.
+- [x] **PRR-HIST-001:** Change launch history so runtime-control readiness alone does not finalize `succeeded=true`.
+- [x] **PRR-HIST-002:** Associate the pending history record with the exact supervised session using backend-owned state.
+- [x] **PRR-HIST-003:** Finalize success only when Rust accepts the first valid presentation acknowledgement for that session.
+- [x] **PRR-HIST-004:** Finalize failure when the session reaches failed/crashed/exited or user stop before first presentation.
+- [x] **PRR-HIST-005:** Make history settlement idempotent across presentation/exit races and repeated terminal callbacks.
+- [x] **PRR-HIST-006:** Ensure stale/cross-session/duplicate presentation acknowledgements cannot settle another session's history.
+- [x] **PRR-HIST-007:** Preserve diagnostic reporting when history finalization itself fails without corrupting emulator/session state.
 - [ ] **PRR-HIST-008:** Add regressions for ready-without-frame, first-presented success, pre-frame crash/exit, stop-before-frame, retry/new-session, and duplicate acknowledgement behavior.
 
 **Exit gate:** Durable history's success bit now means the in-app gameplay startup contract reached first valid presentation, not merely process/control readiness.
+
+> **2026-10-09 PRR-HIST code reconciliation:** Runtime-ready now registers a session-scoped pending play-history record; first accepted frame presentation claims success, while terminal events/app shutdown claim failure. Claims are serialized in a backend-owned registry and duplicate or stale claims have no effect. Existing pre-ready failures continue to be finalized as failure. Additional full lifecycle regression coverage is tracked separately by PRR-HIST-008.
 
 ## Phase 2 — Eliminate asynchronous gameplay-input teardown races
 

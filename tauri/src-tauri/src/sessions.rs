@@ -225,6 +225,20 @@ pub fn get_mame_game_frame(
                 }))
             })?;
             supervisor.acknowledge_frame_presentation(&request.session_id, sequence, duration)?;
+            // Runtime-control readiness alone is not playable startup.
+            // Only the first accepted display acknowledgement settles success.
+            if let Err(error) = history::settle_pending_session_launch(&request.session_id, true) {
+                diagnostics::record(
+                    "error",
+                    "mame.lifecycle",
+                    "Could not finalize presented gameplay launch history.",
+                    serde_json::json!({
+                        "sessionId": &request.session_id,
+                        "code": error.code,
+                        "message": error.message
+                    }),
+                );
+            }
         }
         (None, Some(_)) => {
             return Err(AppError::new(
@@ -435,6 +449,30 @@ fn launch_mame_with_source_and_bios_policy(
 
     let app_for_events = app.clone();
     let event_sink: EventSink = Arc::new(move |name, event| {
+        let settlement = match name {
+            "session.started" => history::register_pending_session_launch(
+                &app_for_events,
+                &event.session.session_id,
+                history_id,
+            ).map(|_| ()),
+            "session.exited" | "session.crashed" | "session.failed" =>
+                history::settle_pending_session_launch(&event.session.session_id, false)
+                    .map(|_| ()),
+            _ => Ok(()),
+        };
+        if let Err(error) = settlement {
+            diagnostics::record(
+                "error",
+                "mame.lifecycle",
+                "Could not reconcile session launch-history lifecycle.",
+                serde_json::json!({
+                    "sessionId": &event.session.session_id,
+                    "event": name,
+                    "code": error.code,
+                    "message": error.message
+                }),
+            );
+        }
         diagnostics::record(
             "info",
             "mame.lifecycle",
@@ -462,7 +500,7 @@ fn launch_mame_with_source_and_bios_policy(
         launch_preferences,
         event_sink,
     ) {
-        Ok(mut session) => {
+        Ok(session) => {
             let app_for_pause_events = app.clone();
             let pause_session_id = session.session_id.clone();
             let pause_sink: control::PauseStateSink = Arc::new(move |paused| {
@@ -496,13 +534,8 @@ fn launch_mame_with_source_and_bios_policy(
                 return Err(error);
             }
 
-            if let Err(history_error) = history::finish_launch_history(&app, history_id, true) {
-                let warning = format!("PLAY_HISTORY_FINALIZE_FAILED: {}", history_error.message);
-                session.diagnostic_error = Some(match session.diagnostic_error.take() {
-                    Some(existing) => format!("{existing}; {warning}"),
-                    None => warning,
-                });
-            }
+            // Remain pending until the first valid frame is actually acknowledged.
+            // The lifecycle event sink settles unsuccessful starts and exits.
             Ok(session)
         }
         Err(mut launch_error) => {

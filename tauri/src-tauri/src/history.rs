@@ -1,6 +1,10 @@
 //! Durable recent-launch history and typed query commands.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, OnceLock},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -12,6 +16,57 @@ use crate::{
 };
 
 const DEFAULT_HISTORY_PAGE_SIZE: u32 = 50;
+
+struct PendingLaunchHistory {
+    app: AppHandle,
+    history_id: i64,
+}
+
+// The registry is backend-owned, keyed by the exact supervised session ID.
+// A presentation acknowledgement and terminal lifecycle event race to claim
+// the entry under one mutex: only the winner can finalize durable history.
+static PENDING_LAUNCHES: OnceLock<Mutex<HashMap<String, PendingLaunchHistory>>> = OnceLock::new();
+
+fn pending_launches() -> &'static Mutex<HashMap<String, PendingLaunchHistory>> {
+    PENDING_LAUNCHES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn recover_pending() -> std::sync::MutexGuard<'static, HashMap<String, PendingLaunchHistory>> {
+    pending_launches().lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+pub(crate) fn register_pending_session_launch(
+    app: &AppHandle,
+    session_id: &str,
+    history_id: i64,
+) -> AppResult<()> {
+    let mut pending = recover_pending();
+    if pending.contains_key(session_id) {
+        return Err(AppError::new(
+            "PLAY_HISTORY_SESSION_DUPLICATE",
+            "The session already has a pending launch-history record.",
+        ));
+    }
+    pending.insert(session_id.to_owned(), PendingLaunchHistory {
+        app: app.clone(),
+        history_id,
+    });
+    Ok(())
+}
+
+pub(crate) fn settle_pending_session_launch(
+    session_id: &str,
+    succeeded: bool,
+) -> AppResult<bool> {
+    let Some(launch) = recover_pending().remove(session_id) else {
+        return Ok(false);
+    };
+    // Never hold the registry mutex across SQLite I/O. A failed write is
+    // diagnostic but cannot convert a previously claimed outcome into another.
+    finish_launch_history(&launch.app, launch.history_id, succeeded)?;
+    Ok(true)
+}
+
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
