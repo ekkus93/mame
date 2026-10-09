@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MAME_TAURI_MAME_BUILD_JOBS: "2"
+      MAME_TAURI_MAME_BUILD_JOBS: "3"
       MAME_TAURI_MAME_SUBTARGET: "mame"
       MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "pacman"
       MAME_TAURI_REQUIRE_ARCADE_DRIVERS: "1"
@@ -76,7 +76,7 @@ jobs:
         run: |
           echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >>"$GITHUB_ENV"
           echo "USE_CCACHE=1" >>"$GITHUB_ENV"
-          ccache --set-config=max_size=5G
+          ccache --set-config=max_size=2G
 
       - name: Cache MAME compiler output
         uses: actions/cache@v6
@@ -224,7 +224,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MAME_TAURI_MAME_BUILD_JOBS: "2"
+      MAME_TAURI_MAME_BUILD_JOBS: "3"
       MAME_TAURI_MAME_SUBTARGET: "mame"
       MAME_TAURI_REAL_RUNTIME_SMOKE_MACHINE: "pacman"
       MAME_TAURI_REQUIRE_ARCADE_DRIVERS: "1"
