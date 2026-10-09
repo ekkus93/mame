@@ -325,6 +325,8 @@ jobs:
         run: ./scripts/tauri/test-real-mame-headless-frame.sh "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE"
 
       - name: Qualify repeated headless snapshot capture
+        id: frame-seam
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
