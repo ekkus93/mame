@@ -92,6 +92,8 @@ This TODO replaces the former assumption that a supervised MAME process plus a s
 
 **Exit gate:** Every failure in the spec produces a specific user-visible state, useful details, and a retry/return path; runtime ready is never misreported as video ready.
 
+> **2026-10-09 Linux executable-busy remediation:** Tauri project run [37900948141](https://github.com/ekkus93/mame/actions/runs/37900948141) showed two intermittent fake-MAME test failures when the executable version probe returned Linux `ETXTBSY` (`Text file busy`, OS error 26), with 295 other Rust tests passing. Commits `71b3c07` and `d82dc7` add bounded retries only for that transient Linux spawn error during version probing and supervised launch, preserving other errors and failing after a bounded deadline if an executable stays writable. Regression tests cover both the released-writer success path and the persistent-busy failure path. Exact-head Tauri project [37906371297](https://github.com/ekkus93/mame/actions/runs/37906371297) has **passed its `linux-quality` job**, including Rust format and Rust tests. This is automated launch resilience; it is not proof of working real-ROM video/audio or full-AppImage gameplay.
+
 > **2026-10-08 retry evidence:** commit `7ff890680d060ea0f1ac9cde51f91850f4b468e7` added pre-ready-failure and post-ready-crash relaunch regressions. The subsequent corrected binary head `ad605d64145d9bcca547bc0b689fe244c17b2744` completed the `linux-quality` job successfully in Tauri project run `37842790331`, including Rust tests.
 
 ## Phase 6 — Automated verification and full AppImage qualification
