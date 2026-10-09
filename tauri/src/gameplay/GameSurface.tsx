@@ -23,6 +23,7 @@ import {
   KEYBOARD_INPUTS,
   selectStandardGamepad,
 } from "./gameplayInput";
+import { ensureCanvasBackingSize } from "./canvasSizing";
 import "./GameSurface.css";
 
 type FrameState =
@@ -57,8 +58,7 @@ function drawFrame(
   frame: GameFrame,
   smoothing: boolean,
 ) {
-  staging.width = frame.width;
-  staging.height = frame.height;
+  ensureCanvasBackingSize(staging, frame.width, frame.height);
   const stagingContext = staging.getContext("2d", { alpha: false });
   if (!stagingContext) {
     throw new Error("The browser could not create the gameplay staging canvas.");
@@ -70,8 +70,7 @@ function drawFrame(
     frame.height,
     frame.orientationDegrees,
   );
-  if (canvas.width !== displayWidth) canvas.width = displayWidth;
-  if (canvas.height !== displayHeight) canvas.height = displayHeight;
+  ensureCanvasBackingSize(canvas, displayWidth, displayHeight);
 
   const context = canvas.getContext("2d", { alpha: false });
   if (!context) {
@@ -142,6 +141,8 @@ export function GameSurface({
   );
   const [failure, setFailure] = useState<string | null>(null);
   const [smoothScaling, setSmoothScaling] = useState(false);
+  const smoothScalingRef = useRef(smoothScaling);
+  smoothScalingRef.current = smoothScaling;
   const [frameSummary, setFrameSummary] = useState<string>("No frame presented yet.");
   const [preferredGamepadId, setPreferredGamepadId] = useState<string | null>(null);
   const [controllerSummary, setControllerSummary] = useState(
@@ -228,7 +229,7 @@ export function GameSurface({
         const frame = parseGameFrame(raw, session.sessionId);
         lastSequence = acceptFrameSequence(lastSequence, frame.sequence);
         const presentationStartedAt = performance.now();
-        drawFrame(canvas, staging, frame, smoothScaling);
+        drawFrame(canvas, staging, frame, smoothScalingRef.current);
         const presentationDurationUs = Math.max(
           0,
           Math.round((performance.now() - presentationStartedAt) * 1_000),
@@ -294,7 +295,7 @@ export function GameSurface({
       presentationAckRef.current = null;
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [session.sessionId, session.state, smoothScaling]);
+  }, [session.sessionId, session.state]);
 
   useEffect(() => {
     let disposed = false;
