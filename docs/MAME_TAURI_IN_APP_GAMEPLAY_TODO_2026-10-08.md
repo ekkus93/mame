@@ -6,6 +6,12 @@
 
 This TODO replaces the former assumption that a supervised MAME process plus a separate SDL window constitutes playable Tauri gameplay. It tracks the complete path from discovered local ROMs through live video, controls, diagnostics, and validation in the full AppImage.
 
+## Post-review remediation (2026-10-09)
+
+The original gameplay feature checklist and its 46 historical completed checkboxes remain unchanged. A subsequent source-level review found correctness gaps in launch-history first-frame success, asynchronous input teardown, frame protocol and acknowledgements, frame-age semantics, packaged runtime audit provenance, FIFO reader cancellation and qualification tooling. These issues are tracked and corrected under the [post-review specification](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md) and [active post-review TODO](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md). In particular, the historical checkboxes for original items 16, 17, 21, 26, 36, 38, 46 and 47 are **not sufficient by themselves** to qualify the strengthened post-review requirements; consult the active remediation TODO and its exact-source CI evidence before reporting implementation complete.
+
+The fourteen unchecked desktop/private-ROM items below remain independently deferred and unchecked; the active post-review TODO carries their identifiers forward without converting their status to complete.
+
 ## Deferred acceptance scope (2026-10-09 — user decision)
 
 **On hold, not complete:** All 14 currently unchecked tasks and subtasks below are deferred **to the extent they require the user's graphical desktop, locally installed ROMs or the original installed MAME and its user-specific configuration**. This includes Phase 0 user-case reproduction and startup-cause triage; Phase 1 representative raster/vector/high-resolution capture and Lua timing measurements plus real-machine headless behavior; Phase 3 native audio and representative game testing; Phase 4 original installed-MAME `rompath` parity; Phase 6 end-to-end AppImage gameplay, measured desktop performance, qualification evidence and repeat qualification after a relevant fix; and Phase 7 fresh-profile user review. Do **not** mark any of these checkboxes `[x]` based only on CI's ROM-less `___empty` or synthetic-frame tests. Do **not** request or invent the user's private ROMs, screenshots, performance measurements or machine configuration.

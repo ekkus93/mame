@@ -3,6 +3,7 @@
 **Date:** 2026-10-08  
 **Status:** Required product specification; implementation is incomplete  
 **Companion TODO:** [MAME Tauri In-App Gameplay TODO](MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md)  
+**Active post-review remediation:** [2026-10-09 remediation specification](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md) and [remediation TODO](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md)  
 **Supersedes:** The external-window-only gameplay assumption in the 2026-09-08 architecture baseline and the statement in `README.md` that gameplay video is not proxied to the frontend.
 
 ## 1. Problem statement
@@ -179,3 +180,17 @@ The work is complete only when all of these are true:
 9. No ROM/CHD/BIOS content is added to the artifact, and the AppImage contains the full bundled MAME runtime.
 10. README and architecture documentation describe the implemented in-app frame path accurately and no longer promise that gameplay video is intentionally absent.
 
+
+## 10. Post-review clarifications (2026-10-09)
+
+The parent requirements remain authoritative for product behavior. Implement and qualify all corrections under the [post-review remediation specification](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md); the [post-review TODO](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md) is the active code-fix checklist.
+
+- **Launch-history success is stricter than runtime-control readiness.** Persist a pending attempt when launching. Mark it successful only on the first accepted frame-presentation acknowledgement for the same live session. Termination, user stop or a reported first-frame presentation failure before any acknowledgement settle the pending attempt as unsuccessful. Repeated callbacks/acknowledgements must be idempotent, and failed database writes remain diagnostic.
+- **Input completion must be generation-owned.** Keyboard and W3C-standard gamepad state is released on blur, fullscreen ownership loss, teardown or session replacement. In-flight IPC responses from an obsolete effect generation must not mutate the next session's accepted-state bookkeeping.
+- **Frame protocol validation is native-first.** Unknown flag bits and invalid/stale presentation acknowledgements are rejected by Rust before reaching the WebView; frontend parsing independently validates wire presentation fields.
+- **Metrics use distinct clock domains.** `latestReceivedAgeMs` is time since Rust received its latest frame. `lastPresentedAgeMs` is time since the backend's accepted presentation acknowledgement. `latestAgeMs` is a deprecated alias for backend receive age, **not** end-to-end latency; MAME's capture timestamp is emulated-time-domain and cannot be subtracted from a host wall clock to claim latency.
+- **Audit provenance includes bundled executable identity.** The randomized AppImage mount path is deliberately normalized, while the packaged `mame_sha256` digest invalidates saved audits when binary bytes change despite an identical MAME version string. Legacy audits without the digest must be requalified.
+- **Frame-reader teardown must be deterministic.** Cancellation must interrupt a reader waiting for its first writer, blocked between frames or reading a partial frame; do not wait indefinitely on the UI/host shutdown path.
+- **Qualification evidence remains scoped.** Full-runtime Debian/AppImage checks and ROM-less `___empty` headless capture are necessary automated gates but are not evidence of real user-ROM gameplay, native sound or desktop frame performance.
+
+**User decision (2026-10-09):** The original 14 desktop, private-ROM and installed-MAME-configuration acceptance items are explicitly deferred, not satisfied. Preserve their checkboxes. Resume them only when the user explicitly authorizes that scope. Automated remediation and CI remain in scope.

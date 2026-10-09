@@ -147,14 +147,16 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 9 — Reconcile documentation and the original checklist
 
-- [ ] **PRR-DOC-001:** Update the parent gameplay specification where metric/history/provenance semantics were clarified by this remediation.
-- [ ] **PRR-DOC-002:** Add a post-review note to the original 2026-10-08 TODO pointing to this TODO as the active remediation checklist.
-- [ ] **PRR-DOC-003:** Do not erase historical checkmarks/evidence in the original TODO; explicitly document any original checked item whose correctness was strengthened by remediation.
+- [x] **PRR-DOC-001:** Update the parent gameplay specification where metric/history/provenance semantics were clarified by this remediation.
+- [x] **PRR-DOC-002:** Add a post-review note to the original 2026-10-08 TODO pointing to this TODO as the active remediation checklist.
+- [x] **PRR-DOC-003:** Do not erase historical checkmarks/evidence in the original TODO; explicitly document any original checked item whose correctness was strengthened by remediation.
 - [ ] **PRR-DOC-004:** Update package evidence with the final exact-source remediation artifact.
 - [ ] **PRR-DOC-005:** Run documentation CI and fix real documentation failures.
 - [ ] **PRR-DOC-006:** Perform a final source-level review of every PRR item and verify no actionable non-deferred defect found by this review remains open.
 
 **Exit gate:** Repository documentation accurately describes the corrected implementation and does not claim deferred desktop acceptance.
+
+> **2026-10-09 documentation reconciliation:** The parent specification has a dedicated post-review addendum covering startup history, input ownership, exact frame acknowledgements, clock-domain metrics, bundled executable provenance, cancellation and evidence scope. The original feature TODO now links here, identifies historical checkboxes strengthened by review, and preserves the original 46 checked / 14 deferred completion history.
 
 ## Phase 10 — Deferred desktop/ROM acceptance — do not execute until user resumes
 
