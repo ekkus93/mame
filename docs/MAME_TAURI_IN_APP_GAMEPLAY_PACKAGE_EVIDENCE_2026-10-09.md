@@ -1,5 +1,29 @@
 # In-app gameplay — successful full-runtime package qualification (2026-10-09)
 
+## Post-review remediation full-runtime qualification — 2026-10-09
+
+**Qualified runtime source:** `0857595401d131080688baec2f3225b154787f2d` on `master` (the subsequent checklist/evidence-only documentation commit does not change executable source). **[Tauri project CI #37995370957](https://github.com/ekkus93/mame/actions/runs/37995370957)** passed quality, Rust formatting, Rust tests, Clippy, frontend formatting/lint/typecheck/Vitest, and Linux release build. **[Linux packaging #37995370987](https://github.com/ekkus93/mame/actions/runs/37995370987)**, **[Windows packaging #37995370954](https://github.com/ekkus93/mame/actions/runs/37995370954)**, **[macOS packaging #37995371013](https://github.com/ekkus93/mame/actions/runs/37995371013)** and **[security #37995370963](https://github.com/ekkus93/mame/actions/runs/37995370963)** passed. Updated parent documents passed **[documentation CI #37995146991](https://github.com/ekkus93/mame/actions/runs/37995146991)**.
+
+**[Exact-source real-MAME runtime package CI #37995371011](https://github.com/ekkus93/mame/actions/runs/37995371011)**: both jobs **passed**, including reused real MAME executable provenance, ROM-less `___empty` headless capture, repeated snapshot frame-seam qualification, runtime staging, real MAME 0.289 Debian/AppImage build, Debian runtime dependency augmentation, installed-package qualification, artifact upload, and final frame-seam enforcement.
+
+**[Download the qualified Debian + AppImage + provenance artifact #11648140266](https://github.com/ekkus93/mame/actions/runs/37995371011/artifacts/11648140266)** (GitHub Actions artifact expiration: **2026-10-12 21:45:40 UTC**). The independently uploaded exact-source MAME executable is [artifact #11647206092](https://github.com/ekkus93/mame/actions/runs/37995371011/artifacts/11647206092) with the same expiration.
+
+| Attribute | Verified value |
+| --- | --- |
+| Exact source SHA | `0857595401d131080688baec2f3225b154787f2d` |
+| Bundled MAME version | `0.289 (unknown)` |
+| Bundle command | `npm run tauri -- build --config src-tauri/tauri.linux-bundle.conf.json --bundles deb,appimage` |
+| AppImage path in build | `tauri/src-tauri/target/release/bundle/appimage/MAME Tauri Frontend_0.1.1_amd64.AppImage` |
+| AppImage SHA-256 | `4ea7b5b3930ad1778ea17cfa9d83cf6896d053ddcde624f375143767ec632c1b` |
+| AppImage size | 230,418,936 bytes |
+| Debian package path in build | `tauri/src-tauri/target/release/bundle/deb/MAME Tauri Frontend_0.1.1_amd64.deb` |
+| Debian SHA-256 | `1f1831eba038345046ec8910d2cf11b69ebcd195bcc28a72358596dda0f59332` |
+| Debian size | 124,958,638 bytes |
+
+**Scope limitation:** The real-MAME headless CI machine is `___empty`. This evidence qualifies packaging and ROM-less frame transport—not desktop raster/vector gameplay, local ROMs, native audio, input hardware, fullscreen performance or a fresh user profile. All 14 host-dependent acceptance tasks remain **deferred and unchecked** under the user's 2026-10-09 decision.
+
+**Separate release workflow:** [automatic v0.1.1 tag-publishing attempt #37996000866](https://github.com/ekkus93/mame/actions/runs/37996000866) refused to move an existing differing `v0.1.1` tag. That safety refusal is not a gameplay/package-build failure; no tag was moved and no replacement release was claimed.
+
 ## Current qualified full runtime — frame-seam syntax and report fix
 
 **Binary/source commit:** `7d1ed8426e5b3c8f436002edfd79fdf5cf74f3c1` (the subsequent `89fdde8a` commit is documentation/deferral only and does not modify the runtime). [Exact-source full-runtime CI #37983935896](https://github.com/ekkus93/mame/actions/runs/37983935896) passed both jobs, including the real-MAME executable checks, headless `___empty` frame-seam smoke with the corrected shell syntax, full Debian/AppImage packaging, installed-package verification, dependency augmentation, provenance manifest, and mandatory frame-seam enforcement. Tauri project [37983935928](https://github.com/ekkus93/mame/actions/runs/37983935928), Linux [37983935818](https://github.com/ekkus93/mame/actions/runs/37983935818), Windows [37983935859](https://github.com/ekkus93/mame/actions/runs/37983935859), and macOS [37983935806](https://github.com/ekkus93/mame/actions/runs/37983935806) also passed at the same source.

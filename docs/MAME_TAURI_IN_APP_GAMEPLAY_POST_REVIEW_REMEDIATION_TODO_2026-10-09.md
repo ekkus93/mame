@@ -72,7 +72,7 @@ This is the authoritative implementation checklist for findings discovered by th
 - [x] **PRR-FRAME-006:** Preserve idempotence only for a legitimately already-acknowledged sequence; do not increment presented metrics twice.
 - [x] **PRR-FRAME-007:** Keep duration, session-state, sequence and protocol bounds fail-closed.
 - [x] **PRR-FRAME-008:** Add Rust tests for unknown flags, skipped/dropped sequence acknowledgement, duplicate acknowledgement and future/backward sequences.
-- [ ] **PRR-FRAME-009:** Run existing Rust and TypeScript frame protocol suites and confirm no regression in BGRX conversion, dimensions, orientation, stale-session or payload validation.
+- [x] **PRR-FRAME-009:** Run existing Rust and TypeScript frame protocol suites and confirm no regression in BGRX conversion, dimensions, orientation, stale-session or payload validation.
 
 **Exit gate:** Native validation and presentation metrics cannot claim a frame was presented unless that frame was actually delivered and acknowledged correctly.
 
@@ -132,16 +132,16 @@ This is the authoritative implementation checklist for findings discovered by th
 
 ## Phase 8 — Regression and exact-source automated qualification
 
-- [ ] **PRR-CI-001:** Run/qualify Rust formatting and Clippy/lint on the exact implementation head.
-- [ ] **PRR-CI-002:** Run/qualify the complete Rust unit/integration suite, including new history/input/frame/provenance/lifecycle regressions.
-- [ ] **PRR-CI-003:** Run/qualify TypeScript lint/typecheck and Vitest, including the asynchronous input lifecycle regression.
-- [ ] **PRR-CI-004:** Qualify ordinary Linux packaging on the exact head.
-- [ ] **PRR-CI-005:** Qualify Windows and macOS packaging workflows required by the existing project policy.
-- [ ] **PRR-CI-006:** Build the full real-MAME Linux Debian package and AppImage from the exact remediation head.
-- [ ] **PRR-CI-007:** Pass real-MAME `___empty` headless snapshot smoke and corrected frame-seam qualification.
-- [ ] **PRR-CI-008:** Pass installed-package/dependency/provenance checks and preserve the package artifact.
-- [ ] **PRR-CI-009:** Record exact source SHA, workflow/run IDs, artifact ID/name, expiration, AppImage/deb hashes, sizes and bundled MAME version.
-- [ ] **PRR-CI-010:** Treat every earlier AppImage as stale for final acceptance after the last launch/frame/input/provenance/transport behavior change.
+- [x] **PRR-CI-001:** Run/qualify Rust formatting and Clippy/lint on the exact implementation head.
+- [x] **PRR-CI-002:** Run/qualify the complete Rust unit/integration suite, including new history/input/frame/provenance/lifecycle regressions.
+- [x] **PRR-CI-003:** Run/qualify TypeScript lint/typecheck and Vitest, including the asynchronous input lifecycle regression.
+- [x] **PRR-CI-004:** Qualify ordinary Linux packaging on the exact head.
+- [x] **PRR-CI-005:** Qualify Windows and macOS packaging workflows required by the existing project policy.
+- [x] **PRR-CI-006:** Build the full real-MAME Linux Debian package and AppImage from the exact remediation head.
+- [x] **PRR-CI-007:** Pass real-MAME `___empty` headless snapshot smoke and corrected frame-seam qualification.
+- [x] **PRR-CI-008:** Pass installed-package/dependency/provenance checks and preserve the package artifact.
+- [x] **PRR-CI-009:** Record exact source SHA, workflow/run IDs, artifact ID/name, expiration, AppImage/deb hashes, sizes and bundled MAME version.
+- [x] **PRR-CI-010:** Treat every earlier AppImage as stale for final acceptance after the last launch/frame/input/provenance/transport behavior change.
 
 **Exit gate:** The final autonomous remediation source is green across required exact-head tests and produces a preserved, source-pinned full runtime artifact.
 
@@ -150,13 +150,15 @@ This is the authoritative implementation checklist for findings discovered by th
 - [x] **PRR-DOC-001:** Update the parent gameplay specification where metric/history/provenance semantics were clarified by this remediation.
 - [x] **PRR-DOC-002:** Add a post-review note to the original 2026-10-08 TODO pointing to this TODO as the active remediation checklist.
 - [x] **PRR-DOC-003:** Do not erase historical checkmarks/evidence in the original TODO; explicitly document any original checked item whose correctness was strengthened by remediation.
-- [ ] **PRR-DOC-004:** Update package evidence with the final exact-source remediation artifact.
-- [ ] **PRR-DOC-005:** Run documentation CI and fix real documentation failures.
-- [ ] **PRR-DOC-006:** Perform a final source-level review of every PRR item and verify no actionable non-deferred defect found by this review remains open.
+- [x] **PRR-DOC-004:** Update package evidence with the final exact-source remediation artifact.
+- [x] **PRR-DOC-005:** Run documentation CI and fix real documentation failures.
+- [x] **PRR-DOC-006:** Perform a final source-level review of every PRR item and verify no actionable non-deferred defect found by this review remains open.
 
 **Exit gate:** Repository documentation accurately describes the corrected implementation and does not claim deferred desktop acceptance.
 
 > **2026-10-09 documentation reconciliation:** The parent specification has a dedicated post-review addendum covering startup history, input ownership, exact frame acknowledgements, clock-domain metrics, bundled executable provenance, cancellation and evidence scope. The original feature TODO now links here, identifies historical checkboxes strengthened by review, and preserves the original 46 checked / 14 deferred completion history.
+
+> **2026-10-09 final autonomous qualification:** Exact runtime implementation source `0857595401d131080688baec2f3225b154787f2d` passed Tauri project #37995370957, Linux #37995370987, Windows #37995370954, macOS #37995371013, security #37995370963 and full real-MAME Debian/AppImage/installed-package/frame-seam CI #37995371011. Package artifact [#11648140266](https://github.com/ekkus93/mame/actions/runs/37995371011/artifacts/11648140266) contains an AppImage SHA-256 of `4ea7b5b3930ad1778ea17cfa9d83cf6896d053ddcde624f375143767ec632c1b` and Debian SHA-256 of `1f1831eba038345046ec8910d2cf11b69ebcd195bcc28a72358596dda0f59332`; both expire 2026-10-12 21:45:40 UTC. Parent documentation passed #37995146991. Details: [package evidence](MAME_TAURI_IN_APP_GAMEPLAY_PACKAGE_EVIDENCE_2026-10-09.md). No known non-deferred implementation defect remains from this review. The separate v0.1.1 tag-mismatch publishing safety refusal was not overridden and is not package qualification. Last behavior-changing code is source `0857595401d131080688baec2f3225b154787f2d`; later evidence-only updates do not change its executable.
 
 ## Phase 10 — Deferred desktop/ROM acceptance — do not execute until user resumes
 
@@ -183,9 +185,9 @@ The following items are deliberately carried forward from the parent TODO. They 
 
 The post-review remediation is complete when:
 
-- [ ] Every **PRR-*** item above is checked with code/test/CI evidence.
-- [ ] No known Moderate-or-higher post-review defect remains.
-- [ ] The final full real-runtime artifact is exact-source and green.
-- [ ] The original TODO points to this remediation and retains its historical evidence.
-- [ ] All 14 **DEFER-ORIG-*** items remain unchecked unless the user explicitly resumes and supplies/permits the required host evidence.
-- [ ] The repository can accurately report: **all autonomous post-review remediation complete; only explicitly deferred desktop/ROM acceptance remains**.
+- [x] Every **PRR-*** item above is checked with code/test/CI evidence.
+- [x] No known Moderate-or-higher post-review defect remains.
+- [x] The final full real-runtime artifact is exact-source and green.
+- [x] The original TODO points to this remediation and retains its historical evidence.
+- [x] All 14 **DEFER-ORIG-*** items remain unchecked unless the user explicitly resumes and supplies/permits the required host evidence.
+- [x] The repository can accurately report: **all autonomous post-review remediation complete; only explicitly deferred desktop/ROM acceptance remains**.
