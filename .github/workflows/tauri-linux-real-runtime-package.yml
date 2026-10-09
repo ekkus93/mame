@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: tauri-linux-real-runtime-${{ github.ref }}
@@ -86,6 +87,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-real-mame-${{ env.MAME_TAURI_MAME_SUBTARGET }}-
             ${{ runner.os }}-real-mame-
+
+      - name: Check reusable MAME build input identity
+        id: reuse-check
+        shell: bash
+        run: |
+          if git diff --quiet d82dc7f28c79f458a39742a08bfbdd1538f50261 "$GITHUB_SHA" -- src/ 3rdparty/ makefile scripts/ ':(exclude)scripts/tauri/**'; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download previous source-identical MAME executable
+        id: reuse-download
+        if: steps.reuse-check.outputs.eligible == 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@v6
+        with:
+          name: real-mame-executable-d82dc7f28c79f458a39742a08bfbdd1538f50261
+          run-id: 37906371265
+          github-token: ${{ github.token }}
+          path: artifacts/real-mame-runtime
+
+      - name: Validate reused executable and its provenance
+        id: reuse-verified
+        if: steps.reuse-download.outcome == 'success'
+        shell: bash
+        run: |
+          (cd artifacts/real-mame-runtime && sha256sum -c mame.sha256)
+          chmod 0755 artifacts/real-mame-runtime/mame
+          ./scripts/tauri/validate-real-mame-runtime.sh artifacts/real-mame-runtime/mame
+          ./scripts/tauri/validate-release-driver-coverage.sh artifacts/real-mame-runtime/mame
+          echo "MAME_TAURI_REAL_RUNTIME_EXECUTABLE=$PWD/artifacts/real-mame-runtime/mame" >> "$GITHUB_ENV"
 
       - name: Build real MAME runtime from repository source
         shell: bash
