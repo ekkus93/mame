@@ -485,7 +485,7 @@ impl Read for CancellableFifoReader {
         loop {
             if self.cancelled.load(Ordering::Acquire) {
                 return Err(io::Error::new(
-                    io::ErrorKind::Interrupted,
+                    io::ErrorKind::ConnectionAborted,
                     "MAME frame reader cancelled",
                 ));
             }
