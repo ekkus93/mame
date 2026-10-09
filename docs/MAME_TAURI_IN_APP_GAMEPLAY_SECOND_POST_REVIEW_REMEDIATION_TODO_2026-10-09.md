@@ -67,29 +67,33 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 3 — Tighten presentation acknowledgement semantics
 
-- [ ] **SPRR-ACK-001:** Explicitly represent the exact delivered frame currently eligible for acknowledgement.
-- [ ] **SPRR-ACK-002:** Define whether an old duplicate ACK after a newer frame is delivered is rejected or accepted solely as protocol-noise no-op.
-- [ ] **SPRR-ACK-003:** Ensure an old duplicate can never satisfy, clear or count as acknowledgement of a newer outstanding frame.
-- [ ] **SPRR-ACK-004:** Preserve one-and-only-one presented metric increment per valid frame.
-- [ ] **SPRR-ACK-005:** Ensure stale/duplicate ACK handling cannot incorrectly trigger first-frame durable history success.
-- [ ] **SPRR-ACK-006:** Add regressions for duplicate current ACK, duplicate old ACK after newer delivery, future/backward ACKs, mailbox-dropped ACKs and duration bounds.
+- [x] **SPRR-ACK-001:** Explicitly represent the exact delivered frame currently eligible for acknowledgement.
+- [x] **SPRR-ACK-002:** Define whether an old duplicate ACK after a newer frame is delivered is rejected or accepted solely as protocol-noise no-op.
+- [x] **SPRR-ACK-003:** Ensure an old duplicate can never satisfy, clear or count as acknowledgement of a newer outstanding frame.
+- [x] **SPRR-ACK-004:** Preserve one-and-only-one presented metric increment per valid frame.
+- [x] **SPRR-ACK-005:** Ensure stale/duplicate ACK handling cannot incorrectly trigger first-frame durable history success.
+- [x] **SPRR-ACK-006:** Add regressions for duplicate current ACK, duplicate old ACK after newer delivery, future/backward ACKs, mailbox-dropped ACKs and duration bounds.
 
 **Exit gate:** Presentation accounting has one documented, test-proven interpretation for every duplicate/stale acknowledgement case.
 
+> **SPRR-ACK implementation:** The mailbox now explicitly tracks one outstanding presentation sequence. A duplicate ACK is idempotent only after the current delivered frame was already acknowledged and no newer frame is outstanding; an older duplicate after a newer delivery is rejected. Existing dropped/future/duration checks remain fail-closed, so stale ACK rejection occurs before durable first-frame success settlement.
+
 ## Phase 4 — Diagnose producer disconnects and strengthen frame-reader lifecycle
 
-- [ ] **SPRR-LIFE-001:** Track whether the FIFO has ever observed producer bytes or an established frame stream.
-- [ ] **SPRR-LIFE-002:** Continue tolerating pre-connection FIFO EOF while respecting cancellation.
-- [ ] **SPRR-LIFE-003:** Convert EOF after an established producer/stream into a bounded actionable frame-stream diagnostic.
-- [ ] **SPRR-LIFE-004:** Convert partial-header or partial-payload producer disconnect into an actionable transport/protocol failure.
-- [ ] **SPRR-LIFE-005:** Ensure intentional cancellation wins over disconnect reporting during stop/shutdown.
-- [ ] **SPRR-LIFE-006:** Preserve bounded polling/wakeup with no busy spin or unbounded join.
-- [ ] **SPRR-LIFE-007:** Add deterministic cancellation coverage with no writer, idle connected writer, partial header and partial payload.
-- [ ] **SPRR-LIFE-008:** Add producer-disconnect-after-valid-frame regression coverage.
-- [ ] **SPRR-LIFE-009:** Add supervisor-level coverage proving finalized/drop/shutdown sessions leave no logically active frame reader.
-- [ ] **SPRR-LIFE-010:** Confirm cancellation cannot publish/authenticate a fabricated partial frame.
+- [x] **SPRR-LIFE-001:** Track whether the FIFO has ever observed producer bytes or an established frame stream.
+- [x] **SPRR-LIFE-002:** Continue tolerating pre-connection FIFO EOF while respecting cancellation.
+- [x] **SPRR-LIFE-003:** Convert EOF after an established producer/stream into a bounded actionable frame-stream diagnostic.
+- [x] **SPRR-LIFE-004:** Convert partial-header or partial-payload producer disconnect into an actionable transport/protocol failure.
+- [x] **SPRR-LIFE-005:** Ensure intentional cancellation wins over disconnect reporting during stop/shutdown.
+- [x] **SPRR-LIFE-006:** Preserve bounded polling/wakeup with no busy spin or unbounded join.
+- [x] **SPRR-LIFE-007:** Add deterministic cancellation coverage with no writer, idle connected writer, partial header and partial payload.
+- [x] **SPRR-LIFE-008:** Add producer-disconnect-after-valid-frame regression coverage.
+- [x] **SPRR-LIFE-009:** Add supervisor-level coverage proving finalized/drop/shutdown sessions leave no logically active frame reader.
+- [x] **SPRR-LIFE-010:** Confirm cancellation cannot publish/authenticate a fabricated partial frame.
 
 **Exit gate:** The frame transport distinguishes “producer not connected yet,” “producer disappeared unexpectedly,” and “session intentionally cancelled.”
+
+> **SPRR-LIFE implementation:** Linux FIFO transport tracks reader-start and producer-byte observation. Pre-producer EOF remains a bounded wait; EOF after observed producer bytes returns stream EOF so header/identity/payload `read_exact` reports an actionable error. Cancellation is checked first and suppresses intentional-shutdown errors. Tests cover no writer, idle writer, partial header/payload, disconnect after a valid frame, partial-frame cancellation, normal stop and supervisor drop.
 
 ## Phase 5 — Contain qualification evidence output paths
 

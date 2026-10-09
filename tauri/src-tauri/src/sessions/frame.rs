@@ -161,6 +161,7 @@ struct FrameMailboxInner {
     presented: u64,
     last_sequence: Option<u64>,
     last_delivered_sequence: Option<u64>,
+    outstanding_presentation_sequence: Option<u64>,
     last_presented_sequence: Option<u64>,
     last_capture_timestamp_us: Option<u64>,
     last_received_at_epoch_ms: Option<u64>,
@@ -184,6 +185,7 @@ impl FrameMailbox {
                 presented: 0,
                 last_sequence: None,
                 last_delivered_sequence: None,
+                outstanding_presentation_sequence: None,
                 last_presented_sequence: None,
                 last_capture_timestamp_us: None,
                 last_received_at_epoch_ms: None,
@@ -243,6 +245,7 @@ impl FrameMailbox {
         if let Some(frame) = frame.as_ref() {
             inner.delivered = inner.delivered.saturating_add(1);
             inner.last_delivered_sequence = Some(frame.sequence);
+            inner.outstanding_presentation_sequence = Some(frame.sequence);
         }
         frame
     }
@@ -272,21 +275,27 @@ impl FrameMailbox {
                 serde_json::json!({ "sequence": sequence }),
             )
         })?;
-        if inner.last_presented_sequence == Some(sequence) {
-            // A duplicate acknowledgement of an already presented frame is harmless,
-            // but it must never increment presented metrics a second time.
-            return Ok(());
-        }
-        if sequence != delivered {
-            return Err(protocol_error(
-                "MAME_FRAME_PRESENTATION_ACK_INVALID",
-                "The gameplay acknowledgement does not match the latest delivered frame.",
-                serde_json::json!({
-                    "sequence": sequence,
-                    "lastDeliveredSequence": delivered,
-                    "lastPresentedSequence": inner.last_presented_sequence
-                }),
-            ));
+        match inner.outstanding_presentation_sequence {
+            Some(outstanding) if sequence == outstanding => {
+                inner.outstanding_presentation_sequence = None;
+            }
+            None if inner.last_presented_sequence == Some(sequence) && delivered == sequence => {
+                // The exact current frame was already acknowledged and no newer frame is
+                // outstanding. Treat a transport retry as idempotent protocol noise.
+                return Ok(());
+            }
+            outstanding => {
+                return Err(protocol_error(
+                    "MAME_FRAME_PRESENTATION_ACK_INVALID",
+                    "The gameplay acknowledgement does not match the outstanding delivered frame.",
+                    serde_json::json!({
+                        "sequence": sequence,
+                        "outstandingSequence": outstanding,
+                        "lastDeliveredSequence": delivered,
+                        "lastPresentedSequence": inner.last_presented_sequence
+                    }),
+                ));
+            }
         }
 
         inner.presented = inner.presented.saturating_add(1);
@@ -300,6 +309,7 @@ impl FrameMailbox {
         let mut inner = recover_lock(&self.inner);
         inner.closed = true;
         inner.latest = None;
+        inner.outstanding_presentation_sequence = None;
     }
 
     pub(super) fn stream_error(&self) -> Option<AppError> {
@@ -356,6 +366,10 @@ pub(super) struct FrameTransport {
     #[cfg(all(target_os = "linux", target_endian = "little"))]
     reader_done: Arc<AtomicBool>,
     #[cfg(all(target_os = "linux", target_endian = "little"))]
+    reader_started: Arc<AtomicBool>,
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    producer_observed: Arc<AtomicBool>,
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
     cancelled: Arc<AtomicBool>,
 }
 
@@ -382,6 +396,8 @@ impl FrameTransport {
                 path,
                 auth_token: generate_auth_token()?,
                 reader_done: Arc::new(AtomicBool::new(false)),
+                reader_started: Arc::new(AtomicBool::new(false)),
+                producer_observed: Arc::new(AtomicBool::new(false)),
                 cancelled: Arc::new(AtomicBool::new(false)),
             }))
         }
@@ -413,6 +429,8 @@ impl FrameTransport {
             let path = self.path.clone();
             let auth_token = self.auth_token.clone();
             let reader_done = self.reader_done.clone();
+            let reader_started = self.reader_started.clone();
+            let producer_observed = self.producer_observed.clone();
             let cancelled = self.cancelled.clone();
             thread::spawn(move || {
                 // Nonblocking FIFO I/O plus a bounded retry loop lets cancellation
@@ -422,7 +440,10 @@ impl FrameTransport {
                     .custom_flags(OFlags::NONBLOCK.bits() as i32)
                     .open(&path);
                 let file = match file {
-                    Ok(file) => file,
+                    Ok(file) => {
+                        reader_started.store(true, Ordering::Release);
+                        file
+                    }
                     Err(error) => {
                         if !cancelled.load(Ordering::Acquire) {
                             mailbox.mark_error(&transport_io_error("open private FIFO", error));
@@ -434,6 +455,7 @@ impl FrameTransport {
                 let mut reader = CancellableFifoReader {
                     file,
                     cancelled: cancelled.clone(),
+                    producer_observed,
                 };
                 while !cancelled.load(Ordering::Acquire) {
                     match read_wire_frame(&mut reader, &session_id, &auth_token) {
@@ -471,12 +493,28 @@ impl FrameTransport {
             // initial writer, between frames, and during partial payload reads.
         }
     }
+
+    #[cfg(all(test, target_os = "linux", target_endian = "little"))]
+    pub(super) fn reader_done_flag(&self) -> Arc<AtomicBool> {
+        self.reader_done.clone()
+    }
+
+    #[cfg(all(test, target_os = "linux", target_endian = "little"))]
+    fn reader_started_flag(&self) -> Arc<AtomicBool> {
+        self.reader_started.clone()
+    }
+
+    #[cfg(all(test, target_os = "linux", target_endian = "little"))]
+    fn producer_observed_flag(&self) -> Arc<AtomicBool> {
+        self.producer_observed.clone()
+    }
 }
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
 struct CancellableFifoReader {
     file: File,
     cancelled: Arc<AtomicBool>,
+    producer_observed: Arc<AtomicBool>,
 }
 
 #[cfg(all(target_os = "linux", target_endian = "little"))]
@@ -490,15 +528,24 @@ impl Read for CancellableFifoReader {
                 ));
             }
             match self.file.read(bytes) {
+                Ok(0) if self.producer_observed.load(Ordering::Acquire) => {
+                    // After producer bytes have been observed, EOF means that the
+                    // producer disappeared. read_exact will report the boundary
+                    // (header, identity, or payload) that was truncated.
+                    return Ok(0);
+                }
                 Ok(0) => {
-                    // A FIFO opened without a writer returns EOF; it may also
-                    // temporarily return EOF between producer reconnects.
+                    // Before the producer connects, FIFO EOF is expected.
                     thread::sleep(Duration::from_millis(5));
+                }
+                Ok(read) => {
+                    self.producer_observed.store(true, Ordering::Release);
+                    return Ok(read);
                 }
                 Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
                     thread::sleep(Duration::from_millis(5));
                 }
-                other => return other,
+                Err(error) => return Err(error),
             }
         }
     }
@@ -828,7 +875,7 @@ mod tests {
             } else {
                 None
             };
-            std::thread::sleep(Duration::from_millis(30));
+            wait_for_atomic(&transport.reader_started_flag(), "FIFO reader must start");
             transport.cancel();
             let started = Instant::now();
             while !transport.reader_done.load(Ordering::Acquire)
@@ -842,6 +889,97 @@ mod tests {
             );
             drop(writer);
         }
+    }
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    fn wait_for_atomic(flag: &AtomicBool, message: &str) {
+        use std::time::{Duration, Instant};
+        let started = Instant::now();
+        while !flag.load(Ordering::Acquire) && started.elapsed() < Duration::from_secs(2) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(flag.load(Ordering::Acquire), "{message}");
+    }
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    #[test]
+    fn fifo_disconnect_after_valid_frame_is_reported() {
+        use std::io::Write;
+        let transport = FrameTransport::create().unwrap().unwrap();
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        transport.start_reader(SESSION.to_owned(), mailbox.clone());
+        let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+        writer
+            .write_all(&wire_frame(1, 1, 1, SESSION, TOKEN))
+            .unwrap();
+        writer.flush().unwrap();
+        wait_for_atomic(
+            &transport.producer_observed_flag(),
+            "reader must observe producer bytes",
+        );
+        drop(writer);
+        wait_for_atomic(&transport.reader_done, "reader must stop after producer EOF");
+        let error = mailbox
+            .stream_error()
+            .expect("producer EOF must be diagnostic");
+        assert_eq!(error.code, "MAME_FRAME_STREAM_READ_FAILED");
+    }
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    #[test]
+    fn fifo_partial_header_and_payload_disconnects_fail_without_publishing() {
+        use std::io::Write;
+        for payload_case in [false, true] {
+            let transport = FrameTransport::create().unwrap().unwrap();
+            let mailbox = FrameMailbox::new(SESSION.to_owned());
+            transport.start_reader(SESSION.to_owned(), mailbox.clone());
+            let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+            let bytes = wire_frame(1, 1, 1, SESSION, TOKEN);
+            let cutoff = if payload_case { bytes.len() - 1 } else { 7 };
+            writer.write_all(&bytes[..cutoff]).unwrap();
+            writer.flush().unwrap();
+            wait_for_atomic(
+                &transport.producer_observed_flag(),
+                "reader must observe partial producer bytes",
+            );
+            drop(writer);
+            wait_for_atomic(
+                &transport.reader_done,
+                "partial stream reader must terminate",
+            );
+            assert!(mailbox.take_latest().is_none());
+            let error = mailbox
+                .stream_error()
+                .expect("partial disconnect must be diagnostic");
+            assert_eq!(error.code, "MAME_FRAME_STREAM_READ_FAILED");
+        }
+    }
+
+    #[cfg(all(target_os = "linux", target_endian = "little"))]
+    #[test]
+    fn cancellation_wins_over_partial_frame_and_never_publishes_it() {
+        use std::io::Write;
+        let transport = FrameTransport::create().unwrap().unwrap();
+        let mailbox = FrameMailbox::new(SESSION.to_owned());
+        transport.start_reader(SESSION.to_owned(), mailbox.clone());
+        let mut writer = OpenOptions::new().write(true).open(&transport.path).unwrap();
+        writer.write_all(&FRAME_WIRE_MAGIC[..4]).unwrap();
+        writer.flush().unwrap();
+        wait_for_atomic(
+            &transport.producer_observed_flag(),
+            "reader must observe partial header",
+        );
+        transport.cancel();
+        wait_for_atomic(
+            &transport.reader_done,
+            "cancelled partial reader must terminate",
+        );
+        assert!(mailbox.take_latest().is_none());
+        assert!(
+            mailbox.stream_error().is_none(),
+            "intentional cancellation must not report producer failure"
+        );
+        drop(writer);
     }
 
     #[test]
@@ -1016,10 +1154,14 @@ mod tests {
             .expect("first presented");
         mailbox
             .record_presented(1, Some(120))
-            .expect("duplicate ack idempotent");
+            .expect("duplicate ack idempotent while no newer frame is outstanding");
         publish(2);
         publish(3); // sequence 2 was replaced, not delivered
         assert_eq!(mailbox.take_latest().expect("third delivered").sequence, 3);
+        let error = mailbox
+            .record_presented(1, Some(120))
+            .expect_err("old duplicate must fail after a newer delivery");
+        assert_eq!(error.code, "MAME_FRAME_PRESENTATION_ACK_INVALID");
         let error = mailbox
             .record_presented(2, Some(120))
             .expect_err("mailbox-dropped sequence must not count as presented");

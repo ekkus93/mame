@@ -452,6 +452,16 @@ mod tests {
                 no_op_sink(),
             )
             .expect("fake MAME must launch");
+        #[cfg(all(target_os = "linux", target_endian = "little"))]
+        let frame_reader_done = {
+            let inner = recover_lock(&supervisor.inner);
+            inner
+                .current
+                .as_ref()
+                .and_then(|current| current.frame_transport.as_ref())
+                .map(|transport| transport.reader_done_flag())
+                .expect("Linux session frame transport")
+        };
         let stopped = supervisor
             .stop(&started.session_id)
             .expect("forced stop must complete");
@@ -460,6 +470,19 @@ mod tests {
         assert!(stopped.forced_termination);
         assert_eq!(stopped.session.state, SessionState::Exited);
         assert!(stopped.session.forced_termination);
+        #[cfg(all(target_os = "linux", target_endian = "little"))]
+        {
+            let started_wait = std::time::Instant::now();
+            while !frame_reader_done.load(std::sync::atomic::Ordering::Acquire)
+                && started_wait.elapsed() < Duration::from_secs(2)
+            {
+                thread::sleep(Duration::from_millis(5));
+            }
+            assert!(
+                frame_reader_done.load(std::sync::atomic::Ordering::Acquire),
+                "normal/forced stop must terminate the frame reader"
+            );
+        }
 
         fs::remove_dir_all(root).expect("remove fake MAME directory");
     }
@@ -488,12 +511,35 @@ mod tests {
             let current = inner.current.as_ref().expect("managed session");
             current.child.clone().expect("supervised child")
         };
+        #[cfg(all(target_os = "linux", target_endian = "little"))]
+        let frame_reader_done = {
+            let inner = recover_lock(&supervisor.inner);
+            inner
+                .current
+                .as_ref()
+                .and_then(|current| current.frame_transport.as_ref())
+                .map(|transport| transport.reader_done_flag())
+                .expect("Linux session frame transport")
+        };
 
         drop(supervisor);
 
         let status = super::wait_for_child(&child, Duration::from_secs(2))
             .expect("observe child after supervisor drop");
         assert!(status.is_some(), "dropping the supervisor must reap MAME");
+        #[cfg(all(target_os = "linux", target_endian = "little"))]
+        {
+            let started = std::time::Instant::now();
+            while !frame_reader_done.load(std::sync::atomic::Ordering::Acquire)
+                && started.elapsed() < Duration::from_secs(2)
+            {
+                thread::sleep(Duration::from_millis(5));
+            }
+            assert!(
+                frame_reader_done.load(std::sync::atomic::Ordering::Acquire),
+                "dropping the supervisor must terminate the frame reader"
+            );
+        }
 
         fs::remove_dir_all(root).expect("remove fake MAME directory");
     }
