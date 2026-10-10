@@ -41,8 +41,18 @@ app_id=$(readelf -n "$runtime/bin/mame" 2>/dev/null | sed -n 's/^[[:space:]]*Bui
   echo 'AppImage MAME build ID differs from staged executable; refusing provenance rewrite' >&2
   exit 1
 }
-objcopy --dump-section .text="$scratch/staged.text" "$staged/bin/mame"
-objcopy --dump-section .text="$scratch/app.text" "$runtime/bin/mame"
+# Supplying an explicit output copy is required: GNU objcopy otherwise rewrites
+# the input in place even when --dump-section is the only intended operation.
+objcopy --dump-section .text="$scratch/staged.text" "$staged/bin/mame" "$scratch/staged.copy"
+objcopy --dump-section .text="$scratch/app.text" "$runtime/bin/mame" "$scratch/app.copy"
+[[ "$(sha256sum "$staged/bin/mame" | awk '{print $1}')" == "$staged_hash" ]] || {
+  echo 'Machine-code comparison modified the staged MAME executable' >&2
+  exit 1
+}
+[[ "$(sha256sum "$runtime/bin/mame" | awk '{print $1}')" == "$app_hash" ]] || {
+  echo 'Machine-code comparison modified the packaged MAME executable' >&2
+  exit 1
+}
 cmp -s "$scratch/staged.text" "$scratch/app.text" || {
   echo 'AppImage MAME machine code differs from staged executable; refusing provenance rewrite' >&2
   exit 1
