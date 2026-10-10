@@ -47,6 +47,7 @@ jobs:
           bash -n scripts/tauri/test-frame-seam-arguments.sh
           bash -n scripts/tauri/verify-runtime-provenance.sh
           bash -n scripts/tauri/test-runtime-provenance-integrity.sh
+          bash -n scripts/tauri/finalize-appimage-runtime-provenance.sh
           bash scripts/tauri/test-frame-seam-arguments.sh
           bash scripts/tauri/test-runtime-provenance-integrity.sh
 
@@ -72,6 +73,7 @@ jobs:
             libsdl2-dev \
             libsdl2-ttf-dev \
             libssl-dev \
+            squashfs-tools \
             libutf8proc-dev \
             libwebkit2gtk-4.1-dev \
             libxi-dev \
@@ -301,6 +303,7 @@ jobs:
             libsdl2-dev \
             libsdl2-ttf-dev \
             libssl-dev \
+            squashfs-tools \
             libutf8proc-dev \
             libwebkit2gtk-4.1-dev \
             libxi-dev \
@@ -411,6 +414,14 @@ jobs:
           [[ -n "$deb" ]] || { echo "Debian package was not produced" >&2; exit 1; }
           [[ -x "$runtime" ]] || { echo "staged bundled MAME executable is missing or non-executable: $runtime" >&2; exit 1; }
           ./scripts/tauri/augment-deb-runtime-deps.sh "$deb" "$runtime"
+
+      - name: Reconcile linuxdeploy ELF relocation with final AppImage provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage=$(find tauri/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -type f -print -quit)
+          [[ -n "$appimage" ]] || { echo 'AppImage was not produced' >&2; exit 1; }
+          bash scripts/tauri/finalize-appimage-runtime-provenance.sh             "$appimage" tauri/src-tauri/bundle-resources/mame-runtime
 
       - name: Real bundled runtime package qualification
         shell: bash

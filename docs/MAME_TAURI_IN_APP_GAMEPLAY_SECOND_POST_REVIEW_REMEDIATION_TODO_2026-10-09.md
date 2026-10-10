@@ -137,6 +137,8 @@ This checklist is the authoritative source of completion truth for issues discov
 
 > **SPRR-FIRST decision:** Keep the accepted-ACK contract. Browser draw alone is not durable success; only Rust accepting the queued presentation sequence settles success. A terminal event between draw and accepted ACK therefore decides failure. Backend history regressions cover draw-without-ACK failure and prove an accepted success decision cannot be overwritten. `SPRR-FIRST-004` is satisfied as not applicable because no immediate-ACK command was introduced.
 
+> **2026-10-10 package-qualification diagnosis:** Exact-head workflow [38008178789](https://github.com/ekkus93/mame/actions/runs/38008178789) on `b950ab5eb03874b0a2e9f7102409548d4d9c7e4b` passed real-MAME build, headless capture, frame seam, Debian/AppImage construction, installed Debian runtime checks, Debian reinstall and X11 smoke. The package job failed when the **AppImage-extracted** MAME executable hash (`e852607f…`) differed from the staged provenance (`dfaf9258…`). This is consistent with linuxdeploy modifying ELF metadata while packaging. The remediation requires verification of unchanged GNU build ID and machine code before recording the final AppImage executable digest and rebuilding the SquashFS payload. Final qualification still fails closed on a mismatched manifest/executable; this build-time reconciliation is not marked complete until exact-head CI passes.
+
 ## Phase 8 — Comprehensive automated regressions
 
 - [ ] **SPRR-TEST-001:** Run and pass the new same-session input lifecycle regression.
