@@ -74,7 +74,9 @@ PY
 "$verifier" "$runtime"
 offset=$("$appimage" --appimage-offset)
 [[ "$offset" =~ ^[0-9]+$ && "$offset" -gt 0 ]] || { echo "Invalid AppImage offset: $offset" >&2; exit 1; }
-# The AppImage runtime used by the Tauri bundler supports zlib/zstd payloads;\n# use zstd so the rebuilt image remains extractable by that runtime.\nmksquashfs "$scratch/extract/squashfs-root" "$scratch/payload.squashfs" -noappend -comp zstd -processors 2 >/dev/null
+# The AppImage runtime used by the Tauri bundler supports zlib/zstd payloads;
+# use zstd so the rebuilt image remains extractable by that runtime.
+mksquashfs "$scratch/extract/squashfs-root" "$scratch/payload.squashfs" -noappend -comp zstd -processors 2 >/dev/null
 head -c "$offset" "$appimage" >"$scratch/repacked.AppImage"
 cat "$scratch/payload.squashfs" >>"$scratch/repacked.AppImage"
 chmod --reference="$appimage" "$scratch/repacked.AppImage"
