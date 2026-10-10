@@ -342,14 +342,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="artifacts/in-app-gameplay/ci-frame-seam-${GITHUB_SHA}.txt"
+          # Relative output names are resolved beneath the evidence root by
+          # qualify-mame-frame-seams.sh; do not prefix the root twice.
+          report_name="ci-frame-seam-${GITHUB_SHA}.txt"
+          report_path="artifacts/in-app-gameplay/$report_name"
           ./scripts/tauri/qualify-mame-frame-seams.sh \
-            "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE" ___empty "" "$report"
+            "$MAME_TAURI_REAL_RUNTIME_EXECUTABLE" ___empty "" "$report_name"
           {
             echo '### Headless MAME snapshot frame-seam evidence (___empty)'
             echo 'This measures repeatability and CPU capture overhead only; it does not qualify real-ROM raster/vector performance or the Tauri desktop surface.'
             echo '~~~text'
-            cat "$report"
+            cat "$report_path"
             echo '~~~'
           } >>"$GITHUB_STEP_SUMMARY"
 

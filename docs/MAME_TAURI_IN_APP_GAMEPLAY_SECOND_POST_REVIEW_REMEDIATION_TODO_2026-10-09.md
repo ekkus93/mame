@@ -150,6 +150,8 @@ This checklist is the authoritative source of completion truth for issues discov
 
 **Exit gate:** Every second-review defect has a regression that would fail on the reviewed baseline or a deliberately constructed equivalent failure fixture.
 
+> **2026-10-10 qualification repair:** Exact-head real-runtime run `38006770425` on `8383bf44ad1b758ede8e41f6091fbb351cc32fea` failed in the frame-seam step because the workflow passed `artifacts/in-app-gameplay/ci-frame-seam-<SHA>.txt` as a relative output, while the hardened script already resolves relative outputs under `artifacts/in-app-gameplay/`. The snapshot itself succeeded (`___empty`, `snapshot_status=ok`), but the workflow tried to read the wrong path. The workflow now passes a basename to the script and reads the evidence-root path. Re-run exact-source full-runtime qualification before checking CI gates; this repair is not itself qualification evidence. The separate `v0.1.1` release-starter failure is an existing-tag mismatch and must not be “fixed” by moving that tag.
+
 ## Phase 9 — Exact-source CI and full runtime requalification
 
 - [ ] **SPRR-CI-001:** Pass Rust formatting and Clippy/lint on the final implementation SHA.
