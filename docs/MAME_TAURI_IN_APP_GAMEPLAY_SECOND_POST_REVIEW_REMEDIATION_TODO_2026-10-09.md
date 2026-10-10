@@ -184,10 +184,12 @@ This checklist is the authoritative source of completion truth for issues discov
 - [x] **SPRR-DOC-004:** Document the chosen first-frame success/ACK contract.
 - [x] **SPRR-DOC-005:** Document qualification output-path policy and package provenance verification.
 - [x] **SPRR-DOC-006:** Update package evidence with the final second-remediation exact-source artifact.
-- [ ] **SPRR-DOC-007:** Run and pass documentation CI.
+- [x] **SPRR-DOC-007:** Run and pass documentation CI.
 - [ ] **SPRR-DOC-008:** Perform a final source-level review of every SPRR item and verify no actionable non-deferred second-review defect remains.
 
 **Exit gate:** Repository documentation accurately distinguishes original work, first remediation, second remediation, automated qualification and deferred desktop acceptance.
+
+> **2026-10-10 documentation qualification:** [Build documentation run 38016557206](https://github.com/ekkus93/mame/actions/runs/38016557206) passed on exact source `2eb799f8fe4b6c45cca9c7ed5435e5db3aee6f8b`, including HTML, PDF and artifact upload, after the evidence-markdown escaping repair. This is documentation CI evidence, not a replacement for the real-runtime package qualified at `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` (the later commits are TODO-documentation-only). Security workflow and final source-level review remain unchecked.
 
 > **Documentation reconciliation in progress:** The parent gameplay specification now records session-owned input, retry-safe history, strict outstanding ACKs, stateful producer EOF, the accepted-ACK first-frame contract, contained evidence paths and package provenance verification. The first-remediation spec/TODO point forward without changing historical checkmarks. Final artifact evidence, documentation CI and the final source review remain open until exact-source qualification completes.
 
