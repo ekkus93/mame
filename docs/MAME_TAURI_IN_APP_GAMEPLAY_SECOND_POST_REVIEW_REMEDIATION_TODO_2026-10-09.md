@@ -141,14 +141,14 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 8 — Comprehensive automated regressions
 
-- [ ] **SPRR-TEST-001:** Run and pass the new same-session input lifecycle regression.
-- [ ] **SPRR-TEST-002:** Run and pass real SQLite history lifecycle/retry regressions.
-- [ ] **SPRR-TEST-003:** Run and pass strengthened frame acknowledgement regressions.
-- [ ] **SPRR-TEST-004:** Run and pass deterministic FIFO cancellation/disconnect regressions.
-- [ ] **SPRR-TEST-005:** Run and pass qualification output-path shell regressions.
-- [ ] **SPRR-TEST-006:** Run and pass packaged-runtime digest verification regressions.
-- [ ] **SPRR-TEST-007:** Re-run all existing frame parsing/BGRX/sizing/metrics/input/content-path/audit/session regressions.
-- [ ] **SPRR-TEST-008:** Confirm no test depends on user ROMs, graphical desktop, original installed MAME or personal runtime configuration.
+- [x] **SPRR-TEST-001:** Run and pass the new same-session input lifecycle regression.
+- [x] **SPRR-TEST-002:** Run and pass real SQLite history lifecycle/retry regressions.
+- [x] **SPRR-TEST-003:** Run and pass strengthened frame acknowledgement regressions.
+- [x] **SPRR-TEST-004:** Run and pass deterministic FIFO cancellation/disconnect regressions.
+- [x] **SPRR-TEST-005:** Run and pass qualification output-path shell regressions.
+- [x] **SPRR-TEST-006:** Run and pass packaged-runtime digest verification regressions.
+- [x] **SPRR-TEST-007:** Re-run all existing frame parsing/BGRX/sizing/metrics/input/content-path/audit/session regressions.
+- [x] **SPRR-TEST-008:** Confirm no test depends on user ROMs, graphical desktop, original installed MAME or personal runtime configuration.
 
 **Exit gate:** Every second-review defect has a regression that would fail on the reviewed baseline or a deliberately constructed equivalent failure fixture.
 
@@ -156,32 +156,32 @@ This checklist is the authoritative source of completion truth for issues discov
 
 ## Phase 9 — Exact-source CI and full runtime requalification
 
-- [ ] **SPRR-CI-001:** Pass Rust formatting and Clippy/lint on the final implementation SHA.
-- [ ] **SPRR-CI-002:** Pass the complete Rust unit/integration suite.
-- [ ] **SPRR-CI-003:** Pass frontend formatting/lint/typecheck/Vitest/component tests.
-- [ ] **SPRR-CI-004:** Pass the production Tauri project build.
-- [ ] **SPRR-CI-005:** Pass ordinary Linux packaging.
-- [ ] **SPRR-CI-006:** Pass required Windows packaging.
-- [ ] **SPRR-CI-007:** Pass required macOS packaging.
+- [x] **SPRR-CI-001:** Pass Rust formatting and Clippy/lint on the final implementation SHA.
+- [x] **SPRR-CI-002:** Pass the complete Rust unit/integration suite.
+- [x] **SPRR-CI-003:** Pass frontend formatting/lint/typecheck/Vitest/component tests.
+- [x] **SPRR-CI-004:** Pass the production Tauri project build.
+- [x] **SPRR-CI-005:** Pass ordinary Linux packaging.
+- [x] **SPRR-CI-006:** Pass required Windows packaging.
+- [x] **SPRR-CI-007:** Pass required macOS packaging.
 - [ ] **SPRR-CI-008:** Pass security workflow(s).
-- [ ] **SPRR-CI-009:** Build the full real-MAME Linux Debian package and AppImage from the final exact implementation head.
-- [ ] **SPRR-CI-010:** Pass ROM-less `___empty` headless snapshot and frame-seam qualification.
-- [ ] **SPRR-CI-011:** Pass installed Debian package qualification including executable/provenance digest comparison.
-- [ ] **SPRR-CI-012:** Pass AppImage extraction/package qualification including executable/provenance digest comparison.
-- [ ] **SPRR-CI-013:** Preserve the final package artifact and record artifact ID/name/expiration.
-- [ ] **SPRR-CI-014:** Record exact source SHA, CI run IDs, AppImage/deb hashes, sizes and bundled MAME version.
-- [ ] **SPRR-CI-015:** Treat all earlier runtime artifacts, including the `08575954…` artifact, as stale for final acceptance after the last behavior change.
+- [x] **SPRR-CI-009:** Build the full real-MAME Linux Debian package and AppImage from the final exact implementation head.
+- [x] **SPRR-CI-010:** Pass ROM-less `___empty` headless snapshot and frame-seam qualification.
+- [x] **SPRR-CI-011:** Pass installed Debian package qualification including executable/provenance digest comparison.
+- [x] **SPRR-CI-012:** Pass AppImage extraction/package qualification including executable/provenance digest comparison.
+- [x] **SPRR-CI-013:** Preserve the final package artifact and record artifact ID/name/expiration.
+- [x] **SPRR-CI-014:** Record exact source SHA, CI run IDs, AppImage/deb hashes, sizes and bundled MAME version.
+- [x] **SPRR-CI-015:** Treat all earlier runtime artifacts, including the `08575954…` artifact, as stale for final acceptance after the last behavior change.
 
 **Exit gate:** A new exact-source full-runtime package is green and cryptographically reconciled to its recorded provenance.
 
-## Phase 10 — Documentation and completion reconciliation
+> **2026-10-10 exact-head automated qualification:** Final qualified source \`add08e6ae7baae90c5e9e77e8ce26fce588a9a83\` (the SquashFS repack fix) passed [Tauri project run 38014688032](https://github.com/ekkus93/mame/actions/runs/38014688032): frontend formatting, lint, typecheck, 51 Vitest files/195 tests, production build; Rust formatting, Clippy, 315 library tests (one ignored), four integration tests and release smoke. [Linux packaging 38014688006](https://github.com/ekkus93/mame/actions/runs/38014688006), [Windows packaging 38014688107](https://github.com/ekkus93/mame/actions/runs/38014688107) and [macOS packaging 38014688066](https://github.com/ekkus93/mame/actions/runs/38014688066) passed on the same SHA. [Real-runtime package run 38014688027](https://github.com/ekkus93/mame/actions/runs/38014688027) passed shell syntax and path/provenance negative tests, reused a SHA-validated real MAME binary, captured ROM-less \`___empty\` 320×240 headless frames (\`snapshot_status=ok\`), reconciled linuxdeploy relocation, validated Debian and extracted AppImage executable digests, installed/reinstalled Debian, and passed runtime, dependency and X11 smoke checks. Package evidence: bundled MAME \`0.289 (unknown)\`; AppImage SHA-256 \`347a5dd15ada23aa8cec45ad963303b6aed88002adfb5e3db6d1fccb6029ece4\`, 232,995,320 bytes; Debian SHA-256 \`8e59c49030ba39ade6c86303636678eb3d2ba1d327765ba09cdd799558f4611b\`, 124,954,508 bytes. Provenance executable SHA-256 is \`dfaf9258dba976e868b2e40ba072a6cf5f8e901e1e8ee40453bb0f3bdfe705a6\` in the Debian staging tree and \`e852607f0a40dff3a15fdea6a82ba76f5ac5a7683a00b384edbd97b3445ed1c0\` after the verified AppImage relocation. Preserved package artifact ID \`11656011923\`, name \`real-bundled-mame-linux-packages-add08e6ae7baae90c5e9e77e8ce26fce588a9a83\`, expires 2026-10-13 01:50 UTC (GitHub Actions retention); executable artifact ID \`11654509258\`, same expiration. All 14 user-deferred desktop/private-ROM acceptance tasks remain unchecked. The separate one-time \`v0.1.1\` release-starter [run 38015085562](https://github.com/ekkus93/mame/actions/runs/38015085562) fails only because the existing tag targets another SHA; the tag is deliberately not moved. Security and documentation CI and final source-level review remain separately unverified at this source head.\n\n## Phase 10 — Documentation and completion reconciliation
 
 - [x] **SPRR-DOC-001:** Add a second-review note to the previous remediation specification pointing to this active specification/TODO.
 - [x] **SPRR-DOC-002:** Add a second-review note to the previous remediation TODO without erasing its historical checked state.
 - [x] **SPRR-DOC-003:** Document the fixed same-session input lifecycle and history retry semantics in the appropriate gameplay architecture/runtime docs.
 - [x] **SPRR-DOC-004:** Document the chosen first-frame success/ACK contract.
 - [x] **SPRR-DOC-005:** Document qualification output-path policy and package provenance verification.
-- [ ] **SPRR-DOC-006:** Update package evidence with the final second-remediation exact-source artifact.
+- [x] **SPRR-DOC-006:** Update package evidence with the final second-remediation exact-source artifact.
 - [ ] **SPRR-DOC-007:** Run and pass documentation CI.
 - [ ] **SPRR-DOC-008:** Perform a final source-level review of every SPRR item and verify no actionable non-deferred second-review defect remains.
 
