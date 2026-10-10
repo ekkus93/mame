@@ -1,7 +1,7 @@
 # MAME Tauri In-App Gameplay Second Post-Review Remediation TODO
 
 **Date:** 2026-10-09  
-**Status:** Active second post-review implementation checklist  
+**Status:** Autonomous second post-review remediation complete; deferred desktop/ROM acceptance remains  
 **Specification:** [MAME Tauri In-App Gameplay Second Post-Review Remediation Specification](MAME_TAURI_IN_APP_GAMEPLAY_SECOND_POST_REVIEW_REMEDIATION_SPEC_2026-10-09.md)  
 **Previous remediation TODO:** [MAME Tauri In-App Gameplay Post-Review Remediation TODO](MAME_TAURI_IN_APP_GAMEPLAY_POST_REVIEW_REMEDIATION_TODO_2026-10-09.md)  
 **Parent gameplay TODO:** [MAME Tauri In-App Gameplay TODO](MAME_TAURI_IN_APP_GAMEPLAY_TODO_2026-10-08.md)  
@@ -163,7 +163,7 @@ This checklist is the authoritative source of completion truth for issues discov
 - [x] **SPRR-CI-005:** Pass ordinary Linux packaging.
 - [x] **SPRR-CI-006:** Pass required Windows packaging.
 - [x] **SPRR-CI-007:** Pass required macOS packaging.
-- [ ] **SPRR-CI-008:** Pass security workflow(s).
+- [x] **SPRR-CI-008:** Pass security workflow(s).
 - [x] **SPRR-CI-009:** Build the full real-MAME Linux Debian package and AppImage from the final exact implementation head.
 - [x] **SPRR-CI-010:** Pass ROM-less `___empty` headless snapshot and frame-seam qualification.
 - [x] **SPRR-CI-011:** Pass installed Debian package qualification including executable/provenance digest comparison.
@@ -174,7 +174,9 @@ This checklist is the authoritative source of completion truth for issues discov
 
 **Exit gate:** A new exact-source full-runtime package is green and cryptographically reconciled to its recorded provenance.
 
-> **2026-10-10 exact-head automated qualification:** Final qualified source `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` (the SquashFS repack fix) passed [Tauri project run 38014688032](https://github.com/ekkus93/mame/actions/runs/38014688032): frontend formatting, lint, typecheck, 51 Vitest files/195 tests, production build; Rust formatting, Clippy, 315 library tests (one ignored), four integration tests and release smoke. [Linux packaging 38014688006](https://github.com/ekkus93/mame/actions/runs/38014688006), [Windows packaging 38014688107](https://github.com/ekkus93/mame/actions/runs/38014688107) and [macOS packaging 38014688066](https://github.com/ekkus93/mame/actions/runs/38014688066) passed on the same SHA. [Real-runtime package run 38014688027](https://github.com/ekkus93/mame/actions/runs/38014688027) passed shell syntax and path/provenance negative tests, reused a SHA-validated real MAME binary, captured ROM-less `___empty` 320×240 headless frames (`snapshot_status=ok`), reconciled linuxdeploy relocation, validated Debian and extracted AppImage executable digests, installed/reinstalled Debian, and passed runtime, dependency and X11 smoke checks. Package evidence: bundled MAME `0.289 (unknown)`; AppImage SHA-256 `347a5dd15ada23aa8cec45ad963303b6aed88002adfb5e3db6d1fccb6029ece4`, 232,995,320 bytes; Debian SHA-256 `8e59c49030ba39ade6c86303636678eb3d2ba1d327765ba09cdd799558f4611b`, 124,954,508 bytes. Provenance executable SHA-256 is `dfaf9258dba976e868b2e40ba072a6cf5f8e901e1e8ee40453bb0f3bdfe705a6` in the Debian staging tree and `e852607f0a40dff3a15fdea6a82ba76f5ac5a7683a00b384edbd97b3445ed1c0` after the verified AppImage relocation. Preserved package artifact ID `11656011923`, name `real-bundled-mame-linux-packages-add08e6ae7baae90c5e9e77e8ce26fce588a9a83`, expires 2026-10-13 01:50 UTC (GitHub Actions retention); executable artifact ID `11654509258`, same expiration. All 14 user-deferred desktop/private-ROM acceptance tasks remain unchecked. The separate one-time `v0.1.1` release-starter [run 38015085562](https://github.com/ekkus93/mame/actions/runs/38015085562) fails only because the existing tag targets another SHA; the tag is deliberately not moved. Security and documentation CI and final source-level review remain separately unverified at this source head.
+> **2026-10-10 security input-equivalence:** [Tauri security run 38006770541](https://github.com/ekkus93/mame/actions/runs/38006770541) passed on source `8383bf44ad1b758ede8e41f6091fbb351cc32fea`, including the privileged-boundary policy regression, production npm advisory audit and pinned `cargo audit`. Ralph Bridge comparison from that SHA through final reviewed `master` `e85fdc9437a6242131422770c2f65cb877fdea27` shows changes only in `.github/workflows/tauri-linux-real-runtime-package.yml`, this TODO and `scripts/tauri/finalize-appimage-runtime-provenance.sh`. None is an input to `.github/workflows/tauri-security.yml`, whose security closure is the security workflow/Dependabot config, `tauri/**` and `scripts/tauri/test-security-policy.py`. Therefore the passing security workflow applies to the final implementation source without manufacturing a trigger-only commit.
+
+> **2026-10-10 exact-head automated qualification:** Final qualified source `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` (the SquashFS repack fix) passed [Tauri project run 38014688032](https://github.com/ekkus93/mame/actions/runs/38014688032): frontend formatting, lint, typecheck, 51 Vitest files/195 tests, production build; Rust formatting, Clippy, 315 library tests (one ignored), four integration tests and release smoke. [Linux packaging 38014688006](https://github.com/ekkus93/mame/actions/runs/38014688006), [Windows packaging 38014688107](https://github.com/ekkus93/mame/actions/runs/38014688107) and [macOS packaging 38014688066](https://github.com/ekkus93/mame/actions/runs/38014688066) passed on the same SHA. [Real-runtime package run 38014688027](https://github.com/ekkus93/mame/actions/runs/38014688027) passed shell syntax and path/provenance negative tests, reused a SHA-validated real MAME binary, captured ROM-less `___empty` 320×240 headless frames (`snapshot_status=ok`), reconciled linuxdeploy relocation, validated Debian and extracted AppImage executable digests, installed/reinstalled Debian, and passed runtime, dependency and X11 smoke checks. Package evidence: bundled MAME `0.289 (unknown)`; AppImage SHA-256 `347a5dd15ada23aa8cec45ad963303b6aed88002adfb5e3db6d1fccb6029ece4`, 232,995,320 bytes; Debian SHA-256 `8e59c49030ba39ade6c86303636678eb3d2ba1d327765ba09cdd799558f4611b`, 124,954,508 bytes. Provenance executable SHA-256 is `dfaf9258dba976e868b2e40ba072a6cf5f8e901e1e8ee40453bb0f3bdfe705a6` in the Debian staging tree and `e852607f0a40dff3a15fdea6a82ba76f5ac5a7683a00b384edbd97b3445ed1c0` after the verified AppImage relocation. Preserved package artifact ID `11656011923`, name `real-bundled-mame-linux-packages-add08e6ae7baae90c5e9e77e8ce26fce588a9a83`, expires 2026-10-13 01:50 UTC (GitHub Actions retention); executable artifact ID `11654509258`, same expiration. All 14 user-deferred desktop/private-ROM acceptance tasks remain unchecked. The separate one-time `v0.1.1` release-starter [run 38015085562](https://github.com/ekkus93/mame/actions/runs/38015085562) fails only because the existing tag targets another SHA; the tag is deliberately not moved. Security is covered by input-equivalent passing workflow evidence below; documentation CI and the final source-level review are also reconciled below.
 
 ## Phase 10 — Documentation and completion reconciliation
 
@@ -185,13 +187,15 @@ This checklist is the authoritative source of completion truth for issues discov
 - [x] **SPRR-DOC-005:** Document qualification output-path policy and package provenance verification.
 - [x] **SPRR-DOC-006:** Update package evidence with the final second-remediation exact-source artifact.
 - [x] **SPRR-DOC-007:** Run and pass documentation CI.
-- [ ] **SPRR-DOC-008:** Perform a final source-level review of every SPRR item and verify no actionable non-deferred second-review defect remains.
+- [x] **SPRR-DOC-008:** Perform a final source-level review of every SPRR item and verify no actionable non-deferred second-review defect remains.
 
 **Exit gate:** Repository documentation accurately distinguishes original work, first remediation, second remediation, automated qualification and deferred desktop acceptance.
 
-> **2026-10-10 documentation qualification:** [Build documentation run 38016557206](https://github.com/ekkus93/mame/actions/runs/38016557206) passed on exact source `2eb799f8fe4b6c45cca9c7ed5435e5db3aee6f8b`, including HTML, PDF and artifact upload, after the evidence-markdown escaping repair. This is documentation CI evidence, not a replacement for the real-runtime package qualified at `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` (the later commits are TODO-documentation-only). Security workflow and final source-level review remain unchecked.
+> **2026-10-10 final source-level review:** Reviewed the complete second-remediation diff from baseline `461b05174df7b80351b74f589eb40e11b5647390` through `e85fdc9437a6242131422770c2f65cb877fdea27`: 19 commits across 21 changed files. Re-checked session-owned input teardown and same-session ordering; retry-safe pending/decided/persisted history semantics and bounded shutdown retry; exact outstanding-frame ACK handling; producer-observed FIFO EOF/cancellation behavior and supervisor teardown; qualification-path containment including traversal/symlink rejection; packaged-runtime digest verification and linuxdeploy relocation reconciliation; the accepted-ACK first-frame contract; and their focused regressions. The final real-runtime artifact remains valid because commits after qualified source `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` are TODO/documentation-only. No actionable non-deferred second-review defect remains. All 14 user-deferred desktop/private-ROM/original-installed-MAME items remain intentionally unchecked.
 
-> **Documentation reconciliation in progress:** The parent gameplay specification now records session-owned input, retry-safe history, strict outstanding ACKs, stateful producer EOF, the accepted-ACK first-frame contract, contained evidence paths and package provenance verification. The first-remediation spec/TODO point forward without changing historical checkmarks. Final artifact evidence, documentation CI and the final source review remain open until exact-source qualification completes.
+> **2026-10-10 documentation qualification:** [Build documentation run 38016557206](https://github.com/ekkus93/mame/actions/runs/38016557206) passed on exact source `2eb799f8fe4b6c45cca9c7ed5435e5db3aee6f8b`, including HTML, PDF and artifact upload, after the evidence-markdown escaping repair. This is documentation CI evidence, not a replacement for the real-runtime package qualified at `add08e6ae7baae90c5e9e77e8ce26fce588a9a83` (the later commits are TODO-documentation-only). Security input-equivalence and the final source-level review are recorded below.
+
+> **Documentation reconciliation in progress:** The parent gameplay specification now records session-owned input, retry-safe history, strict outstanding ACKs, stateful producer EOF, the accepted-ACK first-frame contract, contained evidence paths and package provenance verification. The first-remediation spec/TODO point forward without changing historical checkmarks. Final artifact evidence, documentation CI, security-equivalent evidence and the final source review are reconciled. Only the 14 explicitly deferred desktop/private-ROM acceptance items remain open.
 
 ## Phase 11 — Deferred desktop/ROM acceptance — do not execute until user resumes
 
@@ -218,12 +222,12 @@ These fourteen items are carried forward unchanged in meaning. They are not seco
 
 The second post-review remediation is complete only when:
 
-- [ ] Every non-deferred **SPRR-*** item above is checked with appropriate code/test/CI evidence.
-- [ ] The same-session stale input-release race has a fix and a regression that fails on the reviewed baseline behavior.
-- [ ] Durable history decisions survive retryable persistence failure.
-- [ ] Presentation ACK semantics, FIFO disconnect semantics and first-frame success timing are explicitly documented and tested.
-- [ ] Qualification output containment and executable/provenance hash verification are enforced.
-- [ ] The final exact-source full real-MAME Debian/AppImage artifact is green and recorded.
-- [ ] Previous remediation documentation points to this second remediation without erasing historical evidence.
-- [ ] All 14 **DEFER-ORIG-*** items remain unchecked unless the user explicitly resumes them.
-- [ ] The repository can accurately report: **all second post-review autonomous remediation complete; only explicitly deferred desktop/ROM acceptance remains**.
+- [x] Every non-deferred **SPRR-*** item above is checked with appropriate code/test/CI evidence.
+- [x] The same-session stale input-release race has a fix and a regression that fails on the reviewed baseline behavior.
+- [x] Durable history decisions survive retryable persistence failure.
+- [x] Presentation ACK semantics, FIFO disconnect semantics and first-frame success timing are explicitly documented and tested.
+- [x] Qualification output containment and executable/provenance hash verification are enforced.
+- [x] The final exact-source full real-MAME Debian/AppImage artifact is green and recorded.
+- [x] Previous remediation documentation points to this second remediation without erasing historical evidence.
+- [x] All 14 **DEFER-ORIG-*** items remain unchecked unless the user explicitly resumes them.
+- [x] The repository can accurately report: **all second post-review autonomous remediation complete; only explicitly deferred desktop/ROM acceptance remains**.
